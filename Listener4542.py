@@ -2,7 +2,7 @@ import collections
 import re
 from types import CodeType
 from typing import Optional, Tuple, Dict, List, Iterator, NewType, NamedTuple, Sequence, Any, Callable, Iterable, \
-    Pattern, FrozenSet, Set, Mapping
+    Pattern, Set
 
 import inflect #type: ignore
 
@@ -284,4 +284,4 @@ def run() -> None:
 
 
 if __name__ == '__main__':
-    foo()
+    run()
