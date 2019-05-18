@@ -19,10 +19,11 @@ class MySolver(SolverByLetter):
         return location not in self.clue_list.start_locations
 
     def show_solution(self, known_letters: Dict[Letter, int]) -> None:
-        super(MySolver, self).show_solution(known_letters)
-        print(eval('I*R*R*A*N*E*I*P*I', None, known_letters))
-        print(eval('T*E*S*S*E*R*A*C*T', None, known_letters))
-        print(eval('D*O*D*E*C*A*G*O*N', None, known_letters))
+        # super(MySolver, self).show_solution(known_letters)
+        print(eval('I*R*R*A*N*E, I, P*I', None, known_letters))
+        print(eval('T*E*S*S*E*R, A, C*T', None, known_letters))
+        print(eval('D*O*D*E*C*A, G, O*N', None, known_letters))
+        print(known_letters)
 
 
 # noinspection SpellCheckingInspection
@@ -81,7 +82,7 @@ LOCATIONS: Sequence[Location] = (
 
 
 def run() -> None:
-    clue_list = ClueList.make_clue_list(ACROSS, DOWN, LOCATIONS)
+    clue_list = ClueList.create_from_text(ACROSS, DOWN, LOCATIONS)
     clue_list.verify_is_four_fold_symmetric()
     time1 = datetime.now()
     solver = MySolver(clue_list)

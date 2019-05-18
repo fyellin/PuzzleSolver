@@ -1,11 +1,10 @@
-import itertools
-from typing import Iterator, Callable, Iterable
+from typing import Iterator, Union
+from GenericSolver import ClueValueGenerator, Clue, Location, ClueList, SolverByClue
+import Generators
+from Generators import triangular, lucas, fibonacci, square, cube, prime, palindrome
 
-from GenericSolver import ClueValueGenerator, Clue, Location, ClueValue, ClueList, SolverByClue
 
-BASE = 9
-
-def to_base(num: int, base: int = BASE) -> str:
+def convert_to_base(num: int, base: int) -> str:
     result = []
     if not num:
         return '0'
@@ -16,64 +15,16 @@ def to_base(num: int, base: int = BASE) -> str:
     return ''.join(result)
 
 
-def fixup(function:Callable[[], Iterable[int]]) -> ClueValueGenerator:
-    def getter(clue: Clue) -> Iterator[ClueValue]:
-        min_value = BASE ** (clue.length - 1)
-        max_value = min_value * BASE
-        for value in itertools.takewhile(lambda x: x < max_value, itertools.dropwhile(lambda x: x < min_value, function())):
-            yield ClueValue(to_base(value))
-    return getter
-
-@fixup
-def triangular() -> Iterable[int]:
-    for i in itertools.count(1):
-        yield i * (i + 1) // 2
-
-
-@fixup
-def square() -> Iterable[int]:
-    for i in itertools.count(1):
-        yield i * i
-
-
-@fixup
-def cube() -> Iterable[int]:
-    for i in itertools.count(1):
-        yield i * i * i
-
-
-@fixup
-def fibonacci() -> Iterable[int]:
-    i, j = 1, 2
-    while True:
-        yield i
-        i, j = j, i + j
-
-
-@fixup
-def lucas() -> Iterable[int]:
-    i, j = 2, 1
-    while True:
-        yield i
-        i, j = j, i + j
-
-
-@fixup
-def prime() -> Iterable[int]:
-    return 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97
-
-
-def palindrome(clue: Clue) -> Iterable[ClueValue]:
-    half_length = (clue.length + 1) // 2
-    is_even = (clue.length & 1) == 0
-    for i in range(BASE ** (half_length - 1), BASE ** (half_length)):
-        left = to_base(i)
-        right = left[::-1]
-        yield ClueValue(left + (right if is_even else right[1:]))
+def using_current_base(generator: ClueValueGenerator) -> ClueValueGenerator:
+    def result(clue: Clue) -> Iterator[str]:
+        def maybe_convert(value: Union[int, str]) -> str:
+            return value if isinstance(value, str) else convert_to_base(value, Generators.BASE)
+        return map(maybe_convert, generator(clue))
+    return result
 
 
 def make(name: str, base_location: Location, length: int, generator: ClueValueGenerator) -> Clue:
-    return Clue.make(name, name[0] == 'A', base_location, length, generator=generator)
+    return Clue.make(name, name[0] == 'A', base_location, length, generator=using_current_base(generator))
 
 
 CLUES = (
@@ -100,13 +51,13 @@ CLUES = (
 
 
 def run() -> None:
-    global BASE
-    clue_list = ClueList(CLUES)
+    clue_list = ClueList.create(CLUES)
     clue_list.verify_is_180_symmetric()
-    for BASE in range(2, 17):
-        solver = SolverByClue(clue_list)
-        solver.solve()
-        print(BASE, solver.count_total)
+    solver = SolverByClue(clue_list)
+
+    for Generators.BASE in range(2, 11):
+        print(f'Running in base {Generators.BASE}')
+        solver.solve(show_time=False)
 
 if __name__ == '__main__':
     run()

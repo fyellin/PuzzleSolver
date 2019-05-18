@@ -66,7 +66,7 @@ LOCATIONS: Sequence[Location] = (
 
 
 def run() -> None:
-    clue_list = ClueList.make_clue_list(ACROSS, DOWN, LOCATIONS)
+    clue_list = ClueList.create_from_text(ACROSS, DOWN, LOCATIONS)
     clue_list.verify_is_vertically_symmetric()
     if True:
         time1 = datetime.now()
