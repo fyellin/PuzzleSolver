@@ -1,20 +1,20 @@
 import itertools
 import math
-from typing import Iterable, Callable, Tuple, Iterator
+from typing import Iterable, Callable, Tuple, Iterator, List
 
 from GenericSolver import Clue
 
-"""A collection of generators to use in various other puzzles"""
+"""A collection of generators to use in various other puzzles."""
 BASE = 10
 
 
-def allvalues(clue: Clue) -> Iterable[str]:
+def allvalues(clue: Clue) -> Iterable[int]:
     """All possible values that fit in the clue length"""
     min_value, max_value = __get_min_max(clue)
-    return range(min_value, max_value)
+    return iter(range(min_value, max_value))
 
 
-def palindrome(clue: Clue) -> Iterable[str]:
+def palindrome(clue: Clue) -> Iterator[str]:
     """Returns palindromes"""
     half_length = (clue.length + 1) // 2
     is_even = (clue.length & 1) == 0
@@ -24,7 +24,7 @@ def palindrome(clue: Clue) -> Iterable[str]:
         yield left + (right if is_even else right[1:])
 
 
-def square(clue: Clue) -> Iterable[int]:
+def square(clue: Clue) -> Iterator[int]:
     """Returns squares"""
     min_value, max_value = __get_min_max(clue)
     lower = int(math.ceil(math.sqrt(min_value)))
@@ -32,7 +32,7 @@ def square(clue: Clue) -> Iterable[int]:
     return map(lambda x: x * x, range(lower, upper))
 
 
-def cube(clue: Clue) -> Iterable[int]:
+def cube(clue: Clue) -> Iterator[int]:
     """Returns cubes"""
     min_value, max_value = __get_min_max(clue)
     lower = int(math.ceil(min_value ** (1 / 3)))
@@ -40,17 +40,17 @@ def cube(clue: Clue) -> Iterable[int]:
     return map(lambda x: x * x * x, range(lower, upper))
 
 
-def prime(clue: Clue) -> Iterable[int]:
+def prime(clue: Clue) -> Iterator[int]:
     """Returns primes"""
     return (p for p, is_prime in _prime_not_prime(clue) if is_prime)
 
 
-def not_prime(clue: Clue) -> Iterable[int]:
+def not_prime(clue: Clue) -> Iterator[int]:
     """Returns not primes"""
     return (p for p, is_prime in _prime_not_prime(clue) if not is_prime)
 
 
-def _prime_not_prime(clue: Clue) -> Iterable[Tuple[int, bool]]:
+def _prime_not_prime(clue: Clue) -> Iterator[Tuple[int, bool]]:
     """Returns (int, isPrime) for all integers of the right length"""
     min_value, max_value = __get_min_max(clue)
     # Get list of the prime factors that could possibly divide our numbers
@@ -66,32 +66,32 @@ def known(*values: int) -> Callable[[Clue], Iterable[int]]:
     return lambda _: values
 
 
-def permutation(alphabet: str = '0123456789') -> Callable[[Clue], Iterable[str]]:
+def permutation(alphabet: str = '0123456789') -> Callable[[Clue], Iterator[str]]:
     """Returns a non-repeating permutation of digits from the alphabet"""
 
-    def result(clue: Clue) -> Iterable[str]:
+    def result(clue: Clue) -> Iterator[str]:
         permutations = itertools.permutations(alphabet, clue.length)
         return map(lambda x: ''.join(x), permutations)
 
     return result
 
 
-def triangular(clue: Clue) -> Iterable[int]:
+def triangular(clue: Clue) -> Iterator[int]:
     """Returns triangular numbers"""
     return within_clue_limits(clue, (i * (i + 1) // 2 for i in itertools.count(1)))
 
 
-def fibonacci(clue: Clue) -> Iterable[int]:
+def fibonacci(clue: Clue) -> Iterator[int]:
     """Returns Fibonacci numbers"""
-    return within_clue_limits(clue, __fibonacii_like(1, 2))
+    return within_clue_limits(clue, __fibonacci_like(1, 2))
 
 
-def lucas(clue: Clue) -> Iterable[int]:
+def lucas(clue: Clue) -> Iterator[int]:
     """Returns Lucas numbers"""
-    return within_clue_limits(clue, __fibonacii_like(2, 1))
+    return within_clue_limits(clue, __fibonacci_like(2, 1))
 
 
-def within_clue_limits(clue: Clue, stream: Iterable[int]) -> Iterable[int]:
+def within_clue_limits(clue: Clue, stream: Iterator[int]) -> Iterator[int]:
     """Filters a (possibly infinite) monotonically increasing Iterator so that it only returns those values
     that are within the limits of this clue"""
     min_value, max_value = __get_min_max(clue)
@@ -109,19 +109,61 @@ def __get_min_max(clue: Clue) -> Tuple[int, int]:
 
 
 def __prime() -> Iterator[int]:
-    """The Sieve of Eratosthenes, Python style"""
-    numbers = itertools.count(2)
+    yield from [2, 3, 5, 7]
+    factor_sequence = __prime()
+    next(factor_sequence)  # we don't need the 2, since we're only looking at odd numbers
+    factors = [next(factor_sequence)]  # i.e. [3]
     while True:
-        p = next(numbers)
-        numbers = filter(lambda x, pp=p: x % pp, numbers)
-        yield p
+        # The last element we pulled from factor_sequence was factors[-1]
+        # We have generated all primes through factor[-1] ** 2 (which can't be a prime).
+        next_factor = next(factor_sequence)
+        # Let's look at all oee numbers through next_factor**2 (exclusive).
+        # All composites must have at least one factor smaller than next_factor.
+        for value in range((factors[-1] ** 2) + 2, next_factor ** 2, 2):
+            if all(value % factor for factor in factors):
+                yield value
+        factors.append(next_factor)
+
+#
+# The following two aren't really used.  But they're a fun experiment that I was working on.  Making sure the
+# recursion only goes one deep, by having everyone use the same list of factors.
+#
 
 
-def __fibonacii_like(start_i: int, start_j: int) -> Iterable[int]:
+def __prime2() -> Iterator[int]:
+    yield from [2, 3, 5, 7]
+    factors = [3]  # i.e. [3]
+    factor_sequence = __prime2x(factors)
+    for _ in range(1):
+        next(factor_sequence)  # we don't need the 2, since we're only looking at odd numbers
+    while True:
+        # The last element we pulled from factor_sequence was factors[-1]
+        # We have generated all primes through factor[-1] ** 2 (which can't be a prime).
+        next_factor = next(factor_sequence)
+        # Let's look at all oee numbers through next_factor**2 (exclusive).
+        # All composites must have at least one factor smaller than next_factor.
+        for value in range((factors[-1] ** 2) + 2, next_factor ** 2, 2):
+            if all(value % factor for factor in factors):
+                yield value
+        factors.append(next_factor)
+
+
+def __prime2x(factors: List[int]) -> Iterator[int]:
+    yield from [3, 5, 7]
+    factor_count = 1
+    while True:
+        for value in range((factors[factor_count - 1] ** 2) + 2, factors[factor_count] ** 2, 2):
+            if all(value % factors[i] for i in range(factor_count)):
+                yield value
+        factor_count += 1
+
+
+#
+# end of code to ignore
+#
+
+def __fibonacci_like(start_i: int, start_j: int) -> Iterator[int]:
     i, j = start_i, start_j
     while True:
         yield i
         i, j = j, i + j
-
-
-

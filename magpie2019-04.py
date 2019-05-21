@@ -10,7 +10,7 @@ def convert_to_base(num: int, base: int) -> str:
         return '0'
     while num:
         num, mod = divmod(num, base)
-        result.append('0123456789ABCDEF'[mod])
+        result.append('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz<>'[mod])
     result.reverse()
     return ''.join(result)
 
@@ -55,9 +55,10 @@ def run() -> None:
     clue_list.verify_is_180_symmetric()
     solver = SolverByClue(clue_list)
 
-    for Generators.BASE in range(2, 11):
+    for Generators.BASE in range(2, 65):
         print(f'Running in base {Generators.BASE}')
-        solver.solve(show_time=False)
+        solver.solve(show_time=False, debug=False)
+        print(f'Using {solver.count_total} steps')
 
 if __name__ == '__main__':
     run()

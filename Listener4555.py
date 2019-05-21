@@ -1,5 +1,6 @@
 import itertools
-from typing import Callable, Iterable, Optional, Dict, Tuple, List, FrozenSet, Union, Sequence
+import math
+from typing import Callable, Iterable, Optional, Dict, List, FrozenSet, Union, Sequence, Mapping
 import functools
 
 import Generators
@@ -71,19 +72,25 @@ prime_set = set(primes)
 
 prime_string_set = set(str(x) for x in primes if 2 < x < 1662)
 
+
 @functools.lru_cache(maxsize=None)
-def break_row_into_primes(line: str) -> List[Tuple[int, ...]]:
+def break_row_into_primes(line: str) -> List[List[str]]:
     result = []
-    for i in range(1, min(4, len(line)) + 1):
-        if i < len(line) and line[i] == '0':
-            continue
-        if line[0:i] in prime_string_set:
-            value = int(line[0:i])
-            if i == len(line):
-                result.append((value,))
-            for value2 in break_row_into_primes(line[i:]):
-                if value not in value2:
-                    result.append((value,) + value2)
+    length = len(line)
+    for i in range(1, 5):
+        if i < length:
+            if line[i] == '0':
+                continue
+            line_prefix = line[0:i]
+            if line_prefix in prime_string_set:
+                for value in break_row_into_primes(line[i:]):
+                    if line_prefix not in value:
+                        result.append([line_prefix] + value)
+        else:
+            if line in prime_string_set:
+                result.append([line])
+            break
+
     return result
 
 
@@ -121,17 +128,7 @@ def generate_6d(_clue: Clue) -> Iterable[int]:
 
 
 def with_prime_pattern(function: Callable[[Clue], Iterable[Union[int, str]]]) -> Callable[[Clue], Iterable[str]]:
-    def result(clue: Clue) -> Iterable[str]:
-        return (x for x in map(str, function(clue)) if break_row_into_primes(x))
-    return result
-
-
-def check_is_concatenated_primes(clue_list: ClueList, known_clues: Dict[Clue, ClueValue], names: Sequence[str]):
-    clues = tuple(clue_list.clue_named(x) for x in names)
-    if all(clue in known_clues for clue in clues):
-        temp = ''.join(known_clues[clue] for clue in clues)
-        return bool(break_row_into_primes(temp))
-    return True
+    return lambda clue: (x for x in map(str, function(clue)) if break_row_into_primes(x))
 
 
 def make(name: str, base_location: Location, length: int, generator: Optional[ClueValueGenerator]) -> Clue:
@@ -157,7 +154,7 @@ CLUES = (
     make('D4',  (1, 4), 2, Generators.not_prime),
     make('D5',  (1, 5), 7, Generators.square),
     make('D6',  (1, 6), 7, generate_6d),
-    make('D7',  (1, 7), 7, None),  # A9 causes this to be generated.  A9**2
+    make('D7',  (1, 7), 7, Generators.known(1173**2, 1927**2, 2777**2)),
     make('D11', (3, 4), 3, Generators.palindrome),
     make('D17', (6, 4), 2, Generators.known(11)),
 )
@@ -184,31 +181,45 @@ class MySolver(SolverByClue):
         else:
             return super(MySolver, self).get_allowed_regexp(location)
 
-    def post_assignment_cleanup(self, clue: Clue, known_clues: Dict[Clue, ClueValue],
-                                unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
+    def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
+                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
+        result = True
         if clue.name == 'A12':
-            # D1 is a multiple of A12
+            # D1 must be a multiple of A12
             value = int(known_clues[clue])
             unknown_clues[self.d1] = frozenset(x for x in unknown_clues[self.d1] if int(x) % value == 0)
-        elif clue.name == 'A9':
-            # D7 = A9 ** 2
-            value = int(known_clues[clue])
-            unknown_clues[self.d7] = frozenset([ClueValue(str(value ** 2))])
+            result = bool(unknown_clues[self.d1])
+        elif clue.name == 'A9' or clue.name == 'D7':
+            result = self.check_clue_filter(self.a9, self.d7, known_clues, unknown_clues, lambda a9, d7: d7 == a9 * a9)
+        if not result:
+            return False
 
         if clue.name in ('A8', 'A9'):
-            return self.__check_row_is_series_of_primes(known_clues, (self.a8, self.a9))
+            return self.__force_row_to_be_series_of_primes(known_clues, unknown_clues, (self.a8, self.a9))
         elif clue.name in ('A12', 'A13', 'A14'):
-            return self.__check_row_is_series_of_primes(known_clues, (self.a12, self.a13, self.a14))
+            return self.__force_row_to_be_series_of_primes(known_clues, unknown_clues, (self.a12, self.a13, self.a14))
         else:
             return True
 
     @staticmethod
-    def __check_row_is_series_of_primes(known_clues: Dict[Clue, ClueValue], clues: Sequence[Clue]) -> bool:
-        if all(clue in known_clues for clue in clues):
-            line = ''.join(known_clues[clue] for clue in clues)
-            return bool(break_row_into_primes(line))
+    def __force_row_to_be_series_of_primes(known_clues: Mapping[Clue, ClueValue],
+                                           unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
+                                           clues: Sequence[Clue], ) -> bool:
+        """
+        If all but one of the clues indicated has a known value, restrict its values to be only those that
+        satisfy that you can break the completed row into primes.
+        """
+        not_yet_assigned_clues = [clue for clue in clues if clue not in known_clues]
+        if len(not_yet_assigned_clues) == 1:
+            not_yet_assigned_clue = not_yet_assigned_clues[0]
+            # Create a format string consisting of the known line patterns, but put {} where the unknown goes
+            line_pattern = ''.join(known_clues.get(clue, '{}') for clue in clues)
+            new_set = unknown_clues[not_yet_assigned_clue] = frozenset(
+                # Filter out those results that don't create a proper line pattern
+                result for result in unknown_clues[not_yet_assigned_clue]
+                if break_row_into_primes(line_pattern.format(result)))
+            return bool(new_set)
         return True
-
 
     def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         board = self.clue_list.get_board(known_clues)
@@ -229,10 +240,10 @@ class MySolver(SolverByClue):
         row_breaks = tuple(break_row_into_primes(row) for row in rows)
         for row_break in itertools.product(*row_breaks):
             values = [x for xx in row_break for x in xx]
-            values.append(2)  # Put back the two that we removed from rows[5]
+            values.append('2')  # Put back the two that we removed from rows[5]
             if not len(values) == len(set(values)) == 25:
                 continue
-            if sum(values) != 2662:  # 2 * A16
+            if sum(map(int, values)) != 2662:  # 2 * A16
                 continue
             print(row_break)
             self.clue_list.print_board(known_clues)

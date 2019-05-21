@@ -7,7 +7,7 @@ from operator import itemgetter
 from types import CodeType
 import typing
 from typing import Optional, Tuple, Dict, List, Iterator, NewType, NamedTuple, Set, Sequence, cast, Any, Callable, \
-    Pattern, FrozenSet, Iterable, Union, Mapping
+    Pattern, FrozenSet, Iterable, Union, Mapping, SupportsInt
 
 Location = Tuple[int, int]
 ClueValue = NewType('ClueValue', str)
@@ -229,7 +229,7 @@ class Intersection(NamedTuple):
 
 class SolvingStep(NamedTuple):
     clue: Clue  # The clue we are solving
-    letters: Sequence[Letter]  # The letters we are assigning a value
+    letters: Sequence[Letter]  # The letters we are assigning a value in this step
     pattern_maker: Callable[[Dict[Clue, ClueValue]], Pattern[str]]  # a pattern maker
 
 
@@ -255,8 +255,8 @@ class SolverByLetter(ABC):
         self.__solve(0)
         time3 = datetime.now()
         if show_time:
-             print(f'Steps: {self.count_total}; '
-                   f'Setup: {time2 - time1}; Execution: {time3 - time2}; Total: {time3 - time1}')
+            print(f'Steps: {self.count_total}; '
+                  f'Setup: {time2 - time1}; Execution: {time3 - time2}; Total: {time3 - time1}')
 
     def __solve(self, current_index: int) -> None:
         if current_index == len(self.solving_order):
@@ -319,10 +319,14 @@ class SolverByLetter(ABC):
 
     @abstractmethod
     def get_letter_values(self, known_letters: Dict[Letter, int], count: int) -> Iterable[Sequence[int]]:
+        """
+        Returns thehe values that can be assigned to the next "count" variables.  We know that we have already assigned
+        values to the variables indicated in known_letters.
+        """
         raise Exception()
 
     def get_allowed_regexp(self, location: Location) -> str:
-        return '.' if self.is_zero_allowed(location) else '[1-9]'
+        return '.' if self.is_zero_allowed(location) else '[^0]'
 
     def is_zero_allowed(self, location: Location) -> bool:
         """Returns true if a 0 is allowed at this clue location.  Overrideable by subclasses"""
@@ -345,10 +349,12 @@ class SolverByClue:
     clue_list: ClueList
     count_total: int
     known_clues: Dict[Clue, ClueValue]
+    allow_duplicates: bool
     debug: bool
 
-    def __init__(self, clue_list: ClueList) -> None:
+    def __init__(self, clue_list: ClueList, allow_duplicates: bool = False) -> None:
         self.clue_list = clue_list
+        self.allow_duplicates = allow_duplicates
 
     def solve(self, *, show_time: bool = True, debug: bool = False) -> None:
         self.count_total = 0
@@ -384,7 +390,7 @@ class SolverByClue:
                 self.known_clues[clue] = value
                 next_unknown_clues = dict(unknown_clues)
                 next_unknown_clues.pop(clue)
-                if not self.post_assignment_cleanup(clue, self.known_clues, next_unknown_clues):
+                if not self.post_clue_assignment_fixup(clue, self.known_clues, next_unknown_clues):
                     if self.debug:
                         print(f'{" | " * depth}   {clue.name} External check failed.')
                     continue
@@ -393,8 +399,11 @@ class SolverByClue:
                     if intersection:
                         result = frozenset(
                             x for x in values2 if x != value and intersection.values_match(x, self.known_clues))
+                    elif self.allow_duplicates or value not in values2:
+                        result = values2
                     else:
                         result = values2 - {value}
+
                     if self.debug and result != values2:
                         print(f'{"   " * depth}   {clue2.name} {len(values2)} -> {len(result)}')
                     next_unknown_clues[clue2] = result
@@ -416,7 +425,7 @@ class SolverByClue:
         just to use is_zero_allowed(), and base the decision on what that returns.
         """
 
-        return '.' if self.is_zero_allowed(location) else '[1-9]'
+        return '.' if self.is_zero_allowed(location) else '[^0]'
 
     def is_zero_allowed(self, location: Location) -> bool:
         """Indicates whether a zero is allowed at a specific location by the rules of the puzzle.  The default is
@@ -428,11 +437,28 @@ class SolverByClue:
     def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         self.clue_list.print_board(known_clues)
 
-    def post_assignment_cleanup(self, clue: Clue, known_clues: Dict[Clue, ClueValue],
-                                unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
+    def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
+                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
         """
         Allows the user to make solver-specific modifications to the list of clues and their not-yet-known values.
         This can be used to add a new clue (for example, one clue is a cube of another) or to modify the values of an
         already existing clue.  You can even add a clue with no possible values to indicate a failure.
         """
         return True
+
+    @staticmethod
+    def check_clue_filter(clue1: Clue, clue2: Clue,
+                          known_clues: Mapping[Clue, ClueValue], unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
+                          filter: Callable[[int, int], bool]) -> bool:
+        if clue1 in known_clues and clue2 in unknown_clues:
+            value1 = int(known_clues[clue1])
+            result = unknown_clues[clue2] = frozenset(x for x in unknown_clues[clue2] if filter(value1, int(x)))
+            return bool(result)
+        elif clue1 not in known_clues and clue2 in known_clues:
+            value2 = int(known_clues[clue2])
+            result = unknown_clues[clue1] = frozenset(x for x in unknown_clues[clue1] if filter(int(x), value2))
+            return bool(result)
+        else:
+            value1 = int(known_clues[clue1])
+            value2 = int(known_clues[clue2])
+            return filter(value1, value2)
