@@ -1,10 +1,10 @@
 import itertools
-import math
 from typing import Callable, Iterable, Optional, Dict, List, FrozenSet, Union, Sequence, Mapping
 import functools
 
 import Generators
-from GenericSolver import ClueValueGenerator, Clue, Location, ClueValue, ClueList, SolverByClue
+from GenericSolver import SolverByClue
+from Clue import Location, ClueValueGenerator, Clue, ClueValue, ClueList
 
 """
 Looking at 16a/17d, the only number/cube that intersect that way are:

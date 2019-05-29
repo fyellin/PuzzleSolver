@@ -1,8 +1,9 @@
 import itertools
 from datetime import datetime
-from typing import Dict, Sequence, Iterable, Any, Tuple
+from typing import Dict, Sequence, Iterable
 
-from GenericSolver import SolverByLetter, Location, Letter, ClueList
+from GenericSolver import SolverByLetter
+from Clue import Location, Letter, ClueList
 
 
 class MySolver(SolverByLetter):
@@ -15,15 +16,13 @@ class MySolver(SolverByLetter):
             if all(v not in current_letter_values for v in next_letter_values):
                 yield next_letter_values
 
-    def is_zero_allowed(self, location: Location) -> bool:
-        return location not in self.clue_list.start_locations
-
-    def show_solution(self, known_letters: Dict[Letter, int]) -> None:
-        # super(MySolver, self).show_solution(known_letters)
-        print(eval('I*R*R*A*N*E, I, P*I', None, known_letters))
-        print(eval('T*E*S*S*E*R, A, C*T', None, known_letters))
-        print(eval('D*O*D*E*C*A, G, O*N', None, known_letters))
-        print(known_letters)
+    def check_and_show_solution(self, known_letters: Dict[Letter, int]) -> None:
+        super(MySolver, self).check_and_show_solution(known_letters)
+        self.clue_list.draw_board(self.known_clues)
+        # print(eval('I*R*R*A*N*E, I, P*I', None, known_letters))
+        # print(eval('T*E*S*S*E*R, A, C*T', None, known_letters))
+        # print(eval('D*O*D*E*C*A, G, O*N', None, known_letters))
+        # print(known_letters)
 
 
 # noinspection SpellCheckingInspection

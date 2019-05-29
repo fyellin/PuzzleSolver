@@ -1,5 +1,6 @@
 from typing import Iterator, Union
-from GenericSolver import ClueValueGenerator, Clue, Location, ClueList, SolverByClue
+from GenericSolver import SolverByClue
+from Clue import Location, ClueValueGenerator, Clue, ClueList
 import Generators
 from Generators import triangular, lucas, fibonacci, square, cube, prime, palindrome
 
@@ -59,6 +60,7 @@ def run() -> None:
         print(f'Running in base {Generators.BASE}')
         solver.solve(show_time=False, debug=False)
         print(f'Using {solver.count_total} steps')
+
 
 if __name__ == '__main__':
     run()

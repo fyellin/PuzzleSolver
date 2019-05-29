@@ -3,7 +3,8 @@ from enum import Enum
 from typing import Iterable, Optional, Dict, FrozenSet, Mapping, Tuple
 
 import Generators
-from GenericSolver import ClueValueGenerator, Clue, Location, ClueValue, ClueList, SolverByClue
+from GenericSolver import SolverByClue
+from Clue import Location, ClueValueGenerator, Clue, ClueValue, ClueList
 
 
 class AnswerType(Enum):
@@ -108,9 +109,13 @@ class MySolver(SolverByClue):
                 types_match = (this_type == TO_TYPE_DICT[value])
                 # If this is the same row/column, the types must match.  Otherwise, they must differ
                 return is_row_column_match == types_match
+            start_value = unknown_clues[other_clue]
+            unknown_clues[other_clue] = end_value = frozenset(filter(keep_value, start_value))
+            if self.debug and len(start_value) != len(end_value):
+                depth = len(self.known_clues) - 1
+                print(f'{"   " * depth}   [P] {other_clue.name} {len(start_value)} -> {len(end_value)}')
 
-            unknown_clues[other_clue] = result = frozenset(filter(keep_value, unknown_clues[other_clue]))
-            if not result:
+            if not end_value:
                 return False
 
         if clue == self.d8 or clue == self.a16:
@@ -122,13 +127,18 @@ class MySolver(SolverByClue):
 
     def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         super().check_and_show_solution(known_clues)
+        for clue in self.clue_list.iterator():
+            value = known_clues[clue]
+            print(f'{clue.name:<3} {value:>3} {TO_TYPE_DICT[value].name}')
+        self.clue_list.draw_board(known_clues)
 
 
 def run() -> None:
     clue_list = ClueList.create(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
-    solver.solve(debug=True)
+    solver.solve(debug=False)
+
 
 if __name__ == '__main__':
     run()

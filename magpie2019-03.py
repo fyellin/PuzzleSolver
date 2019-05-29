@@ -2,7 +2,8 @@ import itertools
 from datetime import datetime
 from typing import Dict, Sequence, Iterable
 
-from GenericSolver import SolverByLetter, Location, Letter, ClueList
+from GenericSolver import SolverByLetter
+from Clue import Location, Letter, ClueList
 
 
 class MySolver(SolverByLetter):

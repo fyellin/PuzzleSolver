@@ -4,7 +4,7 @@ from types import CodeType
 from typing import Optional, Tuple, Dict, List, Iterator, NewType, NamedTuple, Sequence, Any, Callable, Iterable, \
     Pattern, Set
 
-import inflect #type: ignore
+import inflect  # type: ignore
 
 eng = inflect.engine()
 
@@ -29,6 +29,7 @@ def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[ClueValu
 
 
 LENGTHS_TO_INTEGERS, WORD_SUMS = create_length_to_integer_dict()
+
 
 class Clue(NamedTuple):
     name: str
@@ -63,8 +64,8 @@ class Clue(NamedTuple):
     def generate(self) -> Iterable[ClueValue]:
         # Find all locations that are the start of a clue: this one or another
         starts = {index for index, location in enumerate(self.locations())
-                        for (_, other_index) in LOCATION_TO_CLUE_DICT[location]
-                        if other_index == 0 }
+                  for (_, other_index) in LOCATION_TO_CLUE_DICT[location]
+                  if other_index == 0}
         # Don't allow a zero in any of those locations
         for value in LENGTHS_TO_INTEGERS[(self.length, self.num_letters)]:
             if all(value[x] != '0' for x in starts):
@@ -106,16 +107,16 @@ def make(name: str, expression: str, num_letters: int, length: int, base_locatio
         expression_to_compile = f'({lambda_function})({expression_as_list})'
     compiled_expression = compile(expression_to_compile, '<string>', 'eval')
     expression_letters = set(ch for ch in expression if ch.isalpha())
-    result = Clue(name, base_location, length, num_letters, expression, compiled_expression, expression_letters, name.isupper())
+    result = Clue(name, base_location, length, num_letters, expression,
+                  compiled_expression, expression_letters, name.isupper())
 
     for i, location in enumerate(result.locations()):
         LOCATION_TO_CLUE_DICT[location].append((result, i))
     return result
 
 
-
 CLUES = (
-    #     definition        numletters len x  y
+    #     definition        num_letters len x  y
     make('A', 'n',                  6, 2, (1, 1)),
     make('B', 'e',                 16, 3, (1, 3)),
     make('C', 'f + k/A = k + d/A', 23, 3, (2, 1)),
@@ -197,7 +198,7 @@ class Solver2:
     def solve(self) -> None:
         self.count_total = 0
         self.known_clues = {}
-        possible_values = {clue: list(clue.generate()) for clue in CLUES }
+        possible_values = {clue: list(clue.generate()) for clue in CLUES}
         self.__solve(possible_values)
 
     def __solve(self, possible_values: Dict[Clue, List[ClueValue]]) -> None:
@@ -213,8 +214,8 @@ class Solver2:
         try:
             known_letters = {x.name for x in self.known_clues}
             known_letters.add(clue.name)
-            new_expressions = { x for x in CLUES
-                                if x.expression_letters.issubset(known_letters) and clue.name in x.expression_letters }
+            new_expressions = {x for x in CLUES
+                               if x.expression_letters.issubset(known_letters) and clue.name in x.expression_letters}
             if new_expressions:
                 print(f'{"|  " * depth}{clue.name} CLUES: {[x.name for x in new_expressions]}')
 
@@ -226,13 +227,15 @@ class Solver2:
                 next_possible_values = possible_values.copy()
                 if new_expressions:
                     dictionary = {clue.name: int(value) for clue, value in self.known_clues.items()}
+
                     def handle_expression(expression: Clue) -> bool:
                         evaluation = expression.eval(dictionary)
                         if expression.name in known_letters:
                             answer = self.known_clues[expression]
                             word_sums = WORD_SUMS[answer]
                             result = (word_sums == evaluation)
-                            print(f'{"|  " * depth}*{expression.name} wc({answer}) = {word_sums} {"=" if result else "!="} {evaluation}')
+                            print(f'{"|  " * depth}*{expression.name} wc({answer}) = {word_sums} '
+                                  f'{"=" if result else "!="} {evaluation}')
                             return result
                         else:
                             old_npv = next_possible_values[expression]
@@ -264,7 +267,6 @@ class Solver2:
 
         finally:
             self.known_clues.pop(clue, None)
-
 
     def _print_board(self) -> None:
         max_row = 1 + max(row for (row, _) in LOCATION_TO_CLUE_DICT.keys())
