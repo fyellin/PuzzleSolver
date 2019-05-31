@@ -4,7 +4,7 @@ import re
 from abc import ABC, abstractmethod
 from operator import itemgetter
 from typing import Optional, Tuple, Dict, List, NamedTuple, Set, Sequence, cast, Callable, \
-    Pattern, FrozenSet, Iterable, Union, Mapping
+    Pattern, FrozenSet, Iterable, Union, Mapping, overload
 
 from Clue import Location, ClueValueGenerator, Clue, ClueValue, Letter, ClueList
 
@@ -30,8 +30,8 @@ class Intersection(NamedTuple):
             return Intersection(my_index, other, other_index)
         return None
 
-    def values_match(self, this_value: ClueValue, known_clues: Dict[Clue, ClueValue]) -> bool:
-        return this_value[self.this_index] == known_clues[self.other_clue][self.other_index]
+    def values_match(self, this_value: ClueValue, other_value: ClueValue) -> bool:
+        return this_value[self.this_index] == other_value[self.other_index]
 
     @staticmethod
     def make_pattern_generator(clue: Clue, intersections: Sequence['Intersection'],
@@ -51,7 +51,7 @@ class Intersection(NamedTuple):
         pattern_format = ''.join(pattern_list)
 
         def getter(known_clues: Dict[Clue, ClueValue]) -> Pattern[str]:
-            args = (known_clues[intersection.other_clue][intersection.other_index] for intersection in intersections)
+            args = (known_clues[x.other_clue][x.other_index] for x in intersections)
             regexp = pattern_format.format(*args)
             return re.compile(regexp)
 
@@ -222,14 +222,12 @@ class SolverByClue:
                 next_unknown_clues = dict(unknown_clues)
                 next_unknown_clues.pop(clue)
                 if not self.post_clue_assignment_fixup(clue, self.known_clues, next_unknown_clues):
-                    if self.debug:
-                        print(f'{" | " * depth}   {clue.name} External check failed.')
                     continue
                 for clue2, values2 in next_unknown_clues.items():
                     intersection = Intersection.maybe_make(clue2, clue)
                     if intersection:
                         result = frozenset(
-                            x for x in values2 if x != value and intersection.values_match(x, self.known_clues))
+                            x for x in values2 if x != value and intersection.values_match(x, value))
                     elif self.allow_duplicates or value not in values2:
                         result = values2
                     else:
@@ -238,7 +236,11 @@ class SolverByClue:
                     if self.debug and result != values2:
                         print(f'{"   " * depth}   {clue2.name} {len(values2)} -> {len(result)}')
                     next_unknown_clues[clue2] = result
-                self.__solve(next_unknown_clues)
+                    if not result:
+                        break
+                else:
+                    # If none of the clues above caused a "break" from going to zero, then we continue.
+                    self.__solve(next_unknown_clues)
 
         finally:
             self.known_clues.pop(clue, None)
@@ -277,26 +279,94 @@ class SolverByClue:
         """
         return True
 
-    def check_clue_filter(self, clue1: Clue, clue2: Clue,
-                          known_clues: Mapping[Clue, ClueValue], unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
-                          clue_filter: Callable[[int, int], bool]) -> bool:
-        if clue1 in known_clues and clue2 in unknown_clues:
-            value1 = int(known_clues[clue1])
-            start_value = unknown_clues[clue2]
-            end_value = unknown_clues[clue2] = frozenset(x for x in start_value if clue_filter(value1, int(x)))
-            if self.debug and len(start_value) != len(end_value):
-                depth = len(self.known_clues) - 1
-                print(f'{"   " * depth}   [f] {clue2.name} {len(start_value)} -> {len(end_value)}')
-            return bool(end_value)
-        elif clue1 not in known_clues and clue2 in known_clues:
-            value2 = int(known_clues[clue2])
-            start_value = unknown_clues[clue1]
-            end_value = unknown_clues[clue1] = frozenset(x for x in start_value if clue_filter(int(x), value2))
-            if self.debug and len(start_value) != len(end_value):
-                depth = len(self.known_clues) - 1
-                print(f'{"   " * depth}   [f] {clue1.name} {len(start_value)} -> {len(end_value)}')
-            return bool(end_value)
+    def check_clue_filter(self, clue: Clue, unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
+                          clue_filter: Callable[[ClueValue], bool]) -> bool:
+        """
+        Intended to be called from an override of post_clue_assignment_fixup.
+        Ensures that the value of a clue passes a certain filter.  If the value of the clue is already
+        known, it will make sure that the value passes the filter.  If the value of the clue is not
+        already known, it will remove all possible values that don't pass the filter
+        """
+        value = self.known_clues.get(clue, None)
+        if value:
+            return clue_filter(value)
         else:
-            value1 = int(known_clues[clue1])
-            value2 = int(known_clues[clue2])
-            return clue_filter(value1, value2)
+            start_value = unknown_clues[clue]
+            end_value = unknown_clues[clue] = frozenset(x for x in start_value if clue_filter(x))
+            if self.debug and len(start_value) != len(end_value):
+                depth = len(self.known_clues) - 1
+                print(f'{"   " * depth}   [1] {clue.name} {len(start_value)} -> {len(end_value)}')
+            return bool(end_value)
+
+    def check_2_clue_relationship(
+            self, clue1: Clue, clue2: Clue,
+            unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
+            clue_filter: Callable[[ClueValue, ClueValue], bool]) -> bool:
+        """
+        Intended to be called from an override of post_clue_assignment_fixup.
+        Ensures that clue1 and clue2 satisfy a certain relationship.
+        If the value of both clues is already known, it will make sure that the values pass the relationship.
+        If the value of only one clue is known, the will remove all possible values of the unknown clue
+        that don't pass the relationship.
+        """
+        value1, value2 = self.known_clues.get(clue1, None), self.known_clues.get(clue2, None)
+        unknown_values_count = (value1 is None) + (value2 is None)
+        if unknown_values_count == 1:
+            if value1:
+                unknown_clue = clue2
+                start_value = unknown_clues[clue2]
+                end_value = unknown_clues[clue2] = frozenset(x for x in start_value if clue_filter(value1, x))
+            else:
+                unknown_clue = clue1
+                start_value = unknown_clues[clue1]
+                end_value = unknown_clues[clue1] = frozenset(x for x in start_value if clue_filter(x, cast(ClueValue, value2)))
+            if self.debug and len(start_value) != len(end_value):
+                depth = len(self.known_clues) - 1
+                print(f'{"   " * depth}   [2] {unknown_clue.name} {len(start_value)} -> {len(end_value)}')
+            return bool(end_value)
+        elif unknown_values_count == 0:
+            result = clue_filter(cast(ClueValue, value1), cast(ClueValue, value2))
+            if not result and self.debug:
+                depth = len(self.known_clues) - 1
+                print(f'{"   " * depth}   [2] {clue1.name}={value1} {clue2.name}={value2} -> XXX')
+            return result
+        else:
+            return True
+
+    @overload
+    def check_n_clue_relationship(self, clues: Tuple[Clue, Clue, Clue],
+            unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
+            clue_filter: Callable[[ClueValue, ClueValue, ClueValue], bool]) -> bool: ...
+
+    @overload
+    def check_n_clue_relationship(self, clues: Tuple[Clue, Clue, Clue, Clue],
+            unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
+            clue_filter: Callable[[ClueValue, ClueValue, ClueValue, ClueValue], bool]) -> bool: ...
+
+    def check_n_clue_relationship(self, clues, unknown_clues, clue_filter):
+        """
+        Intended to be called from an override of post_clue_assignment_fixup.
+        Ensures that the values of the clues satisfy a certain relationship.
+        If the values of all clues is already known, it will make sure that the values pass the relationship.
+        If the value of all but one clue is known, the will remove all possible values of the unknown clue
+        that don't pass the relationship.
+        """
+        values = [self.known_clues.get(clue, None) for clue in clues]
+        unknown_values_count = values.count(None)
+
+        if unknown_values_count == 1:
+            unknown_index = values.index(None)
+            unknown_clue = clues[unknown_index]
+            prefix = cast(List[ClueValue], values[:unknown_index])
+            suffix = cast(List[ClueValue], values[unknown_index + 1:])
+            start_value = unknown_clues[unknown_clue]
+            end_value = unknown_clues[unknown_clue] = frozenset(
+                x for x in start_value if clue_filter(*prefix, x, *suffix))
+            if self.debug and len(start_value) != len(end_value):
+                depth = len(self.known_clues) - 1
+                print(f'{"   " * depth}   [r] {unknown_clue.name} {len(start_value)} -> {len(end_value)}')
+            return bool(end_value)
+        elif unknown_values_count == 0:
+            return clue_filter(*cast(List[ClueValue], values))
+        else:
+            return True

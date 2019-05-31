@@ -55,7 +55,7 @@ def _prime_not_prime(clue: Clue) -> Iterator[Tuple[int, bool]]:
     min_value, max_value = __get_min_max(clue)
     # Get list of the prime factors that could possibly divide our numbers
     max_factor = int(math.sqrt(max_value))
-    factors = list(itertools.takewhile(lambda x: x <= max_factor, __prime()))
+    factors = list(itertools.takewhile(lambda x: x <= max_factor, prime_generator()))
 
     for p in range(min_value, max_value):
         yield p, all(p % factor != 0 for factor in factors)
@@ -108,9 +108,9 @@ def __get_min_max(clue: Clue) -> Tuple[int, int]:
     return min_value, max_value
 
 
-def __prime() -> Iterator[int]:
+def prime_generator() -> Iterator[int]:
     yield from [2, 3, 5, 7]
-    factor_sequence = __prime()
+    factor_sequence = prime_generator()
     next(factor_sequence)  # we don't need the 2, since we're only looking at odd numbers
     factors = [next(factor_sequence)]  # i.e. [3]
     while True:

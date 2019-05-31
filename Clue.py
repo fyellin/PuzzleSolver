@@ -23,8 +23,8 @@ class Clue(NamedTuple):
     compiled_expression: CodeType
     generator: Optional[ClueValueGenerator]
 
-    @staticmethod
-    def make(name: str, is_across: bool, base_location: Location, length: int,
+    @classmethod
+    def make(cls, name: str, is_across: bool, base_location: Location, length: int,
              expression: str = '0',
              generator: Optional[ClueValueGenerator] = None) -> 'Clue':
         expression_to_compile = Clue.__fixup_for_compilation(expression)
@@ -33,7 +33,6 @@ class Clue(NamedTuple):
             expression_as_list = expression_to_compile.replace("=", ",")
             expression_to_compile = f'({lambda_function})({expression_as_list})'
         compiled_expression = compile(expression_to_compile, f'<Clue {name}>', 'eval')
-
         return Clue(name, is_across, base_location, length, expression, compiled_expression, generator)
 
     def locations(self) -> Iterator[Location]:
@@ -155,8 +154,9 @@ class ClueList(NamedTuple):
             # The location in this clue that matches the start of its symmetric opposite
             row, column = clue.location(clue.length - 1)
             # The presumed start location of its symmetric opposite
-            row2, column2 = self.max_column - row, self.max_column - column
-            assert ((row2, column2), clue.length, clue.is_across) in clue_start_set
+            row2, column2 = self.max_row - row, self.max_column - column
+            if ((row2, column2), clue.length, clue.is_across) not in clue_start_set:
+                raise Exception(f"No opposite for {clue.name} @ {clue.base_location}")
 
     def verify_is_four_fold_symmetric(self) -> None:
         """Verify that the puzzle has four-fold symmetry"""
@@ -175,7 +175,7 @@ class ClueList(NamedTuple):
         """Creates the set of (start-location, length, is-across) tuples for all clues in the puzzle"""
         return {(clue.base_location, clue.length, clue.is_across) for clue in self.name_to_clue.values()}
 
-    def draw_board(self, clue_values: Dict[Clue, ClueValue]) -> None:
+    def plot_board(self, clue_values: Dict[Clue, ClueValue]) -> None:
         max_row = self.max_row
         max_column = self.max_column
 
@@ -200,8 +200,12 @@ class ClueList(NamedTuple):
 
         for clue in self.iterator():
             match = re.search(r'\d+', clue.name)
-            assert match
-            location_to_clue_number[clue.base_location] = match.group(0)
+            if match:
+                location_to_clue_number[clue.base_location] = match.group(0)
+            else:
+                old = location_to_clue_number.get(clue.base_location)
+                location_to_clue_number[clue.base_location] = f'{old}, {clue.name}' if old else clue.name
+
             # These squares are filled.
             clued_locations.update(clue.locations())
             if clue in clue_values:
@@ -213,5 +217,3 @@ class ClueList(NamedTuple):
 
         draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
                   top_bars, left_bars)
-
-

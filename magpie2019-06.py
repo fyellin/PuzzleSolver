@@ -120,8 +120,8 @@ class MySolver(SolverByClue):
 
         if clue == self.d8 or clue == self.a16:
             #  sqrt(d8) is a divisor of a16,, which is the same as d8 being a divisor of a16**2
-            return self.check_clue_filter(
-                self.d8, self.a16, known_clues, unknown_clues, lambda d8, a16: a16 ** 2 % d8 == 0)
+            return self.check_2_clue_relationship(self.d8, self.a16, unknown_clues,
+                                                  lambda d8, a16: int(a16) ** 2 % int(d8) == 0)
 
         return True
 
@@ -130,7 +130,7 @@ class MySolver(SolverByClue):
         for clue in self.clue_list.iterator():
             value = known_clues[clue]
             print(f'{clue.name:<3} {value:>3} {TO_TYPE_DICT[value].name}')
-        self.clue_list.draw_board(known_clues)
+        self.clue_list.plot_board(known_clues)
 
 
 def run() -> None:

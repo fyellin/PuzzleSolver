@@ -1,5 +1,5 @@
 import itertools
-from typing import Callable, Iterable, Optional, Dict, List, FrozenSet, Union, Sequence, Mapping
+from typing import Callable, Iterable, Optional, Dict, List, FrozenSet, Union, Mapping
 import functools
 
 import Generators
@@ -184,42 +184,24 @@ class MySolver(SolverByClue):
     def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
                                    unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
         result = True
-        if clue.name == 'A12':
-            # D1 must be a multiple of A12
-            value = int(known_clues[clue])
-            unknown_clues[self.d1] = frozenset(x for x in unknown_clues[self.d1] if int(x) % value == 0)
-            result = bool(unknown_clues[self.d1])
+        if clue.name == 'A12' or clue.name == 'D1':
+            result = self.check_2_clue_relationship(self.a12, self.d1, unknown_clues,
+                                                    lambda a12, d1: int(d1) % int(a12) == 0)
         elif clue.name == 'A9' or clue.name == 'D7':
-            result = self.check_clue_filter(self.a9, self.d7, known_clues, unknown_clues, lambda a9, d7: d7 == a9 * a9)
+            result = self.check_2_clue_relationship(self.a9, self.d7, unknown_clues,
+                                                    lambda a9, d7: int(d7) == int(a9) ** 2)
         if not result:
             return False
 
         if clue.name in ('A8', 'A9'):
-            return self.__force_row_to_be_series_of_primes(known_clues, unknown_clues, (self.a8, self.a9))
+            # return self.__force_row_to_be_series_of_primes(known_clues, unknown_clues, (self.a8, self.a9))
+            return self.check_2_clue_relationship(self.a8, self.a9, unknown_clues,
+                                                  lambda a8, a9: bool(break_row_into_primes(a8 + a9)))
         elif clue.name in ('A12', 'A13', 'A14'):
-            return self.__force_row_to_be_series_of_primes(known_clues, unknown_clues, (self.a12, self.a13, self.a14))
+            return self.check_n_clue_relationship((self.a12, self.a13, self.a14), unknown_clues,
+                                                  lambda a12, a13, a14: bool(break_row_into_primes(a12 + a13 + a14)))
         else:
             return True
-
-    @staticmethod
-    def __force_row_to_be_series_of_primes(known_clues: Mapping[Clue, ClueValue],
-                                           unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
-                                           clues: Sequence[Clue], ) -> bool:
-        """
-        If all but one of the clues indicated has a known value, restrict its values to be only those that
-        satisfy that you can break the completed row into primes.
-        """
-        not_yet_assigned_clues = [clue for clue in clues if clue not in known_clues]
-        if len(not_yet_assigned_clues) == 1:
-            not_yet_assigned_clue = not_yet_assigned_clues[0]
-            # Create a format string consisting of the known line patterns, but put {} where the unknown goes
-            line_pattern = ''.join(known_clues.get(clue, '{}') for clue in clues)
-            new_set = unknown_clues[not_yet_assigned_clue] = frozenset(
-                # Filter out those results that don't create a proper line pattern
-                result for result in unknown_clues[not_yet_assigned_clue]
-                if break_row_into_primes(line_pattern.format(result)))
-            return bool(new_set)
-        return True
 
     def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         board = self.clue_list.get_board(known_clues)
@@ -247,13 +229,14 @@ class MySolver(SolverByClue):
                 continue
             print(row_break)
             self.clue_list.print_board(known_clues)
+            self.clue_list.plot_board(known_clues)
 
 
 def run() -> None:
     clue_list = ClueList.create(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
-    solver.solve(debug=False)
+    solver.solve(debug=True)
 
 
 # ((59, 29, 7, 41), (89, 3, 11, 73), (19, 43, 587), (61, 67, 53, 5), (47, 83, 659), (13, 31, 23), (17, 71, 569))

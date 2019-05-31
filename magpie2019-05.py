@@ -18,7 +18,7 @@ class MySolver(SolverByLetter):
 
     def check_and_show_solution(self, known_letters: Dict[Letter, int]) -> None:
         super(MySolver, self).check_and_show_solution(known_letters)
-        self.clue_list.draw_board(self.known_clues)
+        self.clue_list.plot_board(self.known_clues)
         # print(eval('I*R*R*A*N*E, I, P*I', None, known_letters))
         # print(eval('T*E*S*S*E*R, A, C*T', None, known_letters))
         # print(eval('D*O*D*E*C*A, G, O*N', None, known_letters))
