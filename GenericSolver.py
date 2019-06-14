@@ -1,10 +1,11 @@
+import itertools
 import random
-from datetime import datetime
 import re
 from abc import ABC, abstractmethod
+from datetime import datetime
 from operator import itemgetter
 from typing import Optional, Tuple, Dict, List, NamedTuple, Set, Sequence, cast, Callable, \
-    Pattern, FrozenSet, Iterable, Union, Mapping, overload
+    Pattern, FrozenSet, Iterable, Mapping, overload
 
 from Clue import Location, ClueValueGenerator, Clue, ClueValue, Letter, ClueList
 
@@ -35,7 +36,7 @@ class Intersection(NamedTuple):
 
     @staticmethod
     def make_pattern_generator(clue: Clue, intersections: Sequence['Intersection'],
-                               solver: Union['SolverByLetter', 'SolverByClue']) -> \
+                               solver: 'BaseSolver') -> \
             Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
         pattern_list = [solver.get_allowed_regexp(location) for location in clue.locations()]
         pattern_list.append('$')
@@ -57,6 +58,17 @@ class Intersection(NamedTuple):
 
         return getter
 
+    @staticmethod
+    def make_runtime_pattern(clue: Clue, known_clues: Dict[Clue, ClueValue],
+                             solver: 'BaseSolver') -> Pattern[str]:
+        pattern_list = [solver.get_allowed_regexp(location) for location in clue.locations()]
+        pattern_list.append('$')
+        for other_clue, other_clue_value in known_clues.items():
+            intersection = Intersection.maybe_make(clue, other_clue)
+            if intersection:
+                pattern_list[intersection.this_index] = other_clue_value[intersection.other_index]
+        return re.compile(''.join(pattern_list))
+
 
 class SolvingStep(NamedTuple):
     clue: Clue  # The clue we are solving
@@ -64,8 +76,24 @@ class SolvingStep(NamedTuple):
     pattern_maker: Callable[[Dict[Clue, ClueValue]], Pattern[str]]  # a pattern maker
 
 
-class SolverByLetter(ABC):
+class BaseSolver(ABC):
     clue_list: ClueList
+
+    def __init__(self, clue_list: ClueList) -> None:
+        self.clue_list = clue_list
+
+    @abstractmethod
+    def solve(self, *, show_time: bool = True, debug: bool = False) -> None: ...
+
+    def get_allowed_regexp(self, location: Location) -> str:
+        return '.' if self.is_zero_allowed(location) else '[^0]'
+
+    def is_zero_allowed(self, location: Location) -> bool:
+        """Returns true if a 0 is allowed at this clue location.  Overrideable by subclasses"""
+        return not self.clue_list.is_start_location(location)
+
+
+class SolverByLetter(BaseSolver, ABC):
     count_total: int
     known_letters: Dict[Letter, int]
     known_clues: Dict[Clue, ClueValue]
@@ -73,7 +101,7 @@ class SolverByLetter(ABC):
     debug: bool
 
     def __init__(self, clue_list: ClueList) -> None:
-        self.clue_list = clue_list
+        super(SolverByLetter, self).__init__(clue_list)
 
     def solve(self, *, show_time: bool = True, debug: bool = False) -> None:
         self.count_total = 0
@@ -125,7 +153,7 @@ class SolverByLetter(ABC):
         result: List[SolvingStep] = []
         not_yet_ordered: Dict[Clue, Tuple[Clue, Set[Letter], List[Intersection]]] = {
             clue: (clue, {Letter(ch) for ch in clue.expression if 'A' <= ch <= 'Z'}, [])
-            for clue in self.clue_list.iterator()
+            for clue in self.clue_list
         }
 
         def evaluator(item: Tuple[Clue, Set[Letter], List[Intersection]]) -> Sequence[int]:
@@ -156,15 +184,31 @@ class SolverByLetter(ABC):
         """
         raise Exception()
 
-    def get_allowed_regexp(self, location: Location) -> str:
-        return '.' if self.is_zero_allowed(location) else '[^0]'
+    @staticmethod
+    def get_letter_values_impl(minimum: int, maximum: int, known_letters: Dict[Letter, int], count: int) -> \
+            Iterable[Sequence[int]]:
+        if count == 0:
+            yield ()
+            return
+        current_letter_values = set(known_letters.values())
+        for next_letter_values in itertools.permutations(range(minimum, maximum + 1), count):
+            if all(v not in current_letter_values for v in next_letter_values):
+                yield next_letter_values
 
-    def is_zero_allowed(self, location: Location) -> bool:
-        """Returns true if a 0 is allowed at this clue location.  Overrideable by subclasses"""
-        return location not in self.clue_list.start_locations
+    @staticmethod
+    def get_letter_values_n_impl(minimum: int, maximum: int, max_count: int,
+                                 known_letters: Dict[Letter, int], count: int) -> Iterable[Sequence[int]]:
+        if count == 0:
+            yield ()
+            return
+        current_letter_values = tuple(known_letters.values())
+        for next_letter_values in itertools.product(range(minimum, maximum + 1), repeat=count):
+            if all(current_letter_values.count(value) + next_letter_values.count(value) <= max_count
+                   for value in next_letter_values):
+                yield next_letter_values
 
     def check_and_show_solution(self, known_letters: Dict[Letter, int]) -> None:
-        self.clue_list.print_board(self.known_clues)
+        self.clue_list.plot_board(self.known_clues)
         print()
         pairs = [(letter, value) for letter, value in known_letters.items()]
         pairs.sort()
@@ -176,15 +220,14 @@ class SolverByLetter(ABC):
         print(''.join(f'{value:<3}' for _, value in pairs))
 
 
-class SolverByClue:
-    clue_list: ClueList
+class SolverByClue(BaseSolver):
     count_total: int
     known_clues: Dict[Clue, ClueValue]
     allow_duplicates: bool
     debug: bool
 
     def __init__(self, clue_list: ClueList, allow_duplicates: bool = False) -> None:
-        self.clue_list = clue_list
+        super(SolverByClue, self).__init__(clue_list)
         self.allow_duplicates = allow_duplicates
 
     def solve(self, *, show_time: bool = True, debug: bool = False) -> None:
@@ -193,7 +236,7 @@ class SolverByClue:
         self.debug = debug
         time1 = datetime.now()
         initial_unknown_clues = {clue: self.__get_all_possible_values(clue)
-                                 for clue in self.clue_list.iterator() if clue.generator}
+                                 for clue in self.clue_list if clue.generator}
         time2 = datetime.now()
         self.__solve(initial_unknown_clues)
         time3 = datetime.now()
@@ -252,23 +295,8 @@ class SolverByClue:
         clue_generator = cast(ClueValueGenerator, clue.generator)  # we know clue_generator isn't None
         return frozenset(ClueValue(x) for x in map(str, clue_generator(clue)) if pattern.match(x))
 
-    def get_allowed_regexp(self, location: Location) -> str:
-        """
-        Allows the user to be specific about which characters are allowed at a specific location.  The default is
-        just to use is_zero_allowed(), and base the decision on what that returns.
-        """
-
-        return '.' if self.is_zero_allowed(location) else '[^0]'
-
-    def is_zero_allowed(self, location: Location) -> bool:
-        """Indicates whether a zero is allowed at a specific location by the rules of the puzzle.  The default is
-        not to allow a zero at the start of a clue.  Solvers can override this, or they can instead implement
-        get_allowed_regexp() which allows even finer control.
-        """
-        return location not in self.clue_list.start_locations
-
     def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
-        self.clue_list.print_board(known_clues)
+        self.clue_list.plot_board(known_clues)
 
     def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
                                    unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
@@ -319,7 +347,8 @@ class SolverByClue:
             else:
                 unknown_clue = clue1
                 start_value = unknown_clues[clue1]
-                end_value = unknown_clues[clue1] = frozenset(x for x in start_value if clue_filter(x, cast(ClueValue, value2)))
+                end_value = unknown_clues[clue1] = frozenset(
+                    x for x in start_value if clue_filter(x, cast(ClueValue, value2)))
             if self.debug and len(start_value) != len(end_value):
                 depth = len(self.known_clues) - 1
                 print(f'{"   " * depth}   [2] {unknown_clue.name} {len(start_value)} -> {len(end_value)}')
@@ -334,16 +363,26 @@ class SolverByClue:
             return True
 
     @overload
+    def check_n_clue_relationship(self, clues: Tuple[Clue, Clue],
+                                  unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
+                                  clue_filter: Callable[[ClueValue, ClueValue], bool]) -> bool:
+        ...
+
+    @overload
     def check_n_clue_relationship(self, clues: Tuple[Clue, Clue, Clue],
-            unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
-            clue_filter: Callable[[ClueValue, ClueValue, ClueValue], bool]) -> bool: ...
+                                  unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
+                                  clue_filter: Callable[[ClueValue, ClueValue, ClueValue], bool]) -> bool:
+        ...
 
     @overload
     def check_n_clue_relationship(self, clues: Tuple[Clue, Clue, Clue, Clue],
-            unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
-            clue_filter: Callable[[ClueValue, ClueValue, ClueValue, ClueValue], bool]) -> bool: ...
+                                  unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
+                                  clue_filter: Callable[[ClueValue, ClueValue, ClueValue, ClueValue], bool]) -> bool:
+        ...
 
-    def check_n_clue_relationship(self, clues, unknown_clues, clue_filter):
+    def check_n_clue_relationship(self, clues: Sequence[Clue],
+                                  unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
+                                  clue_filter: Callable[..., bool]) -> bool:
         """
         Intended to be called from an override of post_clue_assignment_fixup.
         Ensures that the values of the clues satisfy a certain relationship.

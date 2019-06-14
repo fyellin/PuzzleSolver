@@ -1,3 +1,7 @@
+"""
+Painful, but relatively straightforward.
+"""
+
 import itertools
 from typing import Callable, Iterable, Optional, Dict, List, FrozenSet, Union, Mapping
 import functools
@@ -132,7 +136,7 @@ def with_prime_pattern(function: Callable[[Clue], Iterable[Union[int, str]]]) ->
 
 
 def make(name: str, base_location: Location, length: int, generator: Optional[ClueValueGenerator]) -> Clue:
-    return Clue.make(name, name[0] == 'A', base_location, length, generator=generator)
+    return Clue(name, name[0] == 'A', base_location, length, generator=generator)
 
 
 CLUES = (
@@ -228,12 +232,11 @@ class MySolver(SolverByClue):
             if sum(map(int, values)) != 2662:  # 2 * A16
                 continue
             print(row_break)
-            self.clue_list.print_board(known_clues)
             self.clue_list.plot_board(known_clues)
 
 
 def run() -> None:
-    clue_list = ClueList.create(CLUES)
+    clue_list = ClueList(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
     solver.solve(debug=True)

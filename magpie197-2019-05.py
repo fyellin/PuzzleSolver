@@ -1,4 +1,7 @@
-import itertools
+"""
+Standard.  Nothing exciting.
+"""
+
 from datetime import datetime
 from typing import Dict, Sequence, Iterable
 
@@ -8,21 +11,7 @@ from Clue import Location, Letter, ClueList
 
 class MySolver(SolverByLetter):
     def get_letter_values(self, known_letters: Dict[Letter, int], count: int) -> Iterable[Sequence[int]]:
-        if count == 0:
-            yield ()
-            return
-        current_letter_values = set(known_letters.values())
-        for next_letter_values in itertools.permutations(range(1, 17), count):
-            if all(v not in current_letter_values for v in next_letter_values):
-                yield next_letter_values
-
-    def check_and_show_solution(self, known_letters: Dict[Letter, int]) -> None:
-        super(MySolver, self).check_and_show_solution(known_letters)
-        self.clue_list.plot_board(self.known_clues)
-        # print(eval('I*R*R*A*N*E, I, P*I', None, known_letters))
-        # print(eval('T*E*S*S*E*R, A, C*T', None, known_letters))
-        # print(eval('D*O*D*E*C*A, G, O*N', None, known_letters))
-        # print(known_letters)
+        return self.get_letter_values_impl(1, 16, known_letters, count)
 
 
 # noinspection SpellCheckingInspection

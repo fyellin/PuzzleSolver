@@ -1,3 +1,8 @@
+"""
+A puzzle that works in bases other than 10.  We modify the generators to produce a result
+in a different base.
+"""
+
 from typing import Iterator, Union
 from GenericSolver import SolverByClue
 from Clue import Location, ClueValueGenerator, Clue, ClueList
@@ -5,27 +10,8 @@ import Generators
 from Generators import triangular, lucas, fibonacci, square, cube, prime, palindrome
 
 
-def convert_to_base(num: int, base: int) -> str:
-    result = []
-    if not num:
-        return '0'
-    while num:
-        num, mod = divmod(num, base)
-        result.append('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz<>'[mod])
-    result.reverse()
-    return ''.join(result)
-
-
-def using_current_base(generator: ClueValueGenerator) -> ClueValueGenerator:
-    def result(clue: Clue) -> Iterator[str]:
-        def maybe_convert(value: Union[int, str]) -> str:
-            return value if isinstance(value, str) else convert_to_base(value, Generators.BASE)
-        return map(maybe_convert, generator(clue))
-    return result
-
-
 def make(name: str, base_location: Location, length: int, generator: ClueValueGenerator) -> Clue:
-    return Clue.make(name, name[0] == 'A', base_location, length, generator=using_current_base(generator))
+    return Clue(name, name[0] == 'A', base_location, length, generator=Generators.using_current_base(generator))
 
 
 CLUES = (
@@ -52,7 +38,7 @@ CLUES = (
 
 
 def run() -> None:
-    clue_list = ClueList.create(CLUES)
+    clue_list = ClueList(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = SolverByClue(clue_list)
 

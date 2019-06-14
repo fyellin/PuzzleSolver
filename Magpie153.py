@@ -89,7 +89,7 @@ def make_clue_list(lines: str,
     clues = []
     for is_across, suffix, clue_set in ((True, 'a', acrosses), (False, 'd', downs)):
         for (location, length, generator) in clue_set:
-            clue = Clue.make(f'{location}{suffix}', is_across, locations[location], length, generator=generator)
+            clue = Clue(f'{location}{suffix}', is_across, locations[location], length, generator=generator)
             clues.append(clue)
     return clues
 
@@ -196,7 +196,7 @@ class MySolver(SolverByClue):
          self.a35, self.a36,
          self.d1, self.d2, self.d3, self.d4, self.d5, self.d6, self.d7, self.d10, self.d15, self.d16,
          self.d17, self.d18, self.d19, self.d20, self.d23, self.d24, self.d26, self.d28, self.d29,
-         self.d31, self.d32, self.d33) = list(cl.iterator())
+         self.d31, self.d32, self.d33) = list(iter(cl))
 
     def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
                                    unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
@@ -233,8 +233,8 @@ class MySolver(SolverByClue):
         print('************************')
 
 
-def run():
-    clue_list = ClueList.create(CLUES)
+def run() -> None:
+    clue_list = ClueList(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
     solver.solve(debug=True)

@@ -1,3 +1,9 @@
+"""
+get_letter_values:  Each digit can be used more than once.
+is_zero_allowed:    This puzzle doesn't allow 0 in any intersection
+"""
+
+
 import itertools
 from datetime import datetime
 from typing import Dict, Sequence, Iterable
@@ -8,17 +14,10 @@ from Clue import Location, Letter, ClueList
 
 class MySolver(SolverByLetter):
     def get_letter_values(self, known_letters: Dict[Letter, int], count: int) -> Iterable[Sequence[int]]:
-        if count == 0:
-            yield ()
-            return
-        current_letter_values = tuple(known_letters.values())
-        for next_letter_values in itertools.product(range(1, 10), repeat=count):
-            if all(current_letter_values.count(value) + next_letter_values.count(value) <= 2
-                   for value in next_letter_values):
-                yield next_letter_values
+        return self.get_letter_values_n_impl(1, 9, 2, known_letters, count)
 
     def is_zero_allowed(self, location: Location) -> bool:
-        return location not in self.clue_list.intersections and location not in self.clue_list.start_locations
+        return not self.clue_list.is_start_location(location) and not self.clue_list.is_intersection(location)
 
 
 # noinspection SpellCheckingInspection

@@ -26,7 +26,7 @@ def create_to_type_dict() -> Dict[str, AnswerType]:
         (AnswerType.Palindrome, Generators.palindrome))
     items = [(length, answer_type, str(value))
              for length in (1, 2, 3) for answer_type, generator in creator
-             for value in generator(Clue.make('fake', True, (1, 1), length))]
+             for value in generator(Clue('fake', True, (1, 1), length))]
     # count the number of times each value appears in the list of items.
     counter = collections.Counter(value for _, _, value in items)
     # create a map from the value to the type of the value, for those values that are a member
@@ -38,7 +38,7 @@ TO_TYPE_DICT = create_to_type_dict()
 
 
 def make(name: str, base_location: Location, length: int, generator: Optional[ClueValueGenerator]) -> Clue:
-    return Clue.make(name, name[0] == 'A', base_location, length, generator=generator)
+    return Clue(name, name[0] == 'A', base_location, length, generator=generator)
 
 
 def normal(clue: Clue) -> Iterable[str]:
@@ -98,7 +98,7 @@ class MySolver(SolverByClue):
         this_type = TO_TYPE_DICT[this_answer]
         this_location = clue.base_location
         match_index = 0 if clue.is_across else 1
-        for other_clue in self.clue_list.iterator():
+        for other_clue in self.clue_list:
             # iterate over all the other clues that are similarly across/down, and that haven't been solved yet.
             if other_clue == clue or other_clue.is_across != clue.is_across or other_clue not in unknown_clues:
                 continue
@@ -127,14 +127,14 @@ class MySolver(SolverByClue):
 
     def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         super().check_and_show_solution(known_clues)
-        for clue in self.clue_list.iterator():
+        for clue in self.clue_list:
             value = known_clues[clue]
             print(f'{clue.name:<3} {value:>3} {TO_TYPE_DICT[value].name}')
         self.clue_list.plot_board(known_clues)
 
 
 def run() -> None:
-    clue_list = ClueList.create(CLUES)
+    clue_list = ClueList(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
     solver.solve(debug=False)

@@ -1,11 +1,13 @@
 import itertools
 import math
-from typing import Iterable, Callable, Tuple, Iterator, List
+from typing import Iterable, Callable, Tuple, Iterator, List, Union
 
 from Clue import Clue
 
 """A collection of generators to use in various other puzzles."""
 BASE = 10
+
+ClueValueGenerator = Callable[['Clue'], Iterable[Union[str, int]]]
 
 
 def allvalues(clue: Clue) -> Iterable[int]:
@@ -92,14 +94,40 @@ def lucas(clue: Clue) -> Iterator[int]:
 
 
 def within_clue_limits(clue: Clue, stream: Iterator[int]) -> Iterator[int]:
-    """Filters a (possibly infinite) monotonically increasing Iterator so that it only returns those values
-    that are within the limits of this clue"""
+    """
+    Filters a (possibly infinite) monotonically increasing Iterator so that it only returns those values
+    that are within the limits of this clue.
+    """
     min_value, max_value = __get_min_max(clue)
     for value in stream:
         if value >= min_value:
             if value >= max_value:
                 return
             yield value
+
+
+def convert_to_base(num: int, base: int = BASE) -> str:
+    """Converts a number to the specified base, and returns the value as a string"""
+    result = []
+    if not num:
+        return '0'
+    while num:
+        num, mod = divmod(num, base)
+        result.append('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz<>'[mod])
+    result.reverse()
+    return ''.join(result)
+
+
+def using_current_base(generator: ClueValueGenerator) -> ClueValueGenerator:
+    """
+    Converts a ClueValueGenerator into a new ClueValueGenerator that converts all numeric input into strings
+    of the specified base.  Needed when working with bases other then 10.
+    """
+    def result(clue: Clue) -> Iterator[str]:
+        def maybe_convert(value: Union[int, str]) -> str:
+            return value if isinstance(value, str) else convert_to_base(value, BASE)
+        return map(maybe_convert, generator(clue))
+    return result
 
 
 def __get_min_max(clue: Clue) -> Tuple[int, int]:

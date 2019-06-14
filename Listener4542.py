@@ -1,5 +1,5 @@
 import collections
-from typing import Tuple, Dict, List, Set, Mapping, FrozenSet, Optional
+from typing import Tuple, Dict, List, Set, Mapping, FrozenSet
 
 import inflect  # type: ignore
 
@@ -35,7 +35,8 @@ def my_generator(num_letters: int) -> ClueValueGenerator:
 
 
 def make(name: str, expression: str, num_letters: int, length: int, base_location: Location) -> 'Clue':
-    return Clue.make(name, name.isupper(), base_location, length, expression, my_generator(num_letters))
+    return Clue(name, name.isupper(), base_location, length,
+                expression=expression, generator=my_generator(num_letters))
 
 
 CLUES = (
@@ -67,22 +68,17 @@ CLUES = (
 )
 
 
-class MyClueList(ClueList):
-    def get_clue_name_for_plot(self, clue: Clue) -> Optional[str]:
-        return clue.name
-
-
 class MySolver(SolverByClue):
     expression_letters: Dict[Clue, Set[str]]
 
     def __init__(self, clue_list: ClueList):
         super(MySolver, self).__init__(clue_list)
-        self.expression_letters = {clue: {x for x in clue.expression if x.isalpha()} for clue in clue_list.iterator()}
+        self.expression_letters = {clue: {x for x in clue.expression if x.isalpha()} for clue in clue_list}
 
     def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
                                    unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
         known_letters = {x.name for x in self.known_clues}
-        new_expressions = {clue2 for clue2 in self.clue_list.iterator()
+        new_expressions = {clue2 for clue2 in self.clue_list
                            if self.expression_letters[clue2].issubset(known_letters)
                            if clue.name in self.expression_letters[clue2]}
         if new_expressions:
@@ -96,13 +92,9 @@ class MySolver(SolverByClue):
 
         return True
 
-    def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
-        super().check_and_show_solution(known_clues)
-        self.clue_list.plot_board(known_clues)
-
 
 def run() -> None:
-    clue_list = ClueList.create(CLUES)
+    clue_list = ClueList(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
     solver.solve(debug=True)
