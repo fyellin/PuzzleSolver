@@ -267,7 +267,7 @@ class SolverByClue(BaseSolver):
                 if not self.post_clue_assignment_fixup(clue, self.known_clues, next_unknown_clues):
                     continue
                 for clue2, values2 in next_unknown_clues.items():
-                    intersection = Intersection.maybe_make(clue2, clue)
+                    intersection = self.maybe_make_intersection(clue2, clue)
                     if intersection:
                         result = frozenset(
                             x for x in values2 if x != value and intersection.values_match(x, value))
@@ -287,6 +287,12 @@ class SolverByClue(BaseSolver):
 
         finally:
             self.known_clues.pop(clue, None)
+
+
+    def maybe_make_intersection(self, clue1: Clue, clue2: Clue) -> Optional[Intersection]:
+        "Pulled out into a separate method so that it can be overridden."
+        return Intersection.maybe_make(clue1, clue2)
+
 
     def __get_all_possible_values(self, clue: Clue) -> FrozenSet[ClueValue]:
         # Generates all the possible values for the clue, but tosses out those that have a zero in a bad location.
