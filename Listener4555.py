@@ -2,13 +2,13 @@
 Painful, but relatively straightforward.
 """
 
+import functools
 import itertools
 from typing import Callable, Iterable, Optional, Dict, List, FrozenSet, Union, Mapping
-import functools
 
 import Generators
-from GenericSolver import SolverByClue
 from Clue import Location, ClueValueGenerator, Clue, ClueValue, ClueList
+from GenericSolver import SolverByClue
 
 """
 Looking at 16a/17d, the only number/cube that intersect that way are:
@@ -232,7 +232,7 @@ class MySolver(SolverByClue):
             if sum(map(int, values)) != 2662:  # 2 * A16
                 continue
             print(row_break)
-            self.clue_list.plot_board(known_clues)
+            super().check_and_show_solution(known_clues)
 
 
 def run() -> None:

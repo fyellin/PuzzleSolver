@@ -288,11 +288,9 @@ class SolverByClue(BaseSolver):
         finally:
             self.known_clues.pop(clue, None)
 
-
     def maybe_make_intersection(self, clue1: Clue, clue2: Clue) -> Optional[Intersection]:
-        "Pulled out into a separate method so that it can be overridden."
+        """Pulled out into a separate method so that it can be overridden."""
         return Intersection.maybe_make(clue1, clue2)
-
 
     def __get_all_possible_values(self, clue: Clue) -> FrozenSet[ClueValue]:
         # Generates all the possible values for the clue, but tosses out those that have a zero in a bad location.

@@ -6,6 +6,8 @@ from types import CodeType
 from typing import Tuple, Callable, Iterable, Union, Optional, Iterator, Dict, cast, Any, NewType, \
     Mapping, FrozenSet, Sequence, List, Set
 
+from matplotlib.axes import Axes
+
 from DrawGrid import draw_grid
 
 Location = Tuple[int, int]
@@ -182,7 +184,7 @@ class ClueList:
         """Creates the set of (start-location, length, is-across) tuples for all clues in the puzzle"""
         return {(clue.base_location, clue.length, clue.is_across) for clue in self.__name_to_clue.values()}
 
-    def plot_board(self, clue_values: Dict[Clue, ClueValue]) -> None:
+    def plot_board(self, clue_values: Dict[Clue, ClueValue], *, axes: Optional[Axes] = None) -> None:
         max_row = self.__max_row
         max_column = self.__max_column
 
@@ -223,4 +225,4 @@ class ClueList:
                 (clue.location(i) for i in range(1, clue.length)))
 
         draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
-                  top_bars, left_bars)
+                  top_bars, left_bars, axes)

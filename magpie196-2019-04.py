@@ -3,11 +3,10 @@ A puzzle that works in bases other than 10.  We modify the generators to produce
 in a different base.
 """
 
-from typing import Iterator, Union
-from GenericSolver import SolverByClue
-from Clue import Location, ClueValueGenerator, Clue, ClueList
 import Generators
+from Clue import Location, ClueValueGenerator, Clue, ClueList
 from Generators import triangular, lucas, fibonacci, square, cube, prime, palindrome
+from GenericSolver import SolverByClue
 
 
 def make(name: str, base_location: Location, length: int, generator: ClueValueGenerator) -> Clue:

@@ -229,7 +229,7 @@ class MySolver(SolverByClue):
         return result
 
     def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
-        self.clue_list.plot_board(known_clues)
+        super().check_and_show_solution(known_clues)
         print('************************')
 
 

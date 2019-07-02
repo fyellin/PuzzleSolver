@@ -4,12 +4,11 @@ is_zero_allowed:    This puzzle doesn't allow 0 in any intersection
 """
 
 
-import itertools
 from datetime import datetime
 from typing import Dict, Sequence, Iterable
 
-from GenericSolver import SolverByLetter
 from Clue import Location, Letter, ClueList
+from GenericSolver import SolverByLetter
 
 
 class MySolver(SolverByLetter):

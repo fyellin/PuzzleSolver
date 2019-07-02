@@ -5,35 +5,41 @@ import pickle
 from enum import Enum
 from typing import Iterable, Optional, Tuple, Sequence, Dict, List, NamedTuple, cast
 
+import numpy as np
 from matplotlib import patches as mpatches
 from matplotlib import path as mpath
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 
 from Clue import ClueValueGenerator, Clue, ClueList, ClueValue
 from GenericSolver import SolverByClue, Intersection
 
+PDF_FILE_NAME = '/tmp/magpie199.pdf'
+
+VALUE_MAP_PICKLE_FILE = "/tmp/magpie199.dmp"
+
 
 class Direction(Enum):
-    Right = ((2, 0), 0, '→')
-    RightDown = ((1, 1), 2, '↘')
-    LeftDown = ((-1, 1), 1, '↙')
-    Left = ((-2, 0), 0, '←')
-    LeftUp = ((-1, -1), 2, '↖')
-    RightUp = ((1, -1), 1, '↗')
+    _delta: complex
+    _name: str
 
-    def delta(self, step: int = 1) -> Tuple[int, int]:
-        (dx, dy), _, _ = self.value
-        return step * dx, step * dy
+    Right = ('→', 2 + 0j)
+    RightDown = ('↘', 1 + 1j)
+    LeftDown = ('↙', -1 + 1j)
+    Left = ('←', -2 + 0j)
+    LeftUp = ('↖', -1 - 1j)
+    RightUp = ('↗', 1 - 1j)
 
-    def same_type(self, other: 'Direction') -> bool:
-        _, x, _ = self.value
-        _, y, _ = other.value
-        return x == y
+    def __init__(self, name: str, delta: complex) -> None:
+        self._name = name
+        self._delta = delta
 
     def __repr__(self) -> str:
-        _, _, name = self.value
-        return name
+        return f'<{self._name}>'
+
+    def delta(self) -> complex:
+        return self._delta
 
 
 class Pentagon(NamedTuple):
@@ -41,27 +47,19 @@ class Pentagon(NamedTuple):
     directions: Sequence[Direction]
 
     def get_end_points(self) -> List[Tuple[int, int]]:
-        x, y = 0, 0
-        points = []
-        for value, direction in zip(self.values, self.directions):
-            dx, dy = direction.delta(value)
-            x += dx
-            y += dy
-            points.append((x, y))
-        assert (x, y) == (0, 0)
-        return points
+        directions = [direction.delta() for direction in self.directions]
+        deltas = np.multiply(self.values, directions)
+        points = np.cumsum(deltas)
+        assert points[-1] == 0
+        return [(int(x.real), int(x.imag)) for x in points]
 
     def get_all_points(self) -> List[Tuple[int, int]]:
-        x, y = 0, 0
-        points = []
+        deltas = []
         for value, direction in zip(self.values, self.directions):
-            dx, dy = direction.delta()
-            for _ in range(value):
-                x += dx
-                y += dy
-                points.append((x, y))
-        assert (x, y) == (0, 0)
-        return points
+            deltas.extend([(direction.delta())] * value)
+        points = np.cumsum(deltas)
+        assert points[-1] == 0
+        return [(int(x.real), int(x.imag)) for x in points]
 
     def check_no_intersection(self) -> bool:
         points = self.get_all_points()
@@ -69,98 +67,83 @@ class Pentagon(NamedTuple):
 
     def get_size(self) -> int:
         points = self.get_end_points()
-        total = 0
-        for (x1, y1), (x2, y2) in zip(points, points[1:]):
-            total += x1 * y2 - x2 * y1
-        if total < 0:
-            total = -total
-        assert total % 2 == 0
-        return total // 2
+        size: int = abs(np.sum(np.cross(points[:-1], points[1:])))
+        return size // 2
+
+    def draw_pentagon(self, axes: Axes) -> None:
+        points = self.get_end_points()
+        points = np.insert(points, 0, [0, 0], axis=0)
+
+        min_x, min_y = np.amin(points, axis=0)
+        max_x, max_y = np.amax(points, axis=0)
+
+        axes.axis([min_x - .5, max_x + .5, max_y + .5, min_y - .5])
+        axes.set_aspect('1.7')
+        axes.axis('off')
+
+        path = mpath.Path(points, closed=True)
+        patch = mpatches.PathPatch(path, facecolor='white', lw=1)
+        axes.add_patch(patch)
+
+        test_points = [(x, y + .5) for y in range(min_y - 2, max_y + 2)
+                       for x in range(min_x - 1, max_x + 2)]
+        test_results = path.contains_points(test_points)
+        triangle_points = [(x, math.floor(y)) for ((x, y), result) in zip(test_points, test_results) if result]
+        assert len(triangle_points) == self.get_size()
+        for i, (x, y) in enumerate(triangle_points, start=1):
+            fontsize = 6 if i >= 100 else 8
+            if (x + y) % 2 == 1:
+                axes.plot([x - 1, x + 1, x, x - 1], [y, y, y + 1, y], lw=0.5, color='black')
+                axes.text(x, y + .3, str(i), fontsize=fontsize, fontweight='bold', va='center', ha='center')
+            else:
+                # We only need to draw half the triangles.  The three sides of every triangle are either a triangle
+                # pointing the other way, or the border.
+                # axes.plot([x - 1, x + 1, x, x - 1], [y + 1, y + 1, y, y + 1], lw=0.5, color='black')
+                axes.text(x, y + .7, str(i), fontsize=fontsize, fontweight='bold', va='center', ha='center')
+
+        all_points = self.get_all_points()
+        x_points, y_points = list(zip(*all_points))
+        axes.plot(x_points, y_points, "bh")  # black hexagonal.  A hexagon seems appropriate!
+
+        for (x1, y1), (x2, y2), length in zip(points, points[1:], self.values):
+            mid_x, mid_y = (x1 + x2) / 2, (y1 + y2) / 2
+            slope = (y2 - y1) / (x2 - x1)
+            magnitude = math.sqrt(slope * slope + 1)
+            offset_x, offset_y = .4 * slope / magnitude, .4 * -1.0 / magnitude
+
+            if path.contains_point((mid_x + offset_x, mid_y + offset_y)):
+                offset_x, offset_y = -offset_x, -offset_y
+            axes.text(mid_x + offset_x, mid_y + offset_y, str(length), color='red', size='large',
+                      va='center', ha='center')
 
 
 ClueMap = Dict[int, List[Pentagon]]
 
 
 def generate_map() -> ClueMap:
-    result: Dict[int, List[Pentagon]] = collections.defaultdict(list)
-    next_dir = {d1: [d2 for d2 in Direction if not d1.same_type(d2)] for d1 in Direction}
-    for v1, v2, v3, v4, v5 in itertools.permutations(range(1, 10), 5):
-        if v1 != min(v1, v2, v3, v4, v5) or v2 > v5:
-            continue
-        d1 = Direction.Right
-        x1, y1 = d1.delta(v1)
-        for d2 in (Direction.RightDown, Direction.LeftDown):
-            x2, y2 = d2.delta(v2)
-            for d3 in next_dir[d2]:
-                x3, y3 = d3.delta(v3)
-                for d4 in next_dir[d3]:
-                    x4, y4 = d4.delta(v4)
-                    for d5 in next_dir[d4]:
-                        if d1 not in next_dir[d5]:
-                            continue
-                        x5, y5 = d5.delta(v5)
-                        if x1 + x2 + x3 + x4 + x5 == 0 and y1 + y2 + y3 + y4 + y5 == 0:
-                            pentagon = Pentagon((v1, v2, v3, v4, v5), (d1, d2, d3, d4, d5))
-                            if pentagon.check_no_intersection():
-                                size = pentagon.get_size()
-                                result[size].append(pentagon)
+    accepted = 0
+    rejected = 0
+    result: ClueMap = collections.defaultdict(list)
+    direction_list = [x for x in Direction]
+    lengths = [v for v in itertools.permutations(range(1, 10), 5) if v[0] == min(v) and v[1] < v[4]]
+    right_turns = list(x for x in itertools.product([0], [1, 2], [1, 2, 4, 5], [1, 2, 4, 5], [1, 2, 4, 5])
+                       if sum(x) % 3 != 0)
+    total_turns = np.cumsum(right_turns, axis=1) % 6
+    turn_vectors = np.choose(total_turns, [x.delta() for x in Direction])
+    length_direction_total_path_vector = np.inner(lengths, turn_vectors)
+
+    length_indices_where_zero, direction_indices_where_zero = np.where(length_direction_total_path_vector == 0)
+    for length_index, direction_index in zip(length_indices_where_zero, direction_indices_where_zero):
+        length, direction = lengths[length_index], np.choose(total_turns[direction_index], direction_list)
+        pentagon = Pentagon(length, direction)
+        if pentagon.check_no_intersection() :
+            size = pentagon.get_size()
+            result[size].append(pentagon)
+            accepted += 1
+        else:
+            rejected += 1
+    print(f'Accepted:{accepted}, Rejected:{rejected}')
     return result
-
-
-def draw_pentagon(pentagon: Pentagon, label: Optional[str] = None, show: bool = True) -> None:
-    points = [(0, 0)] + pentagon.get_end_points()
-
-    min_x = min(x for x, _ in points)
-    max_x = max(x for x, _ in points)
-    min_y = min(y for _, y in points)
-    max_y = max(y for _, y in points)
-
-    plt.figure(figsize=(7, 11))
-    axis = plt.gca()
-    plt.axis([min_x - 1, max_x + 1, max_y + 1, min_y - 1])
-    axis.set_aspect(1.7)
-    plt.axis('off')
-    # plt.figure(figsize=(max_column * .8, max_row * .8), dpi=100)
-    # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
-
-    path = mpath.Path(points, closed=True)
-    patch = mpatches.PathPatch(path, facecolor='white', linewidth=3)
-    axis.add_patch(patch)
-
-    test_points = [(x, y + .5) for y in range(min_y - 2, max_y + 2)
-                   for x in range(min_x - 1, max_x + 2)]
-    test_results = path.contains_points(test_points)
-    triangle_points = [(x, math.floor(y)) for ((x, y), result) in zip(test_points, test_results) if result]
-    for i, (x, y) in enumerate(triangle_points):
-        axis.text(x, y + .5, str(i + 1), fontsize=8, fontweight='bold',
-                  verticalalignment='center', horizontalalignment='center')
-        if (x + y) % 2 == 1:
-            plt.plot([x - 1, x + 1, x, x - 1], [y, y, y + 1, y],
-                     linewidth=0.5, color='black')
-        else:
-            plt.plot([x - 1, x + 1, x, x - 1], [y + 1, y + 1, y, y + 1],
-                     linewidth=0.5, color='black')
-
-    label = label or ''.join(map(str, pentagon.values))
-    axis.text((min_x + max_x) / 2, max_y + 2, label, color='black',
-              verticalalignment='top', horizontalalignment='center', size='30')
-
-    all_points = pentagon.get_all_points()
-    x_points, y_points = list(zip(*all_points))
-    plt.plot(x_points, y_points, "bo")
-
-    for (x1, y1), (x2, y2), length in zip(points, points[1:], pentagon.values):
-        mid_x, mid_y = (x1 + x2) / 2, (y1 + y2) / 2
-        slope = (y2 - y1) / (x2 - x1)
-        offset_x, offset_y = 0.5 * slope, -0.5
-        if not path.contains_point((mid_x + offset_x, mid_y + offset_y)):
-            axis.text(mid_x + offset_x, mid_y + offset_y, str(length), color='red', size='large',
-                      verticalalignment='top', horizontalalignment='center')
-        else:
-            axis.text(mid_x - offset_x, mid_y - offset_y, str(length), color='red', size='large',
-                      verticalalignment='top', horizontalalignment='center')
-    if show:
-        plt.show()
 
 
 ACROSS = (('a', 135), ('c', 48), ('f', 107), ('g', 87), ('h', 81),
@@ -214,31 +197,37 @@ class MySolver(SolverByClue):
         return None
 
     def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
-        super().check_and_show_solution(known_clues)
-        with PdfPages('/tmp/foobar.pdf') as pdf:
-            for clue in self.clue_list:
-                triangles = int(clue.eval({}))
-                answer = known_clues[clue]
-                canonical_answer = min(answer[i:] + answer[:i] for i in range(5))
-                if canonical_answer[1] > canonical_answer[-1]:
-                    canonical_answer = canonical_answer[0] + canonical_answer[1:][::-1]
-                canonical_lengths = tuple(map(int, list(canonical_answer)))
-                pentagon = next(p for p in self.clue_map[triangles] if p.values == canonical_lengths)
-                draw_pentagon(pentagon, answer, show=False)
-                pdf.savefig()
+        all_clues = collections.deque(self.clue_list)
+        with PdfPages(PDF_FILE_NAME) as pdf:
+            figure, axis = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
+            self.clue_list.plot_board(known_clues, axes=axis)
+            pdf.savefig()
+            plt.close()
+
+            while all_clues:
+                figure, axes = plt.subplots(2, 2, figsize=(8, 11), dpi=100)
+                for i in range(4):
+                    if all_clues:
+                        self.draw_clue_pentagon(all_clues.popleft(), known_clues, axes[divmod(i, 2)])
+                pdf.savefig(figure)
                 plt.close()
+            print(f"Finished writing to {PDF_FILE_NAME}")
+
+    def draw_clue_pentagon(self, clue: Clue, known_clues: Dict[Clue, ClueValue], axes: Axes) -> None:
+        triangles = int(cast(ClueValue, clue.eval({})))
+        answer = known_clues[clue]
+        canonical_answer = min(answer[i:] + answer[:i] for i in range(5))
+        if canonical_answer[1] > canonical_answer[-1]:
+            canonical_answer = canonical_answer[0] + canonical_answer[1:][::-1]
+        canonical_lengths = tuple(map(int, list(canonical_answer)))
+        pentagon = next(p for p in self.clue_map[triangles] if p.values == canonical_lengths)
+        pentagon.draw_pentagon(axes)
+        axes.set_title(f'{clue.name}: {triangles} = {answer}')
 
 
 def get_dumped_map() -> ClueMap:
-    with open("/tmp/magpie199.dmp", "rb") as file:
+    with open(VALUE_MAP_PICKLE_FILE, "rb") as file:
         return cast(ClueMap, pickle.load(file))
-
-
-def test(key: int = 16, clue_map: Optional[ClueMap] = None) -> None:
-    clue_map = clue_map or get_dumped_map()
-    print(len(clue_map[key]))
-    for pentagon in clue_map[key]:
-        draw_pentagon(pentagon)
 
 
 def run(clue_map: Optional[ClueMap] = None) -> None:
@@ -251,15 +240,13 @@ def run(clue_map: Optional[ClueMap] = None) -> None:
 
 def build(dump: bool = False) -> None:
     value_map = generate_map()
-    print(sum(len(value) for value in value_map.values()))
-    keys = sorted(value_map.keys())
-    print(keys[0], keys[-1])
     if dump:
-        with open("/tmp/magpie199.dmp", "wb") as file:
+        with open(VALUE_MAP_PICKLE_FILE, "wb") as file:
             pickle.dump(value_map, file)
     else:
         assert value_map == get_dumped_map()
 
 
 if __name__ == '__main__':
-    run()
+    clue_map = build(True)
+    run(clue_map)

@@ -63,7 +63,7 @@ def _prime_not_prime(clue: Clue) -> Iterator[Tuple[int, bool]]:
         yield p, all(p % factor != 0 for factor in factors)
 
 
-def known(*values: int) -> Callable[[Clue], Iterable[int]]:
+def known(*values: Union[int, str]) -> Callable[[Clue], Iterable[Union[int, str]]]:
     """Returns a fixed set of already known values"""
     return lambda _: values
 

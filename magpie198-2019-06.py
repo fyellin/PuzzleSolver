@@ -3,8 +3,8 @@ from enum import Enum
 from typing import Iterable, Optional, Dict, FrozenSet, Mapping, Tuple
 
 import Generators
-from GenericSolver import SolverByClue
 from Clue import Location, ClueValueGenerator, Clue, ClueValue, ClueList
+from GenericSolver import SolverByClue
 
 
 class AnswerType(Enum):
@@ -130,7 +130,7 @@ class MySolver(SolverByClue):
         for clue in self.clue_list:
             value = known_clues[clue]
             print(f'{clue.name:<3} {value:>3} {TO_TYPE_DICT[value].name}')
-        self.clue_list.plot_board(known_clues)
+        super().check_and_show_solution(known_clues)
 
 
 def run() -> None:
