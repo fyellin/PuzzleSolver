@@ -12,7 +12,7 @@ ClueValueGenerator = Callable[['Clue'], Iterable[Union[str, int]]]
 
 def allvalues(clue: Clue) -> Iterable[int]:
     """All possible values that fit in the clue length"""
-    min_value, max_value = __get_min_max(clue)
+    min_value, max_value = get_min_max(clue)
     return iter(range(min_value, max_value))
 
 
@@ -28,7 +28,7 @@ def palindrome(clue: Clue) -> Iterator[str]:
 
 def square(clue: Clue) -> Iterator[int]:
     """Returns squares"""
-    min_value, max_value = __get_min_max(clue)
+    min_value, max_value = get_min_max(clue)
     lower = int(math.ceil(math.sqrt(min_value)))
     upper = int(math.ceil(math.sqrt(max_value)))
     return map(lambda x: x * x, range(lower, upper))
@@ -36,7 +36,7 @@ def square(clue: Clue) -> Iterator[int]:
 
 def cube(clue: Clue) -> Iterator[int]:
     """Returns cubes"""
-    min_value, max_value = __get_min_max(clue)
+    min_value, max_value = get_min_max(clue)
     lower = int(math.ceil(min_value ** (1 / 3)))
     upper = int(math.ceil(max_value ** (1 / 3)))
     return map(lambda x: x * x * x, range(lower, upper))
@@ -54,7 +54,7 @@ def not_prime(clue: Clue) -> Iterator[int]:
 
 def _prime_not_prime(clue: Clue) -> Iterator[Tuple[int, bool]]:
     """Returns (int, isPrime) for all integers of the right length"""
-    min_value, max_value = __get_min_max(clue)
+    min_value, max_value = get_min_max(clue)
     # Get list of the prime factors that could possibly divide our numbers
     max_factor = int(math.sqrt(max_value))
     factors = list(itertools.takewhile(lambda x: x <= max_factor, prime_generator()))
@@ -98,7 +98,7 @@ def within_clue_limits(clue: Clue, stream: Iterator[int]) -> Iterator[int]:
     Filters a (possibly infinite) monotonically increasing Iterator so that it only returns those values
     that are within the limits of this clue.
     """
-    min_value, max_value = __get_min_max(clue)
+    min_value, max_value = get_min_max(clue)
     for value in stream:
         if value >= min_value:
             if value >= max_value:
@@ -130,7 +130,7 @@ def using_current_base(generator: ClueValueGenerator) -> ClueValueGenerator:
     return result
 
 
-def __get_min_max(clue: Clue) -> Tuple[int, int]:
+def get_min_max(clue: Clue) -> Tuple[int, int]:
     min_value = BASE ** (clue.length - 1)
     max_value = BASE * min_value
     return min_value, max_value
