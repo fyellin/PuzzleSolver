@@ -1,10 +1,10 @@
 import itertools
 import re
-from typing import Iterable, Sequence, Optional, Tuple
+from typing import Iterable, Sequence, Optional, Tuple, Mapping, Dict, FrozenSet, cast, Any
 
 import Generators
-from Clue import ClueValueGenerator, Clue, ClueList
-from GenericSolver import SolverByClue
+from Clue import ClueValueGenerator, Clue, ClueList, ClueValue
+from GenericSolver import ConstraintSolver
 
 ACROSS = """
 a 159 56 165 67 5      4
@@ -43,29 +43,45 @@ m..np...q..
 u..v...w...
 """
 
+
+class MyString(str):
+    def __repr__(self) -> str:
+        return '<' + str(self) + '>'
+
+    def __new__(cls, value: int, operators: Tuple[str, ...], parentheses: Optional[Tuple[int, int]], expression: str
+                ) -> Any:
+        return str.__new__(cls, value)  # type: ignore
+
+    def __init__(self, value: int, operators: Tuple[str, ...], parentheses: Optional[Tuple[int, int]], expression: str
+                 ) -> None:
+        super().__init__()
+        self.operators = operators
+        self.parentheses = parentheses
+        self.expression = expression
+
+
 def generator(values: Sequence[int]) -> ClueValueGenerator:
-    def result(clue: Clue) -> Iterable[int]:
+    def result(clue: Clue) -> Iterable[MyString]:
         min_value, max_value = Generators.get_min_max(clue)
-        for op1, op2, op3, op4 in itertools.permutations("+*-/"):
-            def get_value(lparen:int, rparen:int) -> Tuple[str, Optional[int]]:
+        for ops in itertools.permutations("+*-/"):
+            def get_value(lparen: int, rparen: int) -> Tuple[str, Optional[int]]:
                 def q(i: int) -> str:
-                    return f"{'(' if i == lparen else ''}{values[i - 1]}{')' if i == rparen else ''}"
-                expression = f"{q(1)} {op1} {q(2)} {op2} {q(3)} {op3} {q(4)} {op4} {q(5)}"
+                    return f"{'(' if i == lparen else ''}{values[i]}{')' if i == rparen else ''}"
+                expression = f"{q(0)} {ops[0]} {q(1)} {ops[1]} {q(2)} {ops[2]} {q(3)} {ops[3]} {q(4)}"
                 real_value = eval(expression)
                 value = int(real_value)
-                return expression, (value if (value == real_value and min_value <= value < max_value) else None)
+                if value == real_value and min_value <= value < max_value:
+                    return expression, value
+                else:
+                    return expression, None
             expression, base_value = get_value(-1, -1)
             if base_value:
-                yield base_value
-                print(f'{clue.name}     {base_value:>5} "{expression}"')
-            for start_paren in range(1, 5):
-                for end_paren in range(5, start_paren, -1):
+                yield MyString(base_value, ops, None, expression)
+            for start_paren in range(0, 4):
+                for end_paren in range(4, start_paren, -1):
                     expression, value = get_value(start_paren, end_paren)
                     if value and value != base_value:
-                        print(f'{clue.name} {start_paren} {end_paren} {value:>5} "{expression}"')
-                        yield value
-        print()
-
+                        yield MyString(value, ops, (start_paren, end_paren), expression)
     return result
 
 
@@ -83,7 +99,7 @@ def make_clue_list() -> ClueList:
             match = re.fullmatch(r'([a-z])\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*', line)
             assert match
             letter = match.group(1)
-            values = [int(match.group(i))for i in range(2,7)]
+            values = [int(match.group(i))for i in range(2, 7)]
             length = int(match.group(7))
             location = locations[letter]
             clue = Clue(f'{letter}{suffix}', is_across, location, length, generator=generator(values))
@@ -92,8 +108,27 @@ def make_clue_list() -> ClueList:
     return clue_list
 
 
-class MySolver(SolverByClue):
-    pass
+class MySolver(ConstraintSolver):
+    def __init__(self, clue_list: ClueList) -> None:
+        super().__init__(clue_list)
+        for clue1, clue2 in itertools.combinations(clue_list, 2):
+             self.add_constraint((clue1, clue2), MySolver.must_be_different)
+
+    @staticmethod
+    def must_be_different(aa: ClueValue, bb: ClueValue) -> bool:
+        a = cast(MyString, aa)
+        b = cast(MyString, bb)
+        if a.operators == b.operators:
+            return False
+        if a.parentheses and a.parentheses == b.parentheses:
+            return False
+        return True
+
+    def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
+        super().show_solution(known_clues)
+        for clue in self.clue_list:
+            value = cast(MyString, known_clues[clue])
+            print(f'{clue.name} {value:<5} = {value.expression}')
 
 
 def run() -> None:

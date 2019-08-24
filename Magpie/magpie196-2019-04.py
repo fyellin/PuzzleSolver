@@ -6,7 +6,7 @@ in a different base.
 import Generators
 from Clue import Location, ClueValueGenerator, Clue, ClueList
 from Generators import triangular, lucas, fibonacci, square, cube, prime, palindrome
-from GenericSolver import SolverByClue
+from GenericSolver import ConstraintSolver
 
 
 def make(name: str, base_location: Location, length: int, generator: ClueValueGenerator) -> Clue:
@@ -39,12 +39,12 @@ CLUES = (
 def run() -> None:
     clue_list = ClueList(CLUES)
     clue_list.verify_is_180_symmetric()
-    solver = SolverByClue(clue_list)
+    solver = ConstraintSolver(clue_list)
 
     for Generators.BASE in range(2, 65):
         print(f'Running in base {Generators.BASE}')
         solver.solve(show_time=False, debug=False)
-        print(f'Using {solver.count_total} steps')
+        print(f'Using {solver.step_count} steps')
 
 
 if __name__ == '__main__':

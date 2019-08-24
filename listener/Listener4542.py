@@ -4,7 +4,7 @@ from typing import Tuple, Dict, List, Set, Mapping, FrozenSet
 import inflect  # type: ignore
 
 from Clue import Clue, Location, ClueValue, ClueValueGenerator, ClueList, Letter
-from GenericSolver import SolverByClue
+from GenericSolver import ConstraintSolver
 
 eng = inflect.engine()
 
@@ -68,11 +68,11 @@ CLUES = (
 )
 
 
-class MySolver(SolverByClue):
+class MySolver(ConstraintSolver):
     expression_letters: Dict[Clue, Set[str]]
 
     def __init__(self, clue_list: ClueList):
-        super(MySolver, self).__init__(clue_list)
+        super().__init__(clue_list)
         self.expression_letters = {clue: {x for x in clue.expression if x.isalpha()} for clue in clue_list}
 
     def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
@@ -97,7 +97,7 @@ def run() -> None:
     clue_list = ClueList(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
-    solver.solve(debug=True)
+    solver.solve()
 
 
 if __name__ == '__main__':

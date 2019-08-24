@@ -15,7 +15,7 @@ from typing import Dict, Sequence, Tuple, List, Set, Iterable, Any, cast
 
 import Generators
 from Clue import ClueList, Letter, ClueValue, Clue
-from GenericSolver import SolverByClue
+from GenericSolver import ConstraintSolver
 
 
 CLUE_DATA = """
@@ -216,8 +216,8 @@ def run2(entries: Sequence[ClueValue]) -> None:
             clue = Clue(f'{xy}{suffix}', is_across, (q + 1, r + 1), length, generator=generator)
             clues.append(clue)
     clue_list = ClueList(clues)
-    solver = SolverByClue(clue_list)
-    solver.solve(debug=True)
+    solver = ConstraintSolver(clue_list)
+    solver.solve()
 
 
 if __name__ == '__main__':

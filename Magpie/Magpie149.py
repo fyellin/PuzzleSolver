@@ -6,10 +6,11 @@ A one-of-a-kind implementation.  We have clues, but don't know where they are go
 import random
 import re
 from datetime import datetime
-from typing import Sequence, Dict, Set, Optional
+from typing import Sequence, Dict, Set, Optional, Pattern
 
 from Clue import Clue, ClueList, ClueValue, Letter
-from GenericSolver import Intersection, BaseSolver
+from GenericSolver import BaseSolver
+from Intersection import Intersection
 
 GRID = """
 XXXXX.X
@@ -62,10 +63,7 @@ def make_clue_list() -> ClueList:
         for column, item in enumerate(line):
             if item == 'X':
                 locations.append((row + 1, column + 1))
-    clues = []
-    for i in range(1, len(LENGTHS)):
-        clue = Clue(str(i), i in ACROSSES, locations[i], LENGTHS[i])
-        clues.append(clue)
+    clues = [Clue(str(i), i in ACROSSES, locations[i], LENGTHS[i]) for i in range(1, len(LENGTHS))]
     clue_list = ClueList(clues)
     clue_list.verify_is_180_symmetric()
     return clue_list
@@ -85,31 +83,35 @@ def make_expressions() -> Sequence[Clue]:
 class SolverByClue(BaseSolver):
     expressions: Sequence[Clue]
     missing_variables: Dict[Clue, Set[str]]
-    count_total: int
+    step_count: int
+    solution_count: int
     debug: bool
 
     def __init__(self, clue_list: ClueList, expressions: Sequence[Clue]) -> None:
-        super(SolverByClue, self).__init__(clue_list)
+        super().__init__(clue_list)
         self.expressions = expressions
         self.missing_variables = {
             clue: set(x for x in clue.expression if 'A' <= x <= 'Z' and x != clue.name)
             for clue in self.expressions
         }
 
-    def solve(self, *, show_time: bool = True, debug: bool = False) -> None:
-        self.count_total = 0
+    def solve(self, *, show_time: bool = True, debug: bool = False) -> int:
+        self.step_count = 0
+        self.solution_count = 0
         self.debug = debug
         time1 = datetime.now()
         self.__solve({}, {})
         time2 = datetime.now()
         if show_time:
-            print(f'Steps: {self.count_total};  {time2 - time1}')
+            print(f'Solutions { self.solution_count}; Steps: {self.step_count};  {time2 - time1}')
+        return self.solution_count
 
     def __solve(self, known_letters: Dict[Letter, int], known_clues: Dict[Clue, ClueValue]) -> None:
         depth = len(known_letters)
         if len(known_letters) == 25:
             print(known_clues)
             self.clue_list.plot_board(known_clues)
+            self.solution_count += 1
             return
 
         known_letters_set = set(known_letters.keys())
@@ -117,7 +119,7 @@ class SolverByClue(BaseSolver):
                               if expression.name not in known_letters_set
                               if self.missing_variables[expression].issubset(known_letters_set)]
         clues_to_try = [clue for clue in self.clue_list if clue not in known_clues]
-        clue_to_pattern = {clue: Intersection.make_runtime_pattern(clue, known_clues, self)
+        clue_to_pattern = {clue: self.make_runtime_pattern(clue, known_clues)
                            for clue in clues_to_try}
 
         def get_legal_value(expression: Clue, clue: Clue) -> Optional[ClueValue]:
@@ -128,7 +130,7 @@ class SolverByClue(BaseSolver):
                 return value
             return None
 
-        self.count_total += len(clues_to_try) * len(expressions_to_try)
+        self.step_count += len(clues_to_try) * len(expressions_to_try)
         next_steps = {expression: [(clue, value) for clue in clues_to_try
                                    for value in [get_legal_value(expression, clue)]
                                    if value]
@@ -148,6 +150,17 @@ class SolverByClue(BaseSolver):
             self.__solve(known_letters, known_clues)
             del known_letters[Letter(expression.name)]
             del known_clues[clue]
+
+    def make_runtime_pattern(self, clue: Clue, known_clues: Dict[Clue, ClueValue]) -> Pattern[str]:
+        pattern_list = [self.clue_list.get_allowed_regexp(location) for location in clue.locations()]
+        pattern_list.append('$')
+        for other_clue, other_clue_value in known_clues.items():
+            intersections = Intersection.get_intersections(clue, other_clue)
+            for intersection in intersections:
+                pattern_list[intersection.this_index] = other_clue_value[intersection.other_index]
+        return re.compile(''.join(pattern_list))
+
+
 
 
 def run() -> None:

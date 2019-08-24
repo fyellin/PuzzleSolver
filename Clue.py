@@ -6,8 +6,6 @@ from types import CodeType
 from typing import Tuple, Callable, Iterable, Union, Optional, Iterator, Dict, cast, Any, NewType, \
     Mapping, FrozenSet, Sequence, List, Set
 
-from matplotlib.axes import Axes
-
 from DrawGrid import draw_grid
 
 Location = Tuple[int, int]
@@ -24,6 +22,8 @@ class Clue:
     expression: str
     compiled_expression: CodeType
     generator: Optional[ClueValueGenerator]
+    location_list: Sequence[Location]
+    location_set:  FrozenSet[Location]
 
     def __init__(self, name: str, is_across: bool, base_location: Location, length: int, *,
                  expression: str = '0',
@@ -36,17 +36,20 @@ class Clue:
         self.expression = expression
         self.compiled_expression = compiled_expression
         self.generator = generator
+        self.location_list = tuple(self.generate_location_list())
+        self.location_set = frozenset(self.location_list)
 
-    def locations(self) -> Iterator[Location]:
+    def generate_location_list(self) -> Iterable[Location]:
         row, column = self.base_location
         column_delta, row_delta = (1, 0) if self.is_across else (0, 1)
         for i in range(self.length):
             yield row + i * row_delta, column + i * column_delta
 
+    def locations(self) -> Sequence[Location]:
+        return self.location_list
+
     def location(self, i: int) -> Location:
-        row, column = self.base_location
-        column_delta, row_delta = (1, 0) if self.is_across else (0, 1)
-        return row + i * row_delta, column + i * column_delta
+        return self.location_list[i]
 
     def eval(self, known_letters: Dict[Letter, int]) -> Optional[ClueValue]:
         value = eval(self.compiled_expression, None, cast(Any, known_letters))
@@ -60,7 +63,8 @@ class Clue:
     @staticmethod
     def __get_compiled_expression(expression: str, name: str) -> CodeType:
         expression = expression.replace("–", "-")  # Magpie use a strange minus sign
-        expression = expression.replace("^", "**")  # Magpie use a strange minus sign
+        expression = expression.replace('−', '-')  # Listener uses a different strange minus sign
+        expression = expression.replace("^", "**") # Replace exponentiation with proper one
         for _ in range(2):
             # ), letter, or digit followed by (, letter, or digit needs an * in between, except when we have
             # two digits in a row with no space between them.  Note negative lookahead below.
@@ -102,7 +106,15 @@ class ClueList:
         self.__intersections = frozenset(location for location, count in all_locations.items() if count >= 2)
 
     @staticmethod
-    def create_from_text(across: str, down: str, locations: Sequence[Tuple[int, int]]) -> 'ClueList':
+    def get_locations_from_grid(grid: str) -> Sequence[Location]:
+        return [(row + 1, column + 1)
+                for row, line in enumerate(grid.splitlines())
+                for column, item in enumerate(line)
+                if item == 'X']
+
+    @classmethod
+    def create_from_text(cls, across: str, down: str, locations: Sequence[Tuple[int, int]], *, twins: bool = False) \
+            -> 'ClueList':
         result: List[Clue] = []
         for lines, is_across, letter in ((across, True, 'a'), (down, False, 'd')):
             for line in lines.splitlines():
@@ -113,25 +125,31 @@ class ClueList:
                 assert match
                 number = int(match.group(1))
                 location = locations[number - 1]
-                clue = Clue(f'{number}{letter}', is_across, location, int(match.group(3)), expression=match.group(2))
-                result.append(clue)
-        return ClueList(result)
+                expression = match.group(2)
+                if '=' not in expression or not twins:
+                    clue = Clue(f'{number}{letter}', is_across, location, int(match.group(3)), expression=expression)
+                    result.append(clue)
+                else:
+                    for i, subexpression in enumerate(expression.split('='), start=1):
+                        clue = Clue(f'{number}{letter}{i}', is_across, location, int(match.group(3)),
+                                    expression=subexpression.strip())
+                        result.append(clue)
+        return cls(result)
 
-    def get_board(self, clue_values: Dict[Clue, ClueValue]) -> List[List[int]]:
+    @staticmethod
+    def get_locations_from_grid(grid: str) -> Sequence[Location]:
+        return [(row + 1, column + 1)
+                for row, line in enumerate(grid.split())
+                for column, item in enumerate(line)
+                if item == 'X']
+
+    def get_board(self, clue_values: Dict[Clue, ClueValue]) -> List[List[str]]:
         """Print the board, based on the values for each of the clues"""
-        board = [[0 for _ in range(self.__max_column - 1)] for _ in range(self.__max_row - 1)]
+        board = [['' for _ in range(self.__max_column)] for _ in range(self.__max_row)]
         for clue, clue_value in clue_values.items():
             for (row, column), letter in zip(clue.locations(), clue_value):
-                board[row - 1][column - 1] = int(letter)
+                board[row][column] = letter
         return board
-
-    def print_board(self, clue_values: Dict[Clue, ClueValue]) -> None:
-        """Print the board, based on the values for each of the clues"""
-        board = [[' ' for _ in range(self.__max_column)] for _ in range(self.__max_row)]
-        for clue, clue_value in clue_values.items():
-            for (row, column), letter in zip(clue.locations(), clue_value):
-                board[row - 1][column - 1] = letter
-        print('\n'.join(''.join(bl) for bl in board))
 
     def clue_named(self, name: str) -> Clue:
         """Returns the new with the specified name"""
@@ -145,6 +163,24 @@ class ClueList:
 
     def is_start_location(self, location: Location) -> bool:
         return location in self.__start_locations
+
+    # Override this if there are addition restrictions on the value that can go into a field.
+    def get_allowed_regexp(self, location: Location) -> str:
+        return '.' if self.is_zero_allowed(location) else '[^0]'
+
+    # Only used by get_allowed_regexp.  The normal rule is that zeros are allowed everywhere except at beginning
+    def is_zero_allowed(self, location: Location) -> bool:
+        """Returns true if a 0 is allowed at this clue location.  Overrideable by subclasses"""
+        return not self.is_start_location(location)
+
+    # Only used when a clue is spl
+    def is_twin(self, clue1: Clue, clue2: Clue) -> bool:
+        """
+        Returns true if two clues are actually the same clue split in two.  A value of true confirms that
+        it is okay that the two clues have the same value.
+        """
+        return clue1.base_location == clue2.base_location and clue1.is_across == clue2.is_across and \
+            clue1.length == clue2.length
 
     def verify_is_vertically_symmetric(self) -> None:
         """Verify that the puzzle has vertical symmetry"""
@@ -184,7 +220,7 @@ class ClueList:
         """Creates the set of (start-location, length, is-across) tuples for all clues in the puzzle"""
         return {(clue.base_location, clue.length, clue.is_across) for clue in self.__name_to_clue.values()}
 
-    def plot_board(self, clue_values: Dict[Clue, ClueValue], *, axes: Optional[Axes] = None) -> None:
+    def plot_board(self, clue_values: Dict[Clue, ClueValue], **more_args: Any) -> None:
         max_row = self.__max_row
         max_column = self.__max_column
 
@@ -219,10 +255,24 @@ class ClueList:
             clued_locations.update(clue.locations())
             if clue in clue_values:
                 for location, value in zip(clue.locations(), clue_values[clue]):
-                    location_to_entry[location] = value
+                    if location in location_to_entry:
+                        assert value == location_to_entry[location]
+                    else:
+                        location_to_entry[location] = value
             # These are internal locations of an answer, so a heavy bar isn't needed.
             (left_bars if clue.is_across else top_bars).difference_update(
                 (clue.location(i) for i in range(1, clue.length)))
 
+        self.draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
+                  top_bars, left_bars, **more_args)
+
+    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
+                  location_to_entry: Dict[Location, str],
+                  location_to_clue_number: Dict[Location, str],
+                  top_bars: Set[Location],
+                  left_bars: Set[Location],
+                  **more_args: Any) -> None:
         draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
-                  top_bars, left_bars, axes)
+                  top_bars, left_bars, **more_args)
+
+

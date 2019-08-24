@@ -5,11 +5,11 @@ Amusing puzzle, but all the word was in setting up the generators.  After that, 
 import itertools
 import re
 from collections import defaultdict
-from typing import Iterator, Mapping, Dict, Sequence, List
+from typing import Iterator, Mapping, Sequence, List
 
 import Generators
-from Clue import Clue, ClueList, ClueValue
-from GenericSolver import SolverByClue
+from Clue import Clue, ClueList
+from GenericSolver import ConstraintSolver
 
 
 def fibonacci_generator() -> Iterator[int]:
@@ -104,17 +104,11 @@ X..X...
 23 20""")
 
 
-class MySolver(SolverByClue):
-    def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
-        super().check_and_show_solution(known_clues)
-        print('************************')
-
-
 def run() -> None:
     clue_list = ClueList(CLUES)
     clue_list.verify_is_180_symmetric()
-    solver = MySolver(clue_list)
-    solver.solve(debug=True)
+    solver = ConstraintSolver(clue_list)
+    solver.solve()
 
 
 if __name__ == '__main__':

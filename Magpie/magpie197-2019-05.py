@@ -2,16 +2,10 @@
 Standard.  Nothing exciting.
 """
 
-from datetime import datetime
 from typing import Dict, Sequence, Iterable
 
-from GenericSolver import SolverByLetter
-from Clue import Location, Letter, ClueList
-
-
-class MySolver(SolverByLetter):
-    def get_letter_values(self, known_letters: Dict[Letter, int], count: int) -> Iterable[Sequence[int]]:
-        return self.get_letter_values_impl(1, 16, known_letters, count)
+from GenericSolver import EquationSolver
+from Clue import Letter, ClueList
 
 
 # noinspection SpellCheckingInspection
@@ -60,23 +54,24 @@ DOWN = """
 26 L + AG (2)
 """
 
-LOCATIONS: Sequence[Location] = (
-             (1, 1), (1, 3), (1, 4), (1, 5), (1, 7),
-             (2, 2), (2, 4), (2, 6), (3, 1), (3, 3),
-             (3, 4), (3, 5), (3, 7), (4, 1), (4, 3),
-             (4, 6), (5, 1), (5, 2), (5, 4), (5, 5),
-             (5, 6), (5, 7), (6, 1), (6, 2), (6, 3),
-             (6, 4), (6, 5), (7, 1), (7, 4), (7, 6))
+
+LOCATIONS = """
+X.XXX.X
+.X.X.X.
+X.XXX.X
+X.X..X.
+XX.XXXX
+XXXXX..
+X..X.X.
+"""
 
 
 def run() -> None:
-    clue_list = ClueList.create_from_text(ACROSS, DOWN, LOCATIONS)
+    locations = ClueList.get_locations_from_grid(LOCATIONS)
+    clue_list = ClueList.create_from_text(ACROSS, DOWN, locations)
     clue_list.verify_is_four_fold_symmetric()
-    time1 = datetime.now()
-    solver = MySolver(clue_list)
+    solver = EquationSolver(clue_list, items=tuple(range(1, 17)), allow_duplicates=True)
     solver.solve()
-    time3 = datetime.now()
-    print(solver.count_total, time3 - time1)
 
 
 if __name__ == '__main__':

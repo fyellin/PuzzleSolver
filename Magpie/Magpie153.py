@@ -3,7 +3,7 @@ from typing import Iterator, Mapping, Dict, FrozenSet, Sequence, Tuple, Optional
 
 import Generators
 from Clue import Clue, ClueList, ClueValue, ClueValueGenerator
-from GenericSolver import SolverByClue
+from GenericSolver import ConstraintSolver
 
 """
 A decomposition n = a^2 - b^2 = (a-b)(a+b) = d*(n/d) is given for each divisor d less than
@@ -188,56 +188,39 @@ CLUES = make_clue_list(GRID,
                         (33, 3, Generators.allvalues)))
 
 
-class MySolver(SolverByClue):
+class MySolver(ConstraintSolver):
     def __init__(self, cl: ClueList):
-        super(MySolver, self).__init__(cl)
-        (self.a1, self.a8, self.a9, self.a11, self.a12, self.a13, self.a14, self.a16, self.a19,
-         self.a20, self.a21, self.a22, self.a25, self.a27, self.a30, self.a32, self.a33, self.a34,
-         self.a35, self.a36,
-         self.d1, self.d2, self.d3, self.d4, self.d5, self.d6, self.d7, self.d10, self.d15, self.d16,
-         self.d17, self.d18, self.d19, self.d20, self.d23, self.d24, self.d26, self.d28, self.d29,
-         self.d31, self.d32, self.d33) = list(iter(cl))
-
-    def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
-                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
-
-        def is_factor_of(clue1: Clue, clue2: Clue) -> bool:
-            if clue == clue1 or clue == clue2:
-                return self.check_2_clue_relationship(clue1, clue2, unknown_clues, lambda x, y: int(y) % int(x) == 0)
-            else:
-                return True
-
-        result = all(is_factor_of(clue1, clue2) for (clue1, clue2) in (
-            (self.a8,  self.a9),
-            (self.a16, self.a14),
-            (self.a20, self.a9),
-            (self.a20, self.a21),
-            (self.a21, self.d1),
-            (self.a30, self.d1),
-            (self.a33, self.a27),
-            (self.d7,  self.a1),
-            (self.d16, self.d15),
-            (self.d19, self.d2),
-            (self.d19, self.d4),
-            (self.d20, self.d23),
-            (self.d26, self.a25),
-            (self.d31, self.a34),
-            (self.d31, self.d4)))
-        if result and clue in (self.a30, self.d33, self.d24):
-            result = self.check_n_clue_relationship(
-                (self.a30, self.d33, self.d24), unknown_clues, lambda a, b, c: int(a) * int(b) == int(c))
-        return result
-
-    def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
-        super().check_and_show_solution(known_clues)
-        print('************************')
+        super().__init__(cl)
+        for (clue1, clue2) in (
+                ('8a',  '9a'),
+                ('16a', '14a'),
+                ('20a', '9a'),
+                ('20a', '21a'),
+                ('21a', '1d'),
+                ('30a', '1d'),
+                ('33a', '27a'),
+                ('7d',  '1a'),
+                ('16d', '15d'),
+                ('19d', '2d'),
+                ('19d', '4d'),
+                ('20d', '23d'),
+                ('26d', '25a'),
+                ('31d', '34a'),
+                ('31d', '4d')):
+             self.add_constraint((clue1, clue2), lambda x, y: int(y) % int(x) == 0)
+        self.add_constraint(('30a', '33d', '24d'), lambda a, b, c: int(a) * int(b) == int(c))
 
 
 def run() -> None:
     clue_list = ClueList(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
-    solver.solve(debug=True)
+
+
+
+
+
+    solver.solve()
 
 
 if __name__ == '__main__':

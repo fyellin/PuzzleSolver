@@ -1,10 +1,12 @@
 import collections
+import itertools
 from enum import Enum
+from itertools import combinations
 from typing import Iterable, Optional, Dict, FrozenSet, Mapping, Tuple
 
 import Generators
 from Clue import Location, ClueValueGenerator, Clue, ClueValue, ClueList
-from GenericSolver import SolverByClue
+from GenericSolver import ConstraintSolver
 
 
 class AnswerType(Enum):
@@ -83,54 +85,26 @@ CLUES = (
 )
 
 
-class MySolver(SolverByClue):
+class MySolver(ConstraintSolver):
     def __init__(self, clue_list: ClueList):
-        self.d8 = clue_list.clue_named('D8')
-        self.a16 = clue_list.clue_named('A16')
-        super(MySolver, self).__init__(clue_list)
+        super().__init__(clue_list)
+        #  sqrt(d8) is a divisor of a16,, which is the same as d8 being a divisor of a16**2
+        self.add_constraint(('D8', 'A16'), lambda d8, a16: int(a16) ** 2 % int(d8) == 0)
 
-    def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
-                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
-        # When we set the value of a clue, we indicate that whatever AnswerType that value has is exclusive to that
-        # row or column.  All clues in that row or column must have the same AnswerType, and all clues in the other
-        # rows/column must have a different answer type.
-        this_answer = known_clues[clue]
-        this_type = TO_TYPE_DICT[this_answer]
-        this_location = clue.base_location
-        match_index = 0 if clue.is_across else 1
-        for other_clue in self.clue_list:
-            # iterate over all the other clues that are similarly across/down, and that haven't been solved yet.
-            if other_clue == clue or other_clue.is_across != clue.is_across or other_clue not in unknown_clues:
-                continue
-            other_location = other_clue.base_location
-            is_row_column_match = this_location[match_index] == other_location[match_index]
+        for clue1, clue2 in itertools.combinations(clue_list, 2):
+            if clue1.is_across == clue2.is_across:
+                match_index = 0 if clue1.is_across else 1
+                if clue1.base_location[match_index] == clue2.base_location[match_index]:
+                    self.add_constraint((clue1, clue2), lambda x, y: TO_TYPE_DICT[x] == TO_TYPE_DICT[y])
+                else:
+                    self.add_constraint((clue1, clue2), lambda x, y: TO_TYPE_DICT[x] != TO_TYPE_DICT[y])
 
-            def keep_value(value: ClueValue) -> bool:
-                types_match = (this_type == TO_TYPE_DICT[value])
-                # If this is the same row/column, the types must match.  Otherwise, they must differ
-                return is_row_column_match == types_match
-            start_value = unknown_clues[other_clue]
-            unknown_clues[other_clue] = end_value = frozenset(filter(keep_value, start_value))
-            if self.debug and len(start_value) != len(end_value):
-                depth = len(self.known_clues) - 1
-                print(f'{"   " * depth}   [P] {other_clue.name} {len(start_value)} -> {len(end_value)}')
 
-            if not end_value:
-                return False
-
-        if clue == self.d8 or clue == self.a16:
-            #  sqrt(d8) is a divisor of a16,, which is the same as d8 being a divisor of a16**2
-            return self.check_2_clue_relationship(self.d8, self.a16, unknown_clues,
-                                                  lambda d8, a16: int(a16) ** 2 % int(d8) == 0)
-
-        return True
-
-    def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
-        super().check_and_show_solution(known_clues)
+    def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
+        super().show_solution(known_clues)
         for clue in self.clue_list:
             value = known_clues[clue]
             print(f'{clue.name:<3} {value:>3} {TO_TYPE_DICT[value].name}')
-        super().check_and_show_solution(known_clues)
 
 
 def run() -> None:

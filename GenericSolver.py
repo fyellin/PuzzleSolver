@@ -1,73 +1,15 @@
+import functools
 import itertools
 import random
-import re
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from datetime import datetime
 from operator import itemgetter
-from typing import Optional, Tuple, Dict, List, NamedTuple, Set, Sequence, cast, Callable, \
-    Pattern, FrozenSet, Iterable, Mapping, overload
+from typing import Tuple, Dict, List, NamedTuple, Set, Sequence, cast, Callable, \
+    Pattern, FrozenSet, Iterable, Mapping, Any, Union
 
-from Clue import Location, ClueValueGenerator, Clue, ClueValue, Letter, ClueList
-
-
-class Intersection(NamedTuple):
-    this_index: int
-    other_clue: Clue
-    other_index: int
-
-    @staticmethod
-    def maybe_make(this: Clue, other: Clue) -> Optional['Intersection']:
-        """If this clue and the other clue have an intersection, return it.  Otherwise return None."""
-        if this.is_across == other.is_across:
-            return None
-        this_row, this_column = this.base_location
-        other_row, other_column = other.base_location
-        # if "this" is an across clue, the intersection is at (this_row, other_column).
-        # if "this" is a down clue, the intersection is at (this_column, other_row).
-        row_delta, column_delta = other_row - this_row, other_column - this_column
-        my_index, other_index = (column_delta, -row_delta) if this.is_across else (row_delta, -column_delta)
-        # if both indices are within bounds, we have an intersection.
-        if 0 <= my_index < this.length and 0 <= other_index < other.length:
-            return Intersection(my_index, other, other_index)
-        return None
-
-    def values_match(self, this_value: ClueValue, other_value: ClueValue) -> bool:
-        return this_value[self.this_index] == other_value[self.other_index]
-
-    @staticmethod
-    def make_pattern_generator(clue: Clue, intersections: Sequence['Intersection'],
-                               solver: 'BaseSolver') -> \
-            Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
-        pattern_list = [solver.get_allowed_regexp(location) for location in clue.locations()]
-        pattern_list.append('$')
-
-        if not intersections:
-            pattern = re.compile(''.join(pattern_list))
-            return lambda _: pattern
-
-        # {0}, {1}, etc represent the order the items appear in the  "intersections" argument, not necessarily
-        # the order that they appear in the pattern.  format can handle that.
-        for i, intersection in enumerate(intersections):
-            pattern_list[intersection.this_index] = f'{{{i}:s}}'
-        pattern_format = ''.join(pattern_list)
-
-        def getter(known_clues: Dict[Clue, ClueValue]) -> Pattern[str]:
-            args = (known_clues[x.other_clue][x.other_index] for x in intersections)
-            regexp = pattern_format.format(*args)
-            return re.compile(regexp)
-
-        return getter
-
-    @staticmethod
-    def make_runtime_pattern(clue: Clue, known_clues: Dict[Clue, ClueValue],
-                             solver: 'BaseSolver') -> Pattern[str]:
-        pattern_list = [solver.get_allowed_regexp(location) for location in clue.locations()]
-        pattern_list.append('$')
-        for other_clue, other_clue_value in known_clues.items():
-            intersection = Intersection.maybe_make(clue, other_clue)
-            if intersection:
-                pattern_list[intersection.this_index] = other_clue_value[intersection.other_index]
-        return re.compile(''.join(pattern_list))
+from Clue import ClueValueGenerator, Clue, ClueValue, Letter, ClueList, Location
+from Intersection import Intersection
 
 
 class SolvingStep(NamedTuple):
@@ -78,33 +20,35 @@ class SolvingStep(NamedTuple):
 
 class BaseSolver(ABC):
     clue_list: ClueList
+    allow_duplicates: bool
 
-    def __init__(self, clue_list: ClueList) -> None:
+    def __init__(self, clue_list: ClueList, *, allow_duplicates: bool = False) -> None:
         self.clue_list = clue_list
+        self.allow_duplicates = allow_duplicates
 
     @abstractmethod
-    def solve(self, *, show_time: bool = True, debug: bool = False) -> None: ...
-
-    def get_allowed_regexp(self, location: Location) -> str:
-        return '.' if self.is_zero_allowed(location) else '[^0]'
-
-    def is_zero_allowed(self, location: Location) -> bool:
-        """Returns true if a 0 is allowed at this clue location.  Overrideable by subclasses"""
-        return not self.clue_list.is_start_location(location)
+    def solve(self, *, show_time: bool = True, debug: bool = False) -> int: ...
 
 
-class SolverByLetter(BaseSolver, ABC):
-    count_total: int
+ClueInfo = Tuple[Clue, Set[Letter], List[Intersection], Set[Location]]
+
+
+class EquationSolver(BaseSolver, ABC):
+    step_count: int
+    solution_count: int
     known_letters: Dict[Letter, int]
     known_clues: Dict[Clue, ClueValue]
     solving_order: Sequence[SolvingStep]
+    items: Sequence[int]
     debug: bool
 
-    def __init__(self, clue_list: ClueList) -> None:
-        super(SolverByLetter, self).__init__(clue_list)
+    def __init__(self, clue_list: ClueList, *, items: Sequence[int] = (), **args: Any) -> None:
+        super().__init__(clue_list, **args)
+        self.items = items
 
-    def solve(self, *, show_time: bool = True, debug: bool = False) -> None:
-        self.count_total = 0
+    def solve(self, *, show_time: bool = True, debug: bool = False) -> int:
+        self.step_count = 0
+        self.solution_count = 0
         self.known_letters = {}
         self.known_clues = {}
         self.debug = debug
@@ -114,33 +58,40 @@ class SolverByLetter(BaseSolver, ABC):
         self.__solve(0)
         time3 = datetime.now()
         if show_time:
-            print(f'Steps: {self.count_total}; '
+            print(f'Solutions {self.solution_count}; steps: {self.step_count}; '
                   f'Setup: {time2 - time1}; Execution: {time3 - time2}; Total: {time3 - time1}')
+        return self.solution_count
 
     def __solve(self, current_index: int) -> None:
         if current_index == len(self.solving_order):
-            self.check_and_show_solution(self.known_letters)
+            if self.check_solution(self.known_letters):
+                self.show_solution(self.known_letters)
+                self.solution_count += 1
             return
         solving_step = self.solving_order[current_index]
         clue = solving_step.clue
         clue_letters = solving_step.letters
         pattern = solving_step.pattern_maker(self.known_clues)
+        if self.debug:
+            print(f'{" | " * current_index} {clue.name} length={clue_letters} pattern="{pattern.pattern}"')
+
         try:
             for next_letter_values in self.get_letter_values(self.known_letters, len(clue_letters)):
-                self.count_total += 1
+                self.step_count += 1
                 for letter, value in zip(clue_letters, next_letter_values):
                     self.known_letters[letter] = value
                 clue_value = clue.eval(self.known_letters)
                 if not (clue_value and pattern.match(clue_value)):
                     continue
-
-                def show_it(info: str) -> None:
-                    if self.debug:
-                        print(f'{" | " * current_index} {clue.name} {clue_letters} '
-                              f'{next_letter_values} {clue_value} ({clue.length}): {info}')
-
+                if not self.allow_duplicates:
+                    if any(alt_value == clue_value and not self.clue_list.is_twin(clue, alt_clue)
+                           for alt_clue, alt_value in self.known_clues.items()):
+                        continue
                 self.known_clues[clue] = clue_value
-                show_it('--->')
+                if self.debug:
+                    print(f'{" | " * current_index} {clue.name} {clue_letters} '
+                          f'{next_letter_values} {clue_value} ({clue.length}): -->')
+
                 self.__solve(current_index + 1)
 
         finally:
@@ -151,87 +102,95 @@ class SolverByLetter(BaseSolver, ABC):
     def _get_solving_order(self) -> Sequence[SolvingStep]:
         """Figures out the best order to solve the various clues."""
         result: List[SolvingStep] = []
-        not_yet_ordered: Dict[Clue, Tuple[Clue, Set[Letter], List[Intersection]]] = {
-            clue: (clue, {Letter(ch) for ch in clue.expression if 'A' <= ch <= 'Z'}, [])
+        not_yet_ordered: Dict[Clue, ClueInfo] = {
+            clue: (clue, {Letter(ch) for ch in clue.expression if 'A' <= ch <= 'Z' or 'a' <= ch <= 'z'}, [], set())
             for clue in self.clue_list
         }
 
-        def evaluator(item: Tuple[Clue, Set[Letter], List[Intersection]]) -> Sequence[int]:
-            # Largest value wins.  Precedence is given to the clue with the least number of unknown variables.
-            # Within that, ties are broken by the one with the most number of intersecting clues.
-            # Within that, ties are broken by the longest clue length, so we create the most intersections
-            clue, clue_unknown_letters, clue_intersections = item
-            return -len(clue_unknown_letters), len(clue_intersections), clue.length
+        def grading_function(clue_info: ClueInfo) -> Sequence[float]:
+            (clue, unknown_letters, _, locations) = clue_info
+            return -len(unknown_letters), len(locations) / clue.length, clue.length
 
         while not_yet_ordered:
-            clue, unknown_letters, intersections = max(not_yet_ordered.values(), key=evaluator)
+            clue, unknown_letters, intersections, _ = max(not_yet_ordered.values(), key=grading_function)
             not_yet_ordered.pop(clue)
-            pattern = Intersection.make_pattern_generator(clue, intersections, self)
+            pattern = Intersection.make_pattern_generator(clue, intersections, self.clue_list)
             result.append(SolvingStep(clue, tuple(sorted(unknown_letters)), pattern))
-            for (other_clue, other_unknown_letters, other_intersections) in not_yet_ordered.values():
+            for (other_clue, other_unknown_letters, other_intersections, other_locations) in not_yet_ordered.values():
                 # Update the remaining not_yet_ordered clues, indicating more known letters and updated intersections
                 other_unknown_letters.difference_update(unknown_letters)
-                maybe_clash = Intersection.maybe_make(other_clue, clue)
-                if maybe_clash:
-                    other_intersections.append(maybe_clash)
+                new_intersections = Intersection.get_intersections(other_clue, clue)
+                other_intersections += new_intersections
+                other_locations.update(intersection.get_location() for intersection in new_intersections)
+
         return tuple(result)
 
-    @abstractmethod
     def get_letter_values(self, known_letters: Dict[Letter, int], count: int) -> Iterable[Sequence[int]]:
         """
         Returns the values that can be assigned to the next "count" variables.  We know that we have already assigned
         values to the variables indicated in known_letters.
         """
-        raise Exception()
+        if count == 0:
+            yield ()
+            return
+        unused_values = (i for i in self.items if i not in set(known_letters.values()))
+        yield from itertools.permutations(unused_values, count)
 
-    @staticmethod
-    def get_letter_values_impl(minimum: int, maximum: int, known_letters: Dict[Letter, int], count: int) -> \
+    def get_letter_values_with_duplicates(self, known_letters: Dict[Letter, int], count: int, max_per_item: int) -> \
             Iterable[Sequence[int]]:
         if count == 0:
             yield ()
             return
-        current_letter_values = set(known_letters.values())
-        for next_letter_values in itertools.permutations(range(minimum, maximum + 1), count):
-            if all(v not in current_letter_values for v in next_letter_values):
-                yield next_letter_values
-
-    @staticmethod
-    def get_letter_values_n_impl(minimum: int, maximum: int, max_count: int,
-                                 known_letters: Dict[Letter, int], count: int) -> Iterable[Sequence[int]]:
-        if count == 0:
-            yield ()
-            return
         current_letter_values = tuple(known_letters.values())
-        for next_letter_values in itertools.product(range(minimum, maximum + 1), repeat=count):
-            if all(current_letter_values.count(value) + next_letter_values.count(value) <= max_count
+        for next_letter_values in itertools.product(self.items, repeat=count):
+            if all(current_letter_values.count(value) + next_letter_values.count(value) <= max_per_item
                    for value in next_letter_values):
                 yield next_letter_values
 
-    def check_and_show_solution(self, known_letters: Dict[Letter, int]) -> None:
+    def check_solution(self, _known_letters: Dict[Letter, int]) -> bool:
+        return True
+
+    def show_solution(self, known_letters: Dict[Letter, int]) -> None:
         self.clue_list.plot_board(self.known_clues)
+        max_length = max(len(str(i)) for i in known_letters.values())
         print()
         pairs = [(letter, value) for letter, value in known_letters.items()]
         pairs.sort()
-        print(''.join(f'{letter:<3}' for letter, _ in pairs))
-        print(''.join(f'{value:<3}' for _, value in pairs))
+        print(' '.join(f'{letter:<{max_length}}' for letter, _ in pairs))
+        print(' '.join(f'{value:<{max_length}}' for _, value in pairs))
         print()
         pairs.sort(key=itemgetter(1))
-        print(''.join(f'{letter:<3}' for letter, _ in pairs))
-        print(''.join(f'{value:<3}' for _, value in pairs))
+        print(' '.join(f'{letter:<{max_length}}' for letter, _ in pairs))
+        print(' '.join(f'{value:<{max_length}}' for _, value in pairs))
 
 
-class SolverByClue(BaseSolver):
-    count_total: int
+class ConstraintSolver(BaseSolver):
+    step_count: int
+    solution_count: int
     known_clues: Dict[Clue, ClueValue]
-    allow_duplicates: bool
     debug: bool
+    constraints: Dict[Clue, List[Callable[..., bool]]]
 
-    def __init__(self, clue_list: ClueList, allow_duplicates: bool = False) -> None:
-        super(SolverByClue, self).__init__(clue_list)
-        self.allow_duplicates = allow_duplicates
+    def __init__(self, clue_list: ClueList, **kwargs: Any) -> None:
+        self.constraints = defaultdict(list)
+        super().__init__(clue_list)
 
-    def solve(self, *, show_time: bool = True, debug: bool = False) -> None:
-        self.count_total = 0
+    def add_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., bool]) -> None:
+        actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_list.clue_named(clue) for clue in clues)
+        if len(actual_clues) == 2:
+            clue1, clue2 = actual_clues
+
+            def check_relationship(unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
+                return self.check_2_clue_relationship(clue1, clue2, unknown_clues, predicate)
+        else:
+            def check_relationship(unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
+                return self.check_n_clue_relationship(actual_clues, unknown_clues, predicate)
+        for clue in actual_clues:
+            self.constraints[clue].append(check_relationship)
+
+    def solve(self, *, show_time: bool = True, debug: bool = False) -> int:
+        self.step_count = 0
+        self.solution_count = 0
         self.known_clues = {}
         self.debug = debug
         time1 = datetime.now()
@@ -241,36 +200,44 @@ class SolverByClue(BaseSolver):
         self.__solve(initial_unknown_clues)
         time3 = datetime.now()
         if show_time:
-            print(f'Steps: {self.count_total}; '
+            print(f'Solutions {self.solution_count}; Steps: {self.step_count}; '
                   f'Setup: {time2 - time1}; Execution: {time3 - time2}; Total: {time3 - time1}')
+        return self.solution_count
 
     def __solve(self, unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> None:
         depth = len(self.known_clues)
         if not unknown_clues:
-            self.check_and_show_solution(self.known_clues)
+            if self.check_solution(self.known_clues):
+                self.show_solution(self.known_clues)
+                self.solution_count += 1
             return
-        # find the clue -> values with the smallest possible number of values
-        clue, values = min(unknown_clues.items(), key=lambda x: (len(x[1]), x[0].length, random.random()))
+        # find the clue -> values with the smallest possible number of values and the greatest length
+        clue, values = min(unknown_clues.items(), key=lambda x: (len(x[1]), -x[0].length, random.random()))
         if not values:
             if self.debug:
                 print(f'{" | " * depth}{clue.name} XX')
             return
+        constraints = self.constraints[clue]
 
         try:
-            self.count_total += len(values)
+            self.step_count += len(values)
             for i, value in enumerate(sorted(values)):
                 if self.debug:
                     print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: {value} -->')
                 self.known_clues[clue] = value
                 next_unknown_clues = dict(unknown_clues)
                 next_unknown_clues.pop(clue)
+                if not all(constraint(next_unknown_clues) for constraint in constraints):
+                    continue
                 if not self.post_clue_assignment_fixup(clue, self.known_clues, next_unknown_clues):
                     continue
                 for clue2, values2 in next_unknown_clues.items():
-                    intersection = self.maybe_make_intersection(clue2, clue)
-                    if intersection:
-                        result = frozenset(
-                            x for x in values2 if x != value and intersection.values_match(x, value))
+                    intersections = self.__get_insersections(clue2, clue)
+                    if intersections:
+                        temp = list(values2) if self.allow_duplicates else [x for x in values2 if x != value]
+                        for intersection in intersections:
+                            temp = [x for x in temp if intersection.values_match(x, value)]
+                        result = frozenset(temp)
                     elif self.allow_duplicates or value not in values2:
                         result = values2
                     else:
@@ -288,19 +255,19 @@ class SolverByClue(BaseSolver):
         finally:
             self.known_clues.pop(clue, None)
 
-    def maybe_make_intersection(self, clue1: Clue, clue2: Clue) -> Optional[Intersection]:
-        """Pulled out into a separate method so that it can be overridden."""
-        return Intersection.maybe_make(clue1, clue2)
-
     def __get_all_possible_values(self, clue: Clue) -> FrozenSet[ClueValue]:
         # Generates all the possible values for the clue, but tosses out those that have a zero in a bad location.
-        pattern_generator = Intersection.make_pattern_generator(clue, (), self)
+        pattern_generator = Intersection.make_pattern_generator(clue, (), self.clue_list)
         pattern = pattern_generator({})
         clue_generator = cast(ClueValueGenerator, clue.generator)  # we know clue_generator isn't None
-        return frozenset(ClueValue(x) for x in map(str, clue_generator(clue)) if pattern.match(x))
+        string_values = ((str(x) if isinstance(x, int) else x) for x in clue_generator(clue))
+        result = frozenset(x for x in string_values if pattern.match(x))
+        return cast(FrozenSet[ClueValue], result)
 
-    def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
-        self.clue_list.plot_board(known_clues)
+    @staticmethod
+    @functools.lru_cache(maxsize=None)
+    def __get_insersections(this: Clue, other: Clue) -> Sequence[Intersection]:
+        return Intersection.get_intersections(this, other)
 
     def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
                                    unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
@@ -310,6 +277,12 @@ class SolverByClue(BaseSolver):
         already existing clue.  You can even add a clue with no possible values to indicate a failure.
         """
         return True
+
+    def check_solution(self, known_clues: Dict[Clue, ClueValue]) -> bool:
+        return True
+
+    def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
+        self.clue_list.plot_board(known_clues)
 
     def check_clue_filter(self, clue: Clue, unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
                           clue_filter: Callable[[ClueValue], bool]) -> bool:
@@ -358,33 +331,10 @@ class SolverByClue(BaseSolver):
                 print(f'{"   " * depth}   [2] {unknown_clue.name} {len(start_value)} -> {len(end_value)}')
             return bool(end_value)
         elif unknown_values_count == 0:
-            result = clue_filter(cast(ClueValue, value1), cast(ClueValue, value2))
-            if not result and self.debug:
-                depth = len(self.known_clues) - 1
-                print(f'{"   " * depth}   [2] {clue1.name}={value1} {clue2.name}={value2} -> XXX')
-            return result
-        else:
-            return True
+            assert clue_filter(cast(ClueValue, value1), cast(ClueValue, value2))
+        return True
 
-    @overload
-    def check_n_clue_relationship(self, clues: Tuple[Clue, Clue],
-                                  unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
-                                  clue_filter: Callable[[ClueValue, ClueValue], bool]) -> bool:
-        ...
-
-    @overload
-    def check_n_clue_relationship(self, clues: Tuple[Clue, Clue, Clue],
-                                  unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
-                                  clue_filter: Callable[[ClueValue, ClueValue, ClueValue], bool]) -> bool:
-        ...
-
-    @overload
-    def check_n_clue_relationship(self, clues: Tuple[Clue, Clue, Clue, Clue],
-                                  unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
-                                  clue_filter: Callable[[ClueValue, ClueValue, ClueValue, ClueValue], bool]) -> bool:
-        ...
-
-    def check_n_clue_relationship(self, clues: Sequence[Clue],
+    def check_n_clue_relationship(self, clues: Tuple[Clue, ...],
                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
                                   clue_filter: Callable[..., bool]) -> bool:
         """
@@ -410,6 +360,5 @@ class SolverByClue(BaseSolver):
                 print(f'{"   " * depth}   [r] {unknown_clue.name} {len(start_value)} -> {len(end_value)}')
             return bool(end_value)
         elif unknown_values_count == 0:
-            return clue_filter(*cast(List[ClueValue], values))
-        else:
-            return True
+            assert clue_filter(*cast(List[ClueValue], values))
+        return True

@@ -13,7 +13,7 @@ from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 
 from Clue import ClueValueGenerator, Clue, ClueList, ClueValue
-from GenericSolver import SolverByClue, Intersection
+from GenericSolver import ConstraintSolver
 
 PDF_FILE_NAME = '/tmp/magpie199.pdf'
 
@@ -136,7 +136,7 @@ def generate_map() -> ClueMap:
     for length_index, direction_index in zip(length_indices_where_zero, direction_indices_where_zero):
         length, direction = lengths[length_index], np.choose(total_turns[direction_index], direction_list)
         pentagon = Pentagon(length, direction)
-        if pentagon.check_no_intersection() :
+        if pentagon.check_no_intersection():
             size = pentagon.get_size()
             result[size].append(pentagon)
             accepted += 1
@@ -174,27 +174,12 @@ def make_clue_list(clue_map: ClueMap) -> ClueList:
     return clue_list
 
 
-class MySolver(SolverByClue):
+class MySolver(ConstraintSolver):
     clue_map: ClueMap
 
     def __init__(self, clue_list: ClueList, clue_map: ClueMap):
-        super(MySolver, self).__init__(clue_list)
+        super().__init__(clue_list)
         self.clue_map = clue_map
-
-    def maybe_make_intersection(self, clue1: Clue, clue2: Clue) -> Optional[Intersection]:
-        intersection = super().maybe_make_intersection(clue1, clue2)
-        if intersection:
-            return intersection
-        if clue1.is_across == clue2.is_across:
-            (x1, y1) = clue1.base_location
-            (x2, y2) = clue2.base_location
-            if clue1.is_across:
-                if x1 == x2 and y1 != y2:
-                    return Intersection(5 - y1, clue2, 5 - y2)
-            else:
-                if y1 == y2 and x1 != x2:
-                    return Intersection(5 - x1, clue2, 5 - x2)
-        return None
 
     def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         all_clues = collections.deque(self.clue_list)
@@ -248,5 +233,5 @@ def build(dump: bool = False) -> None:
 
 
 if __name__ == '__main__':
-    clue_map = build(True)
-    run(clue_map)
+    build(True)
+    run()

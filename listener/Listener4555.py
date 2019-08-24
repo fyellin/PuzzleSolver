@@ -4,11 +4,11 @@ Painful, but relatively straightforward.
 
 import functools
 import itertools
-from typing import Callable, Iterable, Optional, Dict, List, FrozenSet, Union, Mapping
+from typing import Callable, Iterable, Optional, Dict, List, Union
 
 import Generators
 from Clue import Location, ClueValueGenerator, Clue, ClueValue, ClueList
-from GenericSolver import SolverByClue
+from GenericSolver import ConstraintSolver
 
 """
 Looking at 16a/17d, the only number/cube that intersect that way are:
@@ -164,64 +164,32 @@ CLUES = (
 )
 
 
-class MySolver(SolverByClue):
+class MySolver(ConstraintSolver):
     def __init__(self, clue_list: ClueList):
-        super(MySolver, self).__init__(clue_list)
-        self.a8 = clue_list.clue_named("A8")
-        self.a9 = clue_list.clue_named("A9")
-        self.a12 = clue_list.clue_named("A12")
-        self.a13 = clue_list.clue_named("A13")
-        self.a14 = clue_list.clue_named("A14")
-        self.a18 = clue_list.clue_named("A18")
-        self.d1 = clue_list.clue_named('D1')
-        self.d3 = clue_list.clue_named("D3")
-        self.d7 = clue_list.clue_named("D7")
+        super().__init__(clue_list)
+        self.add_constraint(('A12', 'D1'), lambda a12, d1: int(d1) % int(a12) == 0)
+        self.add_constraint(('A9', 'D7'), lambda a9, d7: int(d7) == int(a9) ** 2)
+        self.add_constraint(('A8', 'A9'), lambda a8, a9: bool(break_row_into_primes(a8 + a9)))
+        self.add_constraint(('A12', 'A13', 'A14'), lambda a12, a13, a14: bool(break_row_into_primes(a12 + a13 + a14)))
 
-    def get_allowed_regexp(self, location: Location) -> str:
-        _, column = location
-        if column == 2:
-            # As explained in the intro, the second column can only contain these digits
-            return '[1379]'
-        else:
-            return super(MySolver, self).get_allowed_regexp(location)
-
-    def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
-                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
-        result = True
-        if clue.name == 'A12' or clue.name == 'D1':
-            result = self.check_2_clue_relationship(self.a12, self.d1, unknown_clues,
-                                                    lambda a12, d1: int(d1) % int(a12) == 0)
-        elif clue.name == 'A9' or clue.name == 'D7':
-            result = self.check_2_clue_relationship(self.a9, self.d7, unknown_clues,
-                                                    lambda a9, d7: int(d7) == int(a9) ** 2)
-        if not result:
-            return False
-
-        if clue.name in ('A8', 'A9'):
-            # return self.__force_row_to_be_series_of_primes(known_clues, unknown_clues, (self.a8, self.a9))
-            return self.check_2_clue_relationship(self.a8, self.a9, unknown_clues,
-                                                  lambda a8, a9: bool(break_row_into_primes(a8 + a9)))
-        elif clue.name in ('A12', 'A13', 'A14'):
-            return self.check_n_clue_relationship((self.a12, self.a13, self.a14), unknown_clues,
-                                                  lambda a12, a13, a14: bool(break_row_into_primes(a12 + a13 + a14)))
-        else:
-            return True
-
-    def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
+    def check_solution(self, known_clues: Dict[Clue, ClueValue]) -> bool:
         board = self.clue_list.get_board(known_clues)
 
         # A18 must be the sum of the digits in the grid
-        answer_a18 = int(known_clues[self.a18])
-        total = sum(board[i][j] for i in range(7) for j in range(7))
+        answer_a18 = int(known_clues[self.clue_list.clue_named("A18")])
+        total = sum(int(board[i][j]) for i in range(1, 8) for j in range(1, 8))
         if total != answer_a18:
-            return
+            return False
 
         # D3 must not be prime
-        answer_d3 = sum(board[i][2] * 10 ** (6 - i) for i in range(7))
-        if all(answer_d3 % prime != 0 for prime in primes):
-            return
+        d3_locations = self.clue_list.clue_named("D3").locations()
+        d3_values = [board[i][j] for i, j in d3_locations]
+        answer_d3 = int(''.join(d3_values))
 
-        rows = [''.join(str(board[row][column]) for column in range(7)) for row in range(7)]
+        if all(answer_d3 % prime != 0 for prime in primes):
+            return False
+
+        rows = [''.join(str(board[row][column]) for column in range(1, 8)) for row in range(1, 8)]
         rows[5] = rows[5][0:-1]
         row_breaks = tuple(break_row_into_primes(row) for row in rows)
         for row_break in itertools.product(*row_breaks):
@@ -232,14 +200,26 @@ class MySolver(SolverByClue):
             if sum(map(int, values)) != 2662:  # 2 * A16
                 continue
             print(row_break)
-            super().check_and_show_solution(known_clues)
+            return True
+        return False
+
+
+class MyClueList (ClueList):
+    def get_allowed_regexp(self, location: Location) -> str:
+        _, column = location
+        if column == 2:
+            # As explained in the intro, the second column can only contain these digits
+            return '[1379]'
+        else:
+            return super().get_allowed_regexp(location)
 
 
 def run() -> None:
-    clue_list = ClueList(CLUES)
+    clue_list = MyClueList(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
-    solver.solve(debug=True)
+
+    solver.solve()
 
 
 # ((59, 29, 7, 41), (89, 3, 11, 73), (19, 43, 587), (61, 67, 53, 5), (47, 83, 659), (13, 31, 23), (17, 71, 569))
