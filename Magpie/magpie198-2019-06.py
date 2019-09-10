@@ -1,8 +1,7 @@
 import collections
 import itertools
 from enum import Enum
-from itertools import combinations
-from typing import Iterable, Optional, Dict, FrozenSet, Mapping, Tuple
+from typing import Iterable, Optional, Dict, Tuple
 
 import Generators
 from Clue import Location, ClueValueGenerator, Clue, ClueValue, ClueList
@@ -98,7 +97,6 @@ class MySolver(ConstraintSolver):
                     self.add_constraint((clue1, clue2), lambda x, y: TO_TYPE_DICT[x] == TO_TYPE_DICT[y])
                 else:
                     self.add_constraint((clue1, clue2), lambda x, y: TO_TYPE_DICT[x] != TO_TYPE_DICT[y])
-
 
     def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         super().show_solution(known_clues)

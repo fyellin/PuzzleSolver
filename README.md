@@ -1,3 +1,7 @@
+# Table of Contents
+
+[TOC]
+
 # Puzzle Solver.
 
 This directory contains code to help you solve generic numeric crossword puzzles.  It is designed to solve two different sorts of numeric crossword puzzles:
@@ -67,7 +71,7 @@ distinct variables, it is typically faster to pretend that there are two differe
 
 Twins create some complications.  
 
-* In many puzzles, there is the restriction that that no two clues have the same answer; yet obviously twins are 
+* In many puzzles, there is the constraint that that no two clues have the same answer; yet obviously twins are 
 supposed to have the same answer as each other.  
 
 * Likewise, some puzzles place limitations on what letters may go into an intersection.  Yet every square of a clue 
@@ -79,19 +83,19 @@ a twin intersecting with its other half, or not.
 
 A `ClueList` gathers together a set of clues and creates information them as a set.  
 
-For the `EquationSolver`, there is a convenience function that lets you copy and paste the equations from the puzzle and directly generate a clue list.  
+For the `EquationSolver`, there is a convenience function that lets you copy and paste the equations from the puzzle and directly generate a clue list.
 
     clue_list = ClueList(sequence_of_clues)
-    
+ 
 #### Subclassing ClueList
     
 There are a few reasons to subclass `ClueList`:
 
-* In most puzzles, the first digit of an answer cannot be zero.  In some puzzles, there may be further restrictions.
-* The user can override `is_zero_allowed(location)` if there are alternative restrictions.
+* In most puzzles, the first digit of an answer cannot be zero.  In some puzzles, there may be further constraints.
+    * The user can override `is_zero_allowed(location)` if there are alternative constraints.
 The default implementation returns `True` when the location is not the starting location of any clue.
 
-* Some puzzles may have other restrictions on digits.
+    * Some puzzles may have other constraints on digits.
 The user can override `get_allowed_regexp(location)` to indicate the allowable values. 
 The default implementation calls `is_zero_allowed(location)` above and returns
 either `"."` or `"[^0]"` on a `true` or `false` result, respectively.
@@ -144,7 +148,7 @@ The arguments indicate:
 * The allowable values for the variables are 1..26 inclusive, and each value can be used at most once.  
 \[Note, the values in the list must be distinct.  See below if variable values can be repeated.]
 
-* Typically, each equation must yield a distint value.  If duplicate values are allowed, then add the keyword argument `allow_duplicates=True` to the argument list.
+* Each equation must yield a distinct value.  If duplicate values are allowed, then add the keyword argument `allow_duplicates=True` to the argument list.
 
 There are three methods you may want to override:
 
@@ -179,8 +183,8 @@ Given this order for solving the clues, the solver calls the following recursive
 
 1. Find the n-th clue in the order we are solving them, as determined above.
 1. Calculate a regular expression that matches legal values for this clue, taking into account 
-   -  squares filled by already solved intersecting clues, 
-   -  squares that can't contain 0, and 
+   -  squares filled by previously solved clues that intersect this one,
+   -  squares that can't contain 0 because they are the first digit of another clue, and 
    - other interesting facts determined by `get_allowed_regexp()`.
 1. Call `get_letter_values()` to determine all possible values that this clue's unknown variables can take. For each set of possible values for the variables:
     1. Evaluate the expression using the variables and their values.
@@ -195,78 +199,59 @@ Given this order for solving the clues, the solver calls the following recursive
 
 ### The Contraint Solver
 
-A typical call to create a `ConstraintSolver is as follows:
+A typical call to create a constraint solver looks like the following:
 
-    EquationSolver(clue_list, allow_duplicates=False)
+    EquationSolver(clue_list)
 
-The two arguments, respectively, indicate:
+The arguments indicate:
 
-* The clue list for the puzzle is the specified clue list, 
-* Each clue answer must be a distince value.  \[Note: `False` is the default value for `allow_duplicates`, and this keyword is usually  elided.]
+* The clue list for the puzzle, 
+
+* Each clue must have a distinct value.  If duplicate values are allowed, then add the keyword argument `allow_duplicates=True` to the argument list.
 
 There are three methods you may want to override:
 
-* `check_solution()` is called when the solver has found a solution.  The default implementation simply returns`True`, but additional puzzle-specific verification can be performed hear.
-* `show_solution()` is called when `check_solutions()` returns `True`.  It prints out a picture of the grid.
-* `post_clue_assignment_fixup()` is called each time a clue is assigned a tentative value.
+There are multiple ways of specifying constraints:
 
-The method `post_clue_assignment_fixup()` is almost always overridden, and is described later.
+* When you create a `Clue` you specify a generator which shows the possible values that the clue can have with no other considerations.  For example "This clue is a square", "This clue is prime", "This clue is a multiple of 17" are all constraints that are specified in the generator.
+
+* Certain constraints indicate a relationship between two clues.
+These are added to the `ConstraintSolver`. 
+For example the following two lines force d3 to be a multiple of a1, and force d3 to be the product of d1 and d2.  
+Note that the arguments passed to the predicate are strings, and the predicate is responsible for converting them to integers, if necessary.
+The items in the initial tuple can either be a `Clue` or the name of a clue.
+The predicate must take as many arguments a there are items in the tuple; the arguments are bound, in order, to the values of the corresponding clue.
+
+
+    solver.add_constraint(('a1', 'd3'), lambda x, y: int(y) % int(x) == 0)
+    solver.add_constraint(('d1', 'd2', 'd3'),  
+        lambda x, y, z: int(x) * int(y) == int(z))
+                
+
+* You can override `check_solution()`, which is called then the solver has found a tentative solution.  The default implementation just returns `True`, but you can perform additional puzzle-specific tests.  This is a good place to test conditions like: "This clue must be the some of all digits in the puzzle"
+
+You may also want to override `show_solution()`, which is called when `check_solution()` returns true.  The default implementation draws a grid, but you can replace or augment this functionality.
 
 The solver is then run by calling `solver.run()`.  More information about the steps the solver is performing can be seen by adding the argument `debug=True`.
 
 
-### `post_clue_assignment_fixup`
+#### Advanced techniques 
 
-The goal of `post_clue_assignment_fixup` is to add information about a clue that we could not handled when we first
-generted the initial possible values for the clue.  This function is passed
-
-* The clue to which we just assigned a value.
-* A dictionary of all clue that have been assigned values, and their corresponding values.
-* A dictionary of all clues that have not yet been assigned values, and a frozen set of their possible values.
-Clues that were given a generator of `None` will not be in either dictionary until they are explicitly added 
-in the step below.
-
-The method can do any or all of the following:
-
-* Return `false`, indicating this value should be rejected.
-* Replace the value of any of the frozen sets indicating the set of their possibles with a different set.  
-  Typically the new set should be a subset of the original set, but this isn't enforced.
-* Any clue to which we initially passed `None` as a generator will not be in any dictionary.  This function can
-  add a frozen set indicating possible values for that clue to the dictionary of not-yet-assigned values.  \[Even if 
-  the value is a singleton, it should be added to the not-yet-assigned values rather than to the assigned values.]
-  
-There are several methods in `ConstraintSolver` that are useful in writing your `post_clue_assignment_fixup`.
-
-`check_clue_filter` is called when we have a new restriction on the values that a clue can have that we did
-not know about originally.  It is passed a clue and a predicate argument.  If we already known the value of the clue,
-it returns `true` if the value satisifies the predicate.  If we don't yet know the value of the clue, the set of possible
-values for the clue is pruned to include only those values that match the predicate.  It returns `False` if the
-pruning yields the empty set the empty set.  See Listener4542 for an example.
-
-`check_2_clue_relationship` can be  called when a relationship between two clues, and one of them has been assigned a value.  So, for example,
-
-    self.check_2_clue_relationship(a1, a2, unknown_clues, lambda x, y; y % x == 0)
-
-makes sure that a2 is a multiple of a1.  Whenever one of them is assigned a value, the other one's values will
-be pruned.
-
-### Advanced techniques 
-
-#### Clues with a generator of `None`
+##### Clues with a generator of `None`
 
 It is rare, but legal to give a clue a generator of `None`.  This clue is completely
 ignored by the solver until it assigned a set of possible values by `post_clue_assignment_fixup`.
 
 In some rarer cases, it is necessary to delay the value of a clue until `check_solution()`.  For example, if a clue's value is listed as "the sum of all the digits in the puzzle" or "a seven-digit non-prime",  it's probably best to wait until `check_solution()` to see if a reasonable value has been put into the clue by crossing clues.
 
-#### Subclassing `string`
+##### Subclassing `string`
 
 Sometimes, a clue value contains information beyond just its value.  The value must keep track of some particular fact about how it was generated, and this information is not easy to store into a table.  Python allows the user to subclass string.  See XXX for an example of how this is done.
 
 Your generators should produce instances of your string subclass rather than integers or normal strings.  `SolveByLetter` will never produce new clue values on its own.  When `post_clue_assignment_fixup()` and `check_solution()` are called you can be assured that all
 clue values, will be your subclass of string, and you can freely treat them as objects of that type.
 
-### How it works
+#### How it works
 
 For each clue, the generator is called to calculate the set of all possible answers for that clue.  This list of clues is filtered by taking into account `is_zero_allowed()` and `get_allowed_regexp()` for each location, thereby ensuring that there are no zeros where they aren't allowed.
 

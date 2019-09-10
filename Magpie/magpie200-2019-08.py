@@ -1,6 +1,6 @@
 import itertools
 import re
-from typing import Iterable, Sequence, Optional, Tuple, Mapping, Dict, FrozenSet, cast, Any
+from typing import Iterable, Sequence, Optional, Tuple, Dict, cast, Any
 
 import Generators
 from Clue import ClueValueGenerator, Clue, ClueList, ClueValue
@@ -50,9 +50,9 @@ class MyString(str):
 
     def __new__(cls, value: int, operators: Tuple[str, ...], parentheses: Optional[Tuple[int, int]], expression: str
                 ) -> Any:
-        return str.__new__(cls, value)  # type: ignore
+        return super().__new__(cls, value)  # type: ignore
 
-    def __init__(self, value: int, operators: Tuple[str, ...], parentheses: Optional[Tuple[int, int]], expression: str
+    def __init__(self, _value: int, operators: Tuple[str, ...], parentheses: Optional[Tuple[int, int]], expression: str
                  ) -> None:
         super().__init__()
         self.operators = operators
@@ -67,13 +67,13 @@ def generator(values: Sequence[int]) -> ClueValueGenerator:
             def get_value(lparen: int, rparen: int) -> Tuple[str, Optional[int]]:
                 def q(i: int) -> str:
                     return f"{'(' if i == lparen else ''}{values[i]}{')' if i == rparen else ''}"
-                expression = f"{q(0)} {ops[0]} {q(1)} {ops[1]} {q(2)} {ops[2]} {q(3)} {ops[3]} {q(4)}"
-                real_value = eval(expression)
-                value = int(real_value)
-                if value == real_value and min_value <= value < max_value:
-                    return expression, value
+                equation = f"{q(0)} {ops[0]} {q(1)} {ops[1]} {q(2)} {ops[2]} {q(3)} {ops[3]} {q(4)}"
+                real_value = eval(equation)
+                int_value = int(real_value)
+                if int_value == real_value and min_value <= int_value < max_value:
+                    return equation, int_value
                 else:
-                    return expression, None
+                    return equation, None
             expression, base_value = get_value(-1, -1)
             if base_value:
                 yield MyString(base_value, ops, None, expression)
@@ -112,7 +112,7 @@ class MySolver(ConstraintSolver):
     def __init__(self, clue_list: ClueList) -> None:
         super().__init__(clue_list)
         for clue1, clue2 in itertools.combinations(clue_list, 2):
-             self.add_constraint((clue1, clue2), MySolver.must_be_different)
+            self.add_constraint((clue1, clue2), MySolver.must_be_different)
 
     @staticmethod
     def must_be_different(aa: ClueValue, bb: ClueValue) -> bool:

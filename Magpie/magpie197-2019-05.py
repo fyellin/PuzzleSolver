@@ -2,10 +2,8 @@
 Standard.  Nothing exciting.
 """
 
-from typing import Dict, Sequence, Iterable
-
 from GenericSolver import EquationSolver
-from Clue import Letter, ClueList
+from Clue import ClueList
 
 
 # noinspection SpellCheckingInspection

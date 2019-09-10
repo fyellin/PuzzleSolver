@@ -1,9 +1,11 @@
 import collections
-from typing import Tuple, Dict, List, Set, Mapping, FrozenSet
+from operator import itemgetter
+from typing import Tuple, Dict, List, Callable
 
 import inflect  # type: ignore
+from mypy_extensions import VarArg
 
-from Clue import Clue, Location, ClueValue, ClueValueGenerator, ClueList, Letter
+from Clue import Clue, Location, ClueValue, ClueValueGenerator, ClueList
 from GenericSolver import ConstraintSolver
 
 eng = inflect.engine()
@@ -12,7 +14,7 @@ eng = inflect.engine()
 LOCATION_TO_CLUE_DICT: Dict[Location, List[Tuple['Clue', int]]] = collections.defaultdict(list)
 
 
-def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[int]], Dict[ClueValue, ClueValue]]:
+def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[int]], Dict[int, int]]:
     result: Dict[Tuple[int, int], List[int]] = collections.defaultdict(list)
     word_sums = dict()
     for i in range(1, 1000):
@@ -20,7 +22,7 @@ def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[int]], D
         word = ''.join(i for i in eng.number_to_words(i) if i.islower())
         clue_length = len(clue_value)
         num_letters = len(word)
-        word_sums[clue_value] = ClueValue(str(sum(ord(c) - ord('a') + 1 for c in set(word))))
+        word_sums[i] = sum(ord(c) - ord('a') + 1 for c in set(word))
         result[(clue_length, num_letters)].append(i)
     return result, word_sums
 
@@ -67,37 +69,43 @@ CLUES = (
     make('p', 'D',                  9, 2, (5, 4)),
 )
 
+def lambda_wrapper(function: Callable[[VarArg(int)], bool]) -> Callable[[VarArg(ClueValue)], bool]:
+    def result(*clue_values: ClueValue) -> bool:
+        return function(*(int(x) for x in clue_values))
+    return result
+
 
 class MySolver(ConstraintSolver):
-    expression_letters: Dict[Clue, Set[str]]
-
     def __init__(self, clue_list: ClueList):
         super().__init__(clue_list)
-        self.expression_letters = {clue: {x for x in clue.expression if x.isalpha()} for clue in clue_list}
+        for clue in clue_list:
+            for expression in Clue.convert_expression_to_python(clue.expression):
+                vars = [x for x in expression if x.isalpha()]
+                xexpression = expression
+                if not clue.name in vars:
+                    vars.append(clue.name)
+                clues = [clue_list.clue_named(v) for v in vars]
+                lambda_expr = f'lambda_wrapper(lambda {", ".join(vars)}: WORD_SUMS[{clue.name}] ==  {xexpression})'
+                self.add_constraint(clues, eval(lambda_expr))
 
-    def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
-                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
-        known_letters = {x.name for x in self.known_clues}
-        new_expressions = {clue2 for clue2 in self.clue_list
-                           if self.expression_letters[clue2].issubset(known_letters)
-                           if clue.name in self.expression_letters[clue2]}
-        if new_expressions:
-            eval_dict = {Letter(x.name): int(known_clues[x]) for x in known_clues}
-            for expression_clue in new_expressions:
-                result = expression_clue.eval(eval_dict)
-                if not result:
-                    return False
-                if not self.check_clue_filter(expression_clue, unknown_clues, lambda x: WORD_SUMS[x] == result):
-                    return False
-
-        return True
+    def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
+        super().show_solution(known_clues)
+        pairs = [(clue.name, int(value)) for clue, value in known_clues.items()]
+        max_length = max(len((str(i))) for (_, i) in pairs)
+        pairs.sort()
+        print(' '.join(f'{letter:<{max_length}}' for letter, _ in pairs))
+        print(' '.join(f'{value:<{max_length}}' for _, value in pairs))
+        print()
+        pairs.sort(key=itemgetter(1))
+        print(' '.join(f'{letter:<{max_length}}' for letter, _ in pairs))
+        print(' '.join(f'{value:<{max_length}}' for _, value in pairs))
 
 
 def run() -> None:
     clue_list = ClueList(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
-    solver.solve()
+    solver.solve(debug=True)
 
 
 if __name__ == '__main__':

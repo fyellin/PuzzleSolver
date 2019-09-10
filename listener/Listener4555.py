@@ -218,7 +218,6 @@ def run() -> None:
     clue_list = MyClueList(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
-
     solver.solve()
 
 

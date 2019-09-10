@@ -61,17 +61,24 @@ class Clue:
         return ClueValue(str(value))
 
     @staticmethod
-    def __get_compiled_expression(expression: str, name: str) -> CodeType:
-        expression = expression.replace("–", "-")  # Magpie use a strange minus sign
-        expression = expression.replace('−', '-')  # Listener uses a different strange minus sign
-        expression = expression.replace("^", "**") # Replace exponentiation with proper one
+    def convert_expression_to_python(expression: str) -> Sequence[str]:
+        expression = expression.replace("–", "-")   # Magpie use a strange minus sign
+        expression = expression.replace('−', '-')   # Listener uses a different strange minus sign
+        expression = expression.replace("^", "**")  # Replace exponentiation with proper one
         for _ in range(2):
             # ), letter, or digit followed by (, letter, or digit needs an * in between, except when we have
             # two digits in a row with no space between them.  Note negative lookahead below.
             expression = re.sub(r'(?!\d\d)([\w)])\s*([(\w])', r'\1*\2', expression)
-        if '=' in expression:
+        return expression.split('=')
+
+    @staticmethod
+    def __get_compiled_expression(expression: str, name: str) -> CodeType:
+        python = Clue.convert_expression_to_python(expression)
+        if len(python) == 1:
+            expression = python[0]
+        else:
             lambda_function = 'lambda x, *y: x if all(z == x for z in y) else -1'
-            expression_as_list = expression.replace("=", ",")
+            expression_as_list = ", ".join(python)
             expression = f'({lambda_function})({expression_as_list})'
         return cast(CodeType, compile(expression, f'<Clue {name}>', 'eval'))
 
@@ -136,13 +143,6 @@ class ClueList:
                         result.append(clue)
         return cls(result)
 
-    @staticmethod
-    def get_locations_from_grid(grid: str) -> Sequence[Location]:
-        return [(row + 1, column + 1)
-                for row, line in enumerate(grid.split())
-                for column, item in enumerate(line)
-                if item == 'X']
-
     def get_board(self, clue_values: Dict[Clue, ClueValue]) -> List[List[str]]:
         """Print the board, based on the values for each of the clues"""
         board = [['' for _ in range(self.__max_column)] for _ in range(self.__max_row)]
@@ -173,7 +173,7 @@ class ClueList:
         """Returns true if a 0 is allowed at this clue location.  Overrideable by subclasses"""
         return not self.is_start_location(location)
 
-    # Only used when a clue is spl
+    # Only used when we we discover that two clues have the same value.
     def is_twin(self, clue1: Clue, clue2: Clue) -> bool:
         """
         Returns true if two clues are actually the same clue split in two.  A value of true confirms that
@@ -264,7 +264,7 @@ class ClueList:
                 (clue.location(i) for i in range(1, clue.length)))
 
         self.draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
-                  top_bars, left_bars, **more_args)
+                       top_bars, left_bars, **more_args)
 
     def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
                   location_to_entry: Dict[Location, str],

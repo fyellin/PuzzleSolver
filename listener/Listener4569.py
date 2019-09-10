@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Sequence, Iterable, List, Tuple, Set, Any
+from typing import Dict, Iterable, List, Tuple, Set, Any
 
 from Clue import Location, Letter, ClueList, Clue
 from GenericSolver import EquationSolver

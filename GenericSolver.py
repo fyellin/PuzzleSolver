@@ -6,7 +6,9 @@ from collections import defaultdict
 from datetime import datetime
 from operator import itemgetter
 from typing import Tuple, Dict, List, NamedTuple, Set, Sequence, cast, Callable, \
-    Pattern, FrozenSet, Iterable, Mapping, Any, Union
+    Pattern, FrozenSet, Iterable, Any, Union
+
+from mypy_extensions import VarArg
 
 from Clue import ClueValueGenerator, Clue, ClueValue, Letter, ClueList, Location
 from Intersection import Intersection
@@ -229,8 +231,6 @@ class ConstraintSolver(BaseSolver):
                 next_unknown_clues.pop(clue)
                 if not all(constraint(next_unknown_clues) for constraint in constraints):
                     continue
-                if not self.post_clue_assignment_fixup(clue, self.known_clues, next_unknown_clues):
-                    continue
                 for clue2, values2 in next_unknown_clues.items():
                     intersections = self.__get_insersections(clue2, clue)
                     if intersections:
@@ -269,39 +269,11 @@ class ConstraintSolver(BaseSolver):
     def __get_insersections(this: Clue, other: Clue) -> Sequence[Intersection]:
         return Intersection.get_intersections(this, other)
 
-    def post_clue_assignment_fixup(self, clue: Clue, known_clues: Mapping[Clue, ClueValue],
-                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
-        """
-        Allows the user to make solver-specific modifications to the list of clues and their not-yet-known values.
-        This can be used to add a new clue (for example, one clue is a cube of another) or to modify the values of an
-        already existing clue.  You can even add a clue with no possible values to indicate a failure.
-        """
-        return True
-
     def check_solution(self, known_clues: Dict[Clue, ClueValue]) -> bool:
         return True
 
     def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         self.clue_list.plot_board(known_clues)
-
-    def check_clue_filter(self, clue: Clue, unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
-                          clue_filter: Callable[[ClueValue], bool]) -> bool:
-        """
-        Intended to be called from an override of post_clue_assignment_fixup.
-        Ensures that the value of a clue passes a certain filter.  If the value of the clue is already
-        known, it will make sure that the value passes the filter.  If the value of the clue is not
-        already known, it will remove all possible values that don't pass the filter
-        """
-        value = self.known_clues.get(clue, None)
-        if value:
-            return clue_filter(value)
-        else:
-            start_value = unknown_clues[clue]
-            end_value = unknown_clues[clue] = frozenset(x for x in start_value if clue_filter(x))
-            if self.debug and len(start_value) != len(end_value):
-                depth = len(self.known_clues) - 1
-                print(f'{"   " * depth}   [1] {clue.name} {len(start_value)} -> {len(end_value)}')
-            return bool(end_value)
 
     def check_2_clue_relationship(
             self, clue1: Clue, clue2: Clue,
@@ -336,7 +308,7 @@ class ConstraintSolver(BaseSolver):
 
     def check_n_clue_relationship(self, clues: Tuple[Clue, ...],
                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
-                                  clue_filter: Callable[..., bool]) -> bool:
+                                  clue_filter: Callable[[VarArg(ClueValue)], bool]) -> bool:
         """
         Intended to be called from an override of post_clue_assignment_fixup.
         Ensures that the values of the clues satisfy a certain relationship.

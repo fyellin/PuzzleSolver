@@ -161,8 +161,6 @@ class SolverByClue(BaseSolver):
         return re.compile(''.join(pattern_list))
 
 
-
-
 def run() -> None:
     clue_list = make_clue_list()
     expressions = make_expressions()

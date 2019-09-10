@@ -1,8 +1,8 @@
 import itertools
-from typing import Iterator, Mapping, Dict, FrozenSet, Sequence, Tuple, Optional, List, Iterable, Callable
+from typing import Iterator, Sequence, Tuple, Optional, List, Iterable, Callable
 
 import Generators
-from Clue import Clue, ClueList, ClueValue, ClueValueGenerator
+from Clue import Clue, ClueList, ClueValueGenerator
 from GenericSolver import ConstraintSolver
 
 """
@@ -207,7 +207,7 @@ class MySolver(ConstraintSolver):
                 ('26d', '25a'),
                 ('31d', '34a'),
                 ('31d', '4d')):
-             self.add_constraint((clue1, clue2), lambda x, y: int(y) % int(x) == 0)
+            self.add_constraint((clue1, clue2), lambda x, y: int(y) % int(x) == 0)
         self.add_constraint(('30a', '33d', '24d'), lambda a, b, c: int(a) * int(b) == int(c))
 
 
@@ -215,11 +215,6 @@ def run() -> None:
     clue_list = ClueList(CLUES)
     clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
-
-
-
-
-
     solver.solve()
 
 

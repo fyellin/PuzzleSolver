@@ -119,14 +119,14 @@ class MySolver:
             self.check_and_show_solution(self.known_letters)
             return
         (clue, clue_letters, (min_clue, max_clue)) = self.solving_order[current_index]
+        min_value = int(self.known_clues[min_clue]) if min_clue else 999
+        max_value = int(self.known_clues[max_clue]) if max_clue else 10_000_000
         try:
             for next_letter_values in self.get_letter_values(self.known_letters, len(clue_letters)):
                 self.count_total += 1
                 for letter, value in zip(clue_letters, next_letter_values):
                     self.known_letters[letter] = value
                 clue_value = clue.eval(self.known_letters)
-                min_value = int(self.known_clues[min_clue]) if min_clue else 999
-                max_value = int(self.known_clues[max_clue]) if max_clue else 10_000_000
                 if not clue_value or not is_legal_value(clue_value):
                     continue
                 if not min_value < int(clue_value) < max_value:
@@ -196,7 +196,7 @@ class MySolver:
 def run() -> None:
     clue_list = make_clue_list(CLUE_DATA)
     solver = MySolver(clue_list)
-    solver.solve(debug=True)
+    solver.solve()
 
 
 ACROSS = [(11, 5), (16, 5), (21, 4), (25, 5), (34, 7), (41, 5), (55, 6), (61, 6), (76, 5), (81, 7),
@@ -222,3 +222,4 @@ def run2(entries: Sequence[ClueValue]) -> None:
 
 if __name__ == '__main__':
     run()
+
