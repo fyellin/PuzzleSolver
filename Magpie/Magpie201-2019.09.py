@@ -75,7 +75,7 @@ class MyClueList(ClueList):
 
 def create_clue_list() -> ClueList:
     locations = ClueList.get_locations_from_grid(GRID)
-    return MyClueList.create_from_text(ACROSS, DOWN, locations, twins=True)
+    return MyClueList.create_from_text(ACROSS, DOWN, locations)
 
 
 def run() -> None:

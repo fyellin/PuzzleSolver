@@ -11,12 +11,11 @@ import itertools
 import re
 from datetime import datetime
 from operator import itemgetter
-from typing import Dict, Sequence, Tuple, List, Set, Iterable, Any, cast
+from typing import Dict, Sequence, Tuple, List, Set, Iterable, Any
 
 import Generators
 from Clue import ClueList, Letter, ClueValue, Clue
 from GenericSolver import ConstraintSolver
-
 
 CLUE_DATA = """
 1 DDS
@@ -89,7 +88,7 @@ def is_legal_value(clue_value: ClueValue) -> bool:
         return temp in squares_set
 
 
-class MySolver:
+class Magpie146Solver:
     clue_list: ClueList
     count_total: int
     known_letters: Dict[Letter, int]
@@ -116,7 +115,7 @@ class MySolver:
 
     def __solve(self, current_index: int) -> None:
         if current_index == len(self.solving_order):
-            self.check_and_show_solution(self.known_letters)
+            self.show_solution(self.known_clues, self.known_letters)
             return
         (clue, clue_letters, (min_clue, max_clue)) = self.solving_order[current_index]
         min_value = int(self.known_clues[min_clue]) if min_clue else 999
@@ -126,7 +125,8 @@ class MySolver:
                 self.count_total += 1
                 for letter, value in zip(clue_letters, next_letter_values):
                     self.known_letters[letter] = value
-                clue_value = clue.eval(self.known_letters)
+                evaluator, _ = clue.evaluators[0]
+                clue_value = evaluator(self.known_letters)
                 if not clue_value or not is_legal_value(clue_value):
                     continue
                 if not min_value < int(clue_value) < max_value:
@@ -150,8 +150,8 @@ class MySolver:
         """Figures out the best order to solve the various clues."""
         result: List[Any] = []
         not_yet_ordered: Dict[Clue, Tuple[Clue, Set[Letter]]] = {
-            clue: (clue, {Letter(ch) for ch in clue.expression if 'A' <= ch <= 'Z'})
-            for clue in self.clue_list
+            # Each clue has only one evaluator, so using clue as the key is fine.
+            clue: (clue, set(evaluator_vars)) for clue in self.clue_list for (_, evaluator_vars) in clue.evaluators
         }
 
         def evaluator(item: Tuple[Clue, Set[Letter]]) -> Sequence[int]:
@@ -178,8 +178,8 @@ class MySolver:
         not_set_values = [i for i in range(1, 27) if i not in known_values]
         return itertools.permutations(not_set_values, count)
 
-    def check_and_show_solution(self, known_letters: Dict[Letter, int]) -> None:
-        answers = tuple(cast(ClueValue, clue.eval(known_letters)) for clue in self.clue_list)
+    def show_solution(self, known_clues: Dict[Clue, ClueValue], known_letters: Dict[Letter, int]) -> None:
+        answers = tuple(known_clues.values())
         # self.clue_list.print_board(self.known_clues)
         print()
         pairs = [(letter, value) for letter, value in known_letters.items()]
@@ -195,7 +195,7 @@ class MySolver:
 
 def run() -> None:
     clue_list = make_clue_list(CLUE_DATA)
-    solver = MySolver(clue_list)
+    solver = Magpie146Solver(clue_list)
     solver.solve()
 
 

@@ -1,9 +1,9 @@
+import ast
 import itertools
 import re
 import typing
 from collections import Counter, OrderedDict
-from types import CodeType
-from typing import Tuple, Callable, Iterable, Union, Optional, Iterator, Dict, cast, Any, NewType, \
+from typing import Tuple, Callable, Iterable, Union, Optional, Iterator, Dict, Any, NewType, \
     Mapping, FrozenSet, Sequence, List, Set
 
 from DrawGrid import draw_grid
@@ -19,23 +19,27 @@ class Clue:
     is_across: bool
     base_location: Location
     length: int
-    expression: str
-    compiled_expression: CodeType
+    evaluators: Sequence[Tuple[Callable[[Dict[Letter, int]], ClueValue], Sequence[Letter]]]
     generator: Optional[ClueValueGenerator]
+    context: Any
     location_list: Sequence[Location]
     location_set:  FrozenSet[Location]
 
     def __init__(self, name: str, is_across: bool, base_location: Location, length: int, *,
-                 expression: str = '0',
-                 generator: Optional[ClueValueGenerator] = None):
-        compiled_expression = self.__get_compiled_expression(expression, name)
+                 expression: str = '',
+                 generator: Optional[ClueValueGenerator] = None,
+                 context: Any = None):
         self.name = name
         self.is_across = is_across
         self.base_location = base_location
         self.length = length
-        self.expression = expression
-        self.compiled_expression = compiled_expression
+        if expression:
+            python_pieces = Clue.convert_expression_to_python(expression)
+            self.evaluators = tuple(map(make_evaluator, python_pieces))
+        else:
+            self.evaluators = [(lambda _: ClueValue("0"), ())]
         self.generator = generator
+        self.context = context
         self.location_list = tuple(self.generate_location_list())
         self.location_set = frozenset(self.location_list)
 
@@ -51,15 +55,6 @@ class Clue:
     def location(self, i: int) -> Location:
         return self.location_list[i]
 
-    def eval(self, known_letters: Dict[Letter, int]) -> Optional[ClueValue]:
-        value = eval(self.compiled_expression, None, cast(Any, known_letters))
-        if int(value) != value:
-            return None
-        value = int(value)
-        if value < 1:
-            return None
-        return ClueValue(str(value))
-
     @staticmethod
     def convert_expression_to_python(expression: str) -> Sequence[str]:
         expression = expression.replace("–", "-")   # Magpie use a strange minus sign
@@ -70,17 +65,6 @@ class Clue:
             # two digits in a row with no space between them.  Note negative lookahead below.
             expression = re.sub(r'(?!\d\d)([\w)])\s*([(\w])', r'\1*\2', expression)
         return expression.split('=')
-
-    @staticmethod
-    def __get_compiled_expression(expression: str, name: str) -> CodeType:
-        python = Clue.convert_expression_to_python(expression)
-        if len(python) == 1:
-            expression = python[0]
-        else:
-            lambda_function = 'lambda x, *y: x if all(z == x for z in y) else -1'
-            expression_as_list = ", ".join(python)
-            expression = f'({lambda_function})({expression_as_list})'
-        return cast(CodeType, compile(expression, f'<Clue {name}>', 'eval'))
 
     def __hash__(self) -> int:
         return id(self)
@@ -114,14 +98,14 @@ class ClueList:
 
     @staticmethod
     def get_locations_from_grid(grid: str) -> Sequence[Location]:
+        grid = grid.strip()
         return [(row + 1, column + 1)
                 for row, line in enumerate(grid.splitlines())
                 for column, item in enumerate(line)
                 if item == 'X']
 
     @classmethod
-    def create_from_text(cls, across: str, down: str, locations: Sequence[Tuple[int, int]], *, twins: bool = False) \
-            -> 'ClueList':
+    def create_from_text(cls, across: str, down: str, locations: Sequence[Tuple[int, int]]) -> 'ClueList':
         result: List[Clue] = []
         for lines, is_across, letter in ((across, True, 'a'), (down, False, 'd')):
             for line in lines.splitlines():
@@ -132,15 +116,8 @@ class ClueList:
                 assert match
                 number = int(match.group(1))
                 location = locations[number - 1]
-                expression = match.group(2)
-                if '=' not in expression or not twins:
-                    clue = Clue(f'{number}{letter}', is_across, location, int(match.group(3)), expression=expression)
-                    result.append(clue)
-                else:
-                    for i, subexpression in enumerate(expression.split('='), start=1):
-                        clue = Clue(f'{number}{letter}{i}', is_across, location, int(match.group(3)),
-                                    expression=subexpression.strip())
-                        result.append(clue)
+                clue = Clue(f'{number}{letter}', is_across, location, int(match.group(3)), expression=match.group(2))
+                result.append(clue)
         return cls(result)
 
     def get_board(self, clue_values: Dict[Clue, ClueValue]) -> List[List[str]]:
@@ -172,15 +149,6 @@ class ClueList:
     def is_zero_allowed(self, location: Location) -> bool:
         """Returns true if a 0 is allowed at this clue location.  Overrideable by subclasses"""
         return not self.is_start_location(location)
-
-    # Only used when we we discover that two clues have the same value.
-    def is_twin(self, clue1: Clue, clue2: Clue) -> bool:
-        """
-        Returns true if two clues are actually the same clue split in two.  A value of true confirms that
-        it is okay that the two clues have the same value.
-        """
-        return clue1.base_location == clue2.base_location and clue1.is_across == clue2.is_across and \
-            clue1.length == clue2.length
 
     def verify_is_vertically_symmetric(self) -> None:
         """Verify that the puzzle has vertical symmetry"""
@@ -276,3 +244,21 @@ class ClueList:
                   top_bars, left_bars, **more_args)
 
 
+def make_evaluator(my_code: str) -> Tuple[Callable[[Dict[Letter, int]], ClueValue], Sequence[Letter]]:
+    my_code_ast = ast.parse(my_code.strip(), mode='eval').body
+    variables = sorted({Letter(node.id) for node in ast.walk(my_code_ast) if isinstance(node, ast.Name)})
+    holder:  List[Callable[[Dict[Letter, int]], ClueValue]]= []
+    code = f"""
+def result(value_dict):
+    {", ".join(variables)} = {", ".join(f'value_dict["{v}"]' for v in variables)}
+    value = {my_code}
+    ivalue = int(value)
+    return str(ivalue) if ivalue > 0 and value == ivalue else None
+holder.append(result)
+"""
+    exec(code, None, dict(holder=holder))
+    return holder.pop(), variables
+
+
+if __name__ == '__main__':
+    make_evaluator('a + b / c')

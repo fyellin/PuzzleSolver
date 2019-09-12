@@ -1,9 +1,8 @@
 import collections
 from operator import itemgetter
-from typing import Tuple, Dict, List, Callable
+from typing import Tuple, Dict, List
 
 import inflect  # type: ignore
-from mypy_extensions import VarArg
 
 from Clue import Clue, Location, ClueValue, ClueValueGenerator, ClueList
 from GenericSolver import ConstraintSolver
@@ -11,10 +10,7 @@ from GenericSolver import ConstraintSolver
 eng = inflect.engine()
 
 
-LOCATION_TO_CLUE_DICT: Dict[Location, List[Tuple['Clue', int]]] = collections.defaultdict(list)
-
-
-def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[int]], Dict[int, int]]:
+def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[int]], Dict[ClueValue, int]]:
     result: Dict[Tuple[int, int], List[int]] = collections.defaultdict(list)
     word_sums = dict()
     for i in range(1, 1000):
@@ -22,7 +18,7 @@ def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[int]], D
         word = ''.join(i for i in eng.number_to_words(i) if i.islower())
         clue_length = len(clue_value)
         num_letters = len(word)
-        word_sums[i] = sum(ord(c) - ord('a') + 1 for c in set(word))
+        word_sums[ClueValue(str(i))] = sum(ord(c) - ord('a') + 1 for c in set(word))
         result[(clue_length, num_letters)].append(i)
     return result, word_sums
 
@@ -38,7 +34,7 @@ def my_generator(num_letters: int) -> ClueValueGenerator:
 
 def make(name: str, expression: str, num_letters: int, length: int, base_location: Location) -> 'Clue':
     return Clue(name, name.isupper(), base_location, length,
-                expression=expression, generator=my_generator(num_letters))
+                context=expression, generator=my_generator(num_letters), expression=expression)
 
 
 CLUES = (
@@ -69,24 +65,20 @@ CLUES = (
     make('p', 'D',                  9, 2, (5, 4)),
 )
 
-def lambda_wrapper(function: Callable[[VarArg(int)], bool]) -> Callable[[VarArg(ClueValue)], bool]:
-    def result(*clue_values: ClueValue) -> bool:
-        return function(*(int(x) for x in clue_values))
-    return result
-
 
 class MySolver(ConstraintSolver):
     def __init__(self, clue_list: ClueList):
         super().__init__(clue_list)
         for clue in clue_list:
-            for expression in Clue.convert_expression_to_python(clue.expression):
-                vars = [x for x in expression if x.isalpha()]
-                xexpression = expression
-                if not clue.name in vars:
-                    vars.append(clue.name)
-                clues = [clue_list.clue_named(v) for v in vars]
-                lambda_expr = f'lambda_wrapper(lambda {", ".join(vars)}: WORD_SUMS[{clue.name}] ==  {xexpression})'
-                self.add_constraint(clues, eval(lambda_expr))
+            for evaluator, evaluator_vars in clue.evaluators:
+                expression_vars = list(evaluator_vars)
+                if clue.name not in expression_vars:
+                    expression_vars.append(clue.name)
+                lambda_arg_list = ", ".join(expression_vars)
+                dict_args = ", ".join(f'"{x}": int({x})' for x in evaluator_vars)
+                lambda_expr = f'lambda {lambda_arg_list}: WORD_SUMS[{clue.name}] == int(evaluator({{{dict_args}}}))'
+                evaluated = eval(lambda_expr, dict(evaluator=evaluator, WORD_SUMS=WORD_SUMS))
+                self.add_constraint(expression_vars, evaluated, name=f'Clue {clue.name}')
 
     def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         super().show_solution(known_clues)

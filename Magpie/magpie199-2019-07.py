@@ -167,9 +167,9 @@ def make_clue_list(clue_map: ClueMap) -> ClueList:
 
     clues = []
     for (letter, value), location in zip(ACROSS, itertools.product((1, 3, 5, 7, 9), (1, 5))):
-        clues.append(Clue(letter.upper(), True, location, 5, expression=str(value), generator=generator(value)))
+        clues.append(Clue(letter.upper(), True, location, 5, context=value, generator=generator(value)))
     for (letter, value), location in zip(DOWNS, itertools.product((1, 5), (1, 3, 5, 7, 9))):
-        clues.append(Clue(letter, False, location, 5, expression=str(value), generator=generator(value)))
+        clues.append(Clue(letter, False, location, 5, context=value, generator=generator(value)))
     clue_list = ClueList(clues)
     return clue_list
 
@@ -199,7 +199,7 @@ class MySolver(ConstraintSolver):
             print(f"Finished writing to {PDF_FILE_NAME}")
 
     def draw_clue_pentagon(self, clue: Clue, known_clues: Dict[Clue, ClueValue], axes: Axes) -> None:
-        triangles = int(cast(ClueValue, clue.eval({})))
+        triangles = cast(int, clue.context)
         answer = known_clues[clue]
         canonical_answer = min(answer[i:] + answer[:i] for i in range(5))
         if canonical_answer[1] > canonical_answer[-1]:

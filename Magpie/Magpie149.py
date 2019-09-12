@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Sequence, Dict, Set, Optional, Pattern
 
 from Clue import Clue, ClueList, ClueValue, Letter
-from GenericSolver import BaseSolver
+from GenericSolver import BaseSolver, EquationSolver
 from Intersection import Intersection
 
 GRID = """
@@ -80,9 +80,9 @@ def make_expressions() -> Sequence[Clue]:
     return tuple(clues)
 
 
-class SolverByClue(BaseSolver):
+class Magpie149Solver(BaseSolver):
     expressions: Sequence[Clue]
-    missing_variables: Dict[Clue, Set[str]]
+    missing_variables: Dict[Clue, Set[Letter]]
     step_count: int
     solution_count: int
     debug: bool
@@ -91,8 +91,9 @@ class SolverByClue(BaseSolver):
         super().__init__(clue_list)
         self.expressions = expressions
         self.missing_variables = {
-            clue: set(x for x in clue.expression if 'A' <= x <= 'Z' and x != clue.name)
-            for clue in self.expressions
+            # TODO(fy): Fix ME
+            clue: set(evaluator_vars) - {clue.name}
+            for clue in self.expressions for (_, evaluator_vars) in clue.evaluators
         }
 
     def solve(self, *, show_time: bool = True, debug: bool = False) -> int:
@@ -106,11 +107,10 @@ class SolverByClue(BaseSolver):
             print(f'Solutions { self.solution_count}; Steps: {self.step_count};  {time2 - time1}')
         return self.solution_count
 
-    def __solve(self, known_letters: Dict[Letter, int], known_clues: Dict[Clue, ClueValue]) -> None:
+    def __solve(self, known_clues: Dict[Clue, ClueValue], known_letters: Dict[Letter, int]) -> None:
         depth = len(known_letters)
         if len(known_letters) == 25:
-            print(known_clues)
-            self.clue_list.plot_board(known_clues)
+            self.show_solution(known_clues, known_letters)
             self.solution_count += 1
             return
 
@@ -122,9 +122,10 @@ class SolverByClue(BaseSolver):
         clue_to_pattern = {clue: self.make_runtime_pattern(clue, known_clues)
                            for clue in clues_to_try}
 
-        def get_legal_value(expression: Clue, clue: Clue) -> Optional[ClueValue]:
+        def get_value_if_fits(expression: Clue, clue: Clue) -> Optional[ClueValue]:
             known_letters[Letter(expression.name)] = int(clue.name)
-            value = expression.eval(known_letters)
+            evaluator, _ = expression.evaluators[0]
+            value = evaluator(known_letters)
             del known_letters[Letter(expression.name)]
             if value and clue_to_pattern[clue].fullmatch(value):
                 return value
@@ -132,7 +133,7 @@ class SolverByClue(BaseSolver):
 
         self.step_count += len(clues_to_try) * len(expressions_to_try)
         next_steps = {expression: [(clue, value) for clue in clues_to_try
-                                   for value in [get_legal_value(expression, clue)]
+                                   for value in [get_value_if_fits(expression, clue)]
                                    if value]
                       for expression in expressions_to_try}
         expression, clue_value_pairs = min(next_steps.items(),
@@ -147,9 +148,12 @@ class SolverByClue(BaseSolver):
                 print(f'{" | " * depth}{expression.name} {i + 1}/{len(clue_value_pairs)}: {clue.name}:{value} -->')
             known_letters[Letter(expression.name)] = int(clue.name)
             known_clues[clue] = value
-            self.__solve(known_letters, known_clues)
+            self.__solve(known_clues, known_letters)
             del known_letters[Letter(expression.name)]
             del known_clues[clue]
+
+    def show_solution(self, known_clues: Dict[Clue, ClueValue], known_letters: Dict[Letter, int]) -> None:
+        EquationSolver(self.clue_list).show_solution(known_clues, known_letters)
 
     def make_runtime_pattern(self, clue: Clue, known_clues: Dict[Clue, ClueValue]) -> Pattern[str]:
         pattern_list = [self.clue_list.get_allowed_regexp(location) for location in clue.locations()]
@@ -164,7 +168,7 @@ class SolverByClue(BaseSolver):
 def run() -> None:
     clue_list = make_clue_list()
     expressions = make_expressions()
-    solver = SolverByClue(clue_list, expressions)
+    solver = Magpie149Solver(clue_list, expressions)
     solver.solve()
 
 

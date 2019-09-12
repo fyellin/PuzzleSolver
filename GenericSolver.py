@@ -6,16 +6,19 @@ from collections import defaultdict
 from datetime import datetime
 from operator import itemgetter
 from typing import Tuple, Dict, List, NamedTuple, Set, Sequence, cast, Callable, \
-    Pattern, FrozenSet, Iterable, Any, Union
+    Pattern, FrozenSet, Iterable, Any, Union, Optional
 
 from mypy_extensions import VarArg
 
 from Clue import ClueValueGenerator, Clue, ClueValue, Letter, ClueList, Location
 from Intersection import Intersection
 
+KnownLetterDict = Dict[Letter, int]
+ClueInfo = Tuple[Clue, Callable[[KnownLetterDict], ClueValue], Set[Letter], List[Intersection], Set[Location]]
 
 class SolvingStep(NamedTuple):
     clue: Clue  # The clue we are solving
+    evaluator: Callable[[KnownLetterDict], ClueValue]
     letters: Sequence[Letter]  # The letters we are assigning a value in this step
     pattern_maker: Callable[[Dict[Clue, ClueValue]], Pattern[str]]  # a pattern maker
 
@@ -30,9 +33,6 @@ class BaseSolver(ABC):
 
     @abstractmethod
     def solve(self, *, show_time: bool = True, debug: bool = False) -> int: ...
-
-
-ClueInfo = Tuple[Clue, Set[Letter], List[Intersection], Set[Location]]
 
 
 class EquationSolver(BaseSolver, ABC):
@@ -66,14 +66,13 @@ class EquationSolver(BaseSolver, ABC):
 
     def __solve(self, current_index: int) -> None:
         if current_index == len(self.solving_order):
-            if self.check_solution(self.known_letters):
-                self.show_solution(self.known_letters)
+            if self.check_solution(self.known_clues, self.known_letters):
+                self.show_solution(self.known_clues, self.known_letters)
                 self.solution_count += 1
             return
-        solving_step = self.solving_order[current_index]
-        clue = solving_step.clue
-        clue_letters = solving_step.letters
-        pattern = solving_step.pattern_maker(self.known_clues)
+        clue, evaluator, clue_letters, pattern_maker = self.solving_order[current_index]
+        is_twin = clue in self.known_clues
+        pattern = pattern_maker(self.known_clues)
         if self.debug:
             print(f'{" | " * current_index} {clue.name} length={clue_letters} pattern="{pattern.pattern}"')
 
@@ -82,14 +81,17 @@ class EquationSolver(BaseSolver, ABC):
                 self.step_count += 1
                 for letter, value in zip(clue_letters, next_letter_values):
                     self.known_letters[letter] = value
-                clue_value = clue.eval(self.known_letters)
-                if not (clue_value and pattern.match(clue_value)):
-                    continue
-                if not self.allow_duplicates:
-                    if any(alt_value == clue_value and not self.clue_list.is_twin(clue, alt_clue)
-                           for alt_clue, alt_value in self.known_clues.items()):
+                clue_value = evaluator(self.known_letters)
+                if is_twin:
+                    if clue_value != self.known_clues[clue]:
                         continue
-                self.known_clues[clue] = clue_value
+                else:
+                    if not (clue_value and pattern.match(clue_value)):
+                        continue
+                    if not self.allow_duplicates and clue_value in self.known_clues.values():
+                        continue
+                    self.known_clues[clue] = clue_value
+
                 if self.debug:
                     print(f'{" | " * current_index} {clue.name} {clue_letters} '
                           f'{next_letter_values} {clue_value} ({clue.length}): -->')
@@ -99,26 +101,28 @@ class EquationSolver(BaseSolver, ABC):
         finally:
             for letter in clue_letters:
                 self.known_letters.pop(letter, None)
-            self.known_clues.pop(clue, None)
+            if not is_twin:
+                self.known_clues.pop(clue, None)
 
     def _get_solving_order(self) -> Sequence[SolvingStep]:
         """Figures out the best order to solve the various clues."""
         result: List[SolvingStep] = []
-        not_yet_ordered: Dict[Clue, ClueInfo] = {
-            clue: (clue, {Letter(ch) for ch in clue.expression if 'A' <= ch <= 'Z' or 'a' <= ch <= 'z'}, [], set())
-            for clue in self.clue_list
+        not_yet_ordered: Dict[Any, ClueInfo] = {
+            # co_names are the unbound variables in the compiled expression: exactly what we want!
+            evaluator: (clue, evaluator, set(evaluator_vars), [], set())
+            for clue in self.clue_list for (evaluator, evaluator_vars) in clue.evaluators
         }
 
         def grading_function(clue_info: ClueInfo) -> Sequence[float]:
-            (clue, unknown_letters, _, locations) = clue_info
+            (clue, _, unknown_letters, _, locations) = clue_info
             return -len(unknown_letters), len(locations) / clue.length, clue.length
 
         while not_yet_ordered:
-            clue, unknown_letters, intersections, _ = max(not_yet_ordered.values(), key=grading_function)
-            not_yet_ordered.pop(clue)
+            clue, evaluator, unknown_letters, intersections, _ = max(not_yet_ordered.values(), key=grading_function)
+            not_yet_ordered.pop(evaluator)
             pattern = Intersection.make_pattern_generator(clue, intersections, self.clue_list)
-            result.append(SolvingStep(clue, tuple(sorted(unknown_letters)), pattern))
-            for (other_clue, other_unknown_letters, other_intersections, other_locations) in not_yet_ordered.values():
+            result.append(SolvingStep(clue, evaluator, tuple(sorted(unknown_letters)), pattern))
+            for (other_clue, _, other_unknown_letters, other_intersections, other_locations) in not_yet_ordered.values():
                 # Update the remaining not_yet_ordered clues, indicating more known letters and updated intersections
                 other_unknown_letters.difference_update(unknown_letters)
                 new_intersections = Intersection.get_intersections(other_clue, clue)
@@ -149,11 +153,19 @@ class EquationSolver(BaseSolver, ABC):
                    for value in next_letter_values):
                 yield next_letter_values
 
-    def check_solution(self, _known_letters: Dict[Letter, int]) -> bool:
+    def check_solution(self, _known_clues: Dict[Clue, ClueValue], _known_letters: Dict[Letter, int]) -> bool:
+        """
+        Called when we have a tentative solution.  You should override this method if additional checking
+        is required.
+
+        :param _known_clues: A dictionary giving the value of each of the clues.  Clue -> ClueValue
+        :param _known_letters: A dictionary giving the value of each equation letter.  Letter -> int
+        :return: True if this solution is correct; false otherwise
+        """
         return True
 
-    def show_solution(self, known_letters: Dict[Letter, int]) -> None:
-        self.clue_list.plot_board(self.known_clues)
+    def show_solution(self, known_clues: Dict[Clue, ClueValue], known_letters: Dict[Letter, int]) -> None:
+        self.clue_list.plot_board(known_clues)
         max_length = max(len(str(i)) for i in known_letters.values())
         print()
         pairs = [(letter, value) for letter, value in known_letters.items()]
@@ -172,12 +184,15 @@ class ConstraintSolver(BaseSolver):
     known_clues: Dict[Clue, ClueValue]
     debug: bool
     constraints: Dict[Clue, List[Callable[..., bool]]]
+    constraint_names: Dict[Callable[..., bool], str]
 
     def __init__(self, clue_list: ClueList, **kwargs: Any) -> None:
         self.constraints = defaultdict(list)
+        self.constraint_names = {}
         super().__init__(clue_list)
 
-    def add_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., bool]) -> None:
+    def add_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., bool],
+                       *, name: Optional[str] = None) -> None:
         actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_list.clue_named(clue) for clue in clues)
         if len(actual_clues) == 2:
             clue1, clue2 = actual_clues
@@ -189,6 +204,9 @@ class ConstraintSolver(BaseSolver):
                 return self.check_n_clue_relationship(actual_clues, unknown_clues, predicate)
         for clue in actual_clues:
             self.constraints[clue].append(check_relationship)
+        if not name:
+            name = '-'.join(clue.name for clue in actual_clues)
+        self.constraint_names[predicate] = name
 
     def solve(self, *, show_time: bool = True, debug: bool = False) -> int:
         self.step_count = 0
@@ -298,9 +316,8 @@ class ConstraintSolver(BaseSolver):
                 start_value = unknown_clues[clue1]
                 end_value = unknown_clues[clue1] = frozenset(
                     x for x in start_value if clue_filter(x, cast(ClueValue, value2)))
-            if self.debug and len(start_value) != len(end_value):
-                depth = len(self.known_clues) - 1
-                print(f'{"   " * depth}   [2] {unknown_clue.name} {len(start_value)} -> {len(end_value)}')
+            if self.debug:
+                self.__debug_show_constraint(unknown_clue, clue_filter, start_value, end_value)
             return bool(end_value)
         elif unknown_values_count == 0:
             assert clue_filter(cast(ClueValue, value1), cast(ClueValue, value2))
@@ -322,15 +339,25 @@ class ConstraintSolver(BaseSolver):
         if unknown_values_count == 1:
             unknown_index = values.index(None)
             unknown_clue = clues[unknown_index]
-            prefix = cast(List[ClueValue], values[:unknown_index])
-            suffix = cast(List[ClueValue], values[unknown_index + 1:])
+
+            def clue_filter_caller(value: ClueValue) -> bool:
+                values[unknown_index] = value
+                return clue_filter(*cast(List[ClueValue], values))
+
             start_value = unknown_clues[unknown_clue]
-            end_value = unknown_clues[unknown_clue] = frozenset(
-                x for x in start_value if clue_filter(*prefix, x, *suffix))
-            if self.debug and len(start_value) != len(end_value):
-                depth = len(self.known_clues) - 1
-                print(f'{"   " * depth}   [r] {unknown_clue.name} {len(start_value)} -> {len(end_value)}')
+            end_value = unknown_clues[unknown_clue] = frozenset(filter(clue_filter_caller, start_value))
+            if self.debug:
+                self.__debug_show_constraint(unknown_clue, clue_filter, start_value, end_value)
             return bool(end_value)
         elif unknown_values_count == 0:
             assert clue_filter(*cast(List[ClueValue], values))
         return True
+
+    def __debug_show_constraint(self, clue: Clue, clue_filter: Callable[..., bool],
+                                start_value: FrozenSet[ClueValue], end_value: FrozenSet[ClueValue]) -> None:
+        if self.debug and len(start_value) != len(end_value):
+            depth = len(self.known_clues) - 1
+            name = self.constraint_names[clue_filter]
+            print(f'{"   " * depth}   {clue.name} {len(start_value)} -> {len(end_value)} [{name}] ')
+
+
