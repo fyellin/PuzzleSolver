@@ -10,15 +10,16 @@ from typing import Tuple, Dict, List, NamedTuple, Set, Sequence, cast, Callable,
 
 from mypy_extensions import VarArg
 
-from Clue import ClueValueGenerator, Clue, ClueValue, Letter, ClueList, Location
+from Clue import ClueValueGenerator, Clue, ClueValue, Letter, ClueList, Location, Evaluator
 from Intersection import Intersection
 
 KnownLetterDict = Dict[Letter, int]
-ClueInfo = Tuple[Clue, Callable[[KnownLetterDict], ClueValue], Set[Letter], List[Intersection], Set[Location]]
+ClueInfo = Tuple[Clue, Evaluator, Set[Letter], List[Intersection], Set[Location]]
+
 
 class SolvingStep(NamedTuple):
     clue: Clue  # The clue we are solving
-    evaluator: Callable[[KnownLetterDict], ClueValue]
+    evaluator: Evaluator
     letters: Sequence[Letter]  # The letters we are assigning a value in this step
     pattern_maker: Callable[[Dict[Clue, ClueValue]], Pattern[str]]  # a pattern maker
 
@@ -109,8 +110,8 @@ class EquationSolver(BaseSolver, ABC):
         result: List[SolvingStep] = []
         not_yet_ordered: Dict[Any, ClueInfo] = {
             # co_names are the unbound variables in the compiled expression: exactly what we want!
-            evaluator: (clue, evaluator, set(evaluator_vars), [], set())
-            for clue in self.clue_list for (evaluator, evaluator_vars) in clue.evaluators
+            evaluator: (clue, evaluator, set(evaluator.vars), [], set())
+            for clue in self.clue_list for evaluator in clue.evaluators
         }
 
         def grading_function(clue_info: ClueInfo) -> Sequence[float]:

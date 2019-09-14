@@ -4,7 +4,7 @@ from typing import Tuple, Dict, List
 
 import inflect  # type: ignore
 
-from Clue import Clue, Location, ClueValue, ClueValueGenerator, ClueList
+from Clue import Clue, Location, ClueValue, ClueValueGenerator, ClueList, Evaluator
 from GenericSolver import ConstraintSolver
 
 eng = inflect.engine()
@@ -70,15 +70,18 @@ class MySolver(ConstraintSolver):
     def __init__(self, clue_list: ClueList):
         super().__init__(clue_list)
         for clue in clue_list:
-            for evaluator, evaluator_vars in clue.evaluators:
-                expression_vars = list(evaluator_vars)
-                if clue.name not in expression_vars:
-                    expression_vars.append(clue.name)
-                lambda_arg_list = ", ".join(expression_vars)
-                dict_args = ", ".join(f'"{x}": int({x})' for x in evaluator_vars)
-                lambda_expr = f'lambda {lambda_arg_list}: WORD_SUMS[{clue.name}] == int(evaluator({{{dict_args}}}))'
-                evaluated = eval(lambda_expr, dict(evaluator=evaluator, WORD_SUMS=WORD_SUMS))
-                self.add_constraint(expression_vars, evaluated, name=f'Clue {clue.name}')
+            for evaluator in clue.evaluators:
+                assert clue.name not in evaluator.vars
+                self.make_constraint(clue, evaluator)
+
+    def make_constraint(self, clue: Clue, evaluator: Evaluator) -> None:
+        def constraint(arg: ClueValue, *args: ClueValue) -> bool:
+            dictionary = dict(zip(evaluator.vars, map(int, args)))
+            result = evaluator(dictionary)
+            return WORD_SUMS[arg] == int(result) if result else False
+
+        constraint_vars = [clue.name] + list(evaluator.vars)
+        self.add_constraint(constraint_vars, constraint, name=f'Clue {clue.name}')
 
     def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         super().show_solution(known_clues)

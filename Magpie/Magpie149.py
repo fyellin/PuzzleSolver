@@ -124,7 +124,7 @@ class Magpie149Solver(BaseSolver):
 
         def get_value_if_fits(expression: Clue, clue: Clue) -> Optional[ClueValue]:
             known_letters[Letter(expression.name)] = int(clue.name)
-            evaluator, _ = expression.evaluators[0]
+            evaluator = expression.evaluators[0]
             value = evaluator(known_letters)
             del known_letters[Letter(expression.name)]
             if value and clue_to_pattern[clue].fullmatch(value):

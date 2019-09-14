@@ -125,7 +125,7 @@ class Magpie146Solver:
                 self.count_total += 1
                 for letter, value in zip(clue_letters, next_letter_values):
                     self.known_letters[letter] = value
-                evaluator, _ = clue.evaluators[0]
+                evaluator = clue.evaluators[0]
                 clue_value = evaluator(self.known_letters)
                 if not clue_value or not is_legal_value(clue_value):
                     continue
@@ -151,7 +151,7 @@ class Magpie146Solver:
         result: List[Any] = []
         not_yet_ordered: Dict[Clue, Tuple[Clue, Set[Letter]]] = {
             # Each clue has only one evaluator, so using clue as the key is fine.
-            clue: (clue, set(evaluator_vars)) for clue in self.clue_list for (_, evaluator_vars) in clue.evaluators
+            clue: (clue, set(evaluator.vars)) for clue in self.clue_list for evaluator in clue.evaluators
         }
 
         def evaluator(item: Tuple[Clue, Set[Letter]]) -> Sequence[int]:

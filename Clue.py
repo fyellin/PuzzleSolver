@@ -4,7 +4,7 @@ import re
 import typing
 from collections import Counter, OrderedDict
 from typing import Tuple, Callable, Iterable, Union, Optional, Iterator, Dict, Any, NewType, \
-    Mapping, FrozenSet, Sequence, List, Set
+    Mapping, FrozenSet, Sequence, List, Set, NamedTuple
 
 from DrawGrid import draw_grid
 
@@ -14,12 +14,20 @@ ClueValue = NewType('ClueValue', str)
 Letter = NewType('Letter', str)
 
 
+class Evaluator (NamedTuple):
+    callable: Callable[[Dict[Letter, int]], Optional[ClueValue]]
+    vars: Sequence[Letter]
+
+    def __call__(self, arg: Dict[Letter, int]) -> Optional[ClueValue]:
+        return self.callable(arg)
+
+
 class Clue:
     name: str
     is_across: bool
     base_location: Location
     length: int
-    evaluators: Sequence[Tuple[Callable[[Dict[Letter, int]], ClueValue], Sequence[Letter]]]
+    evaluators: Sequence[Evaluator]
     generator: Optional[ClueValueGenerator]
     context: Any
     location_list: Sequence[Location]
@@ -37,7 +45,7 @@ class Clue:
             python_pieces = Clue.convert_expression_to_python(expression)
             self.evaluators = tuple(map(make_evaluator, python_pieces))
         else:
-            self.evaluators = [(lambda _: ClueValue("0"), ())]
+            self.evaluators = [Evaluator(lambda _: ClueValue("0"), ())]
         self.generator = generator
         self.context = context
         self.location_list = tuple(self.generate_location_list())
@@ -244,10 +252,10 @@ class ClueList:
                   top_bars, left_bars, **more_args)
 
 
-def make_evaluator(my_code: str) -> Tuple[Callable[[Dict[Letter, int]], ClueValue], Sequence[Letter]]:
-    my_code_ast = ast.parse(my_code.strip(), mode='eval').body
+def make_evaluator(my_code: str) -> Evaluator:
+    my_code_ast = ast.parse(my_code.strip(), mode='eval')
     variables = sorted({Letter(node.id) for node in ast.walk(my_code_ast) if isinstance(node, ast.Name)})
-    holder:  List[Callable[[Dict[Letter, int]], ClueValue]]= []
+    holder:  List[Callable[[Dict[Letter, int]], ClueValue]] = []
     code = f"""
 def result(value_dict):
     {", ".join(variables)} = {", ".join(f'value_dict["{v}"]' for v in variables)}
@@ -257,7 +265,7 @@ def result(value_dict):
 holder.append(result)
 """
     exec(code, None, dict(holder=holder))
-    return holder.pop(), variables
+    return Evaluator(holder.pop(), variables)
 
 
 if __name__ == '__main__':
