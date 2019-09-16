@@ -6,9 +6,9 @@
 
 This directory contains code to help you solve generic numeric crossword puzzles.  It is designed to solve two different sorts of numeric crossword puzzles:
 
-* `EquationSolver`: Puzzles where each clue has an equation with letters as the variables.  Users must find the correct assignment of a number to each letter so that the grid can be filled.
+* `EquationSolver`: Puzzles where each clue has an equation with letters as the variables.  The solver must find the correct assignment of a number to each letter so that the grid can be filled.
 
-* `ConstraintSolver`: Each clue has constraints on the answers that can go into that spot.  In some cases, answers suitable for one clue further restrict the answers that are suitable for other clues,
+* `ConstraintSolver`: Each clue has constraints on the answers that can go into that spot.  In some cases, there are further constraints between the answers of clues,
 
 ## Key concepts
 
@@ -19,7 +19,7 @@ Locations are represented by a tuple of two small integers representing
 the row and column, respectively, with `(1, 1)` being the top left corner.
 For example `(4, 1)` refers to the first column of the fourth row.
 
-The program can only handle rectangular grids. 
+This program can only handle rectangular grids. 
 However, since there is no requirement that a clue occupy
 consecutive location, this can usually be kludged around.
 For example, this program has been used to solve a 4x4x4 grid by pretending the layers are vertically stacked on each othe as a 16x4 grid.
@@ -28,18 +28,20 @@ For example, this program has been used to solve a 4x4x4 grid by pretending the 
 
 The basic unit of a puzzle is the `Clue`.  Each clue has the following attributes:
 
-* `name`: for identification purposes only
+* `name`: for identification
 * `base_location`: the location of the first letter of the clue
 * `is_across`: true if this is an across clue, false if this is a down clue
 * `length`: the number of squares of this clue
-* `expression`: for `EquationSolver` puzzles, the expression giving the value of this clue.  This field can also be used by `ConstraintSolver` puzzles, too, but its use in then up to the user.
+* `expression`: for `EquationSolver` puzzles, the expression giving the value of this clue.  This field is occasionally used by `ConstraintSolver` puzzles, too, 
+but its use in then up to the user.
 * `generator`: for `ConstraintSolver` puzzles, a generator that generates all legal values for this clue.
 
 
 #### The Expression
-The expression is a string representing an equation with variables, where the variables are the
-upper- and lower-case letters.  This is converted into a Python expression and compiled.  The conversion process understands implied multiplication (i.e. `2ab(c+d)` means `2*a*b*(c+d)`); it also understands the strange subtraction symbol used by Listener and Magpie.
+The expression is a string representing an equation with variables, where the variables are
+upper- and lower-case letters.  This is converted into a Python expression and compiled.  The conversion process understands implied multiplication (i.e. `2ab(c+d)` means `2*a*b*(c+d)`); it also understands the subtraction symbol used by Listener and Magpie.
 
+Each expression is turned into an "Evaluator".  If 
 To evaluate a clue's expression, call `clue.eval(dictionary)`, where the `dictionary` argument is a mapping from variables to the integer value of those variable.  If the result is a positive integer, it is returned as a string. `None` is returned if the result is negative or non-integer.  
 
 NOTE: We do not yet handle the expression throwing an error.  Should this be fixed?
@@ -56,27 +58,12 @@ The file `Generators.py` contains several generators of the sort that are freque
 
 #### Non-standard clues and subclassing
    
-If your grid is not actually a rectangle, you may need to subclass `Clue`.  
+If your grid is not actually a rectangle or your clues go into the grid in an unusual way, you may need to subclass `Clue`.  
 
 The code assumes that across clues start at the indicated location and move right (increasing the second index),  and that down clues start at the indicated location and move down (increasing the first index). 
 If your puzzle has different rules, you should subclass `Clue` and override the method `generate_location_list` to generate the list of locations.
 
 TODO: Verify length?  Verify first element is base_location? 
-
-#### Twinning
-
-In some `EquationSolver` puzzles, there are clues whose equation contains an equal sign.
-For example: `ACROSS 5. A + B = CDD (3)`.  Rather than treating this as an equation with four 
-distinct variables, it is typically faster to pretend that there are two different clues, both labelled `5`, each containing two distinct variables.  We consider these two separate clues to be "twins" of each other.
-
-Twins create some complications.  
-
-* In many puzzles, there is the constraint that that no two clues have the same answer; yet obviously twins are 
-supposed to have the same answer as each other.  
-
-* Likewise, some puzzles place limitations on what letters may go into an intersection.  Yet every square of a clue 
-intersects with the same square of its twin.  When twinning occurs, we must be very precise whether we are including
-a twin intersecting with its other half, or not.
 
 
 ### Clue list

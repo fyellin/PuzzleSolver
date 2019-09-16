@@ -10,7 +10,7 @@ from GenericSolver import ConstraintSolver
 eng = inflect.engine()
 
 
-def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[int]], Dict[ClueValue, int]]:
+def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[int]], Dict[ClueValue, ClueValue]]:
     result: Dict[Tuple[int, int], List[int]] = collections.defaultdict(list)
     word_sums = dict()
     for i in range(1, 1000):
@@ -18,7 +18,7 @@ def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[int]], D
         word = ''.join(i for i in eng.number_to_words(i) if i.islower())
         clue_length = len(clue_value)
         num_letters = len(word)
-        word_sums[ClueValue(str(i))] = sum(ord(c) - ord('a') + 1 for c in set(word))
+        word_sums[ClueValue(str(i))] = ClueValue(str(sum(ord(c) - ord('a') + 1 for c in set(word))))
         result[(clue_length, num_letters)].append(i)
     return result, word_sums
 
@@ -72,13 +72,16 @@ class MySolver(ConstraintSolver):
         for clue in clue_list:
             for evaluator in clue.evaluators:
                 assert clue.name not in evaluator.vars
-                self.make_constraint(clue, evaluator)
+                self.__add_constraint_for_clue(clue, evaluator)
 
-    def make_constraint(self, clue: Clue, evaluator: Evaluator) -> None:
+    # Note, this method cannot be inlined.  Because clue and evaluator are closed over, they cannot be loop
+    # variable in the original code.
+    def __add_constraint_for_clue(self, clue: Clue, evaluator: Evaluator) -> None:
         def constraint(arg: ClueValue, *args: ClueValue) -> bool:
-            dictionary = dict(zip(evaluator.vars, map(int, args)))
-            result = evaluator(dictionary)
-            return WORD_SUMS[arg] == int(result) if result else False
+            # The args are in the same order as the evaluator.vars, so we can create a Letter->value dictionary
+            # by zipping them together.
+            evaluator_dictionary = dict(zip(evaluator.vars, map(int, args)))
+            return WORD_SUMS[arg] == evaluator(evaluator_dictionary)
 
         constraint_vars = [clue.name] + list(evaluator.vars)
         self.add_constraint(constraint_vars, constraint, name=f'Clue {clue.name}')
