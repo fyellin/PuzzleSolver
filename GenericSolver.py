@@ -199,10 +199,10 @@ class ConstraintSolver(BaseSolver):
             clue1, clue2 = actual_clues
 
             def check_relationship(unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
-                return self.check_2_clue_relationship(clue1, clue2, unknown_clues, predicate)
+                return self.__check_2_clue_constraint(clue1, clue2, unknown_clues, predicate)
         else:
             def check_relationship(unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> bool:
-                return self.check_n_clue_relationship(actual_clues, unknown_clues, predicate)
+                return self.__check_n_clue_constraint(actual_clues, unknown_clues, predicate)
         for clue in actual_clues:
             self.constraints[clue].append(check_relationship)
         if not name:
@@ -294,7 +294,7 @@ class ConstraintSolver(BaseSolver):
     def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         self.clue_list.plot_board(known_clues)
 
-    def check_2_clue_relationship(
+    def __check_2_clue_constraint(
             self, clue1: Clue, clue2: Clue,
             unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
             clue_filter: Callable[[ClueValue, ClueValue], bool]) -> bool:
@@ -324,7 +324,7 @@ class ConstraintSolver(BaseSolver):
             assert clue_filter(cast(ClueValue, value1), cast(ClueValue, value2))
         return True
 
-    def check_n_clue_relationship(self, clues: Tuple[Clue, ...],
+    def __check_n_clue_constraint(self, clues: Tuple[Clue, ...],
                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
                                   clue_filter: Callable[[VarArg(ClueValue)], bool]) -> bool:
         """
