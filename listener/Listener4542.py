@@ -19,7 +19,7 @@ def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[int]], D
         clue_length = len(clue_value)
         num_letters = len(word)
         word_sums[ClueValue(str(i))] = ClueValue(str(sum(ord(c) - ord('a') + 1 for c in set(word))))
-        result[(clue_length, num_letters)].append(i)
+        result[clue_length, num_letters].append(i)
     return result, word_sums
 
 
@@ -28,7 +28,7 @@ LENGTHS_TO_INTEGERS, WORD_SUMS = create_length_to_integer_dict()
 
 def my_generator(num_letters: int) -> ClueValueGenerator:
     def getter(clue: Clue) -> List[int]:
-        return LENGTHS_TO_INTEGERS[(clue.length, num_letters)]
+        return LENGTHS_TO_INTEGERS[clue.length, num_letters]
     return getter
 
 

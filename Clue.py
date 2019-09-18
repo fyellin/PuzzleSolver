@@ -1,6 +1,7 @@
 import ast
 import itertools
 import re
+import textwrap
 import typing
 from collections import Counter, OrderedDict
 from typing import Tuple, Callable, Iterable, Union, Optional, Iterator, Dict, Any, NewType, \
@@ -18,8 +19,26 @@ class Evaluator (NamedTuple):
     callable: Callable[[Dict[Letter, int]], Optional[ClueValue]]
     vars: Sequence[Letter]
 
+    @staticmethod
+    def make(expression: str) -> 'Evaluator':
+        my_code_ast = ast.parse(expression.strip(), mode='eval')
+        variables = sorted({Letter(node.id) for node in ast.walk(my_code_ast) if isinstance(node, ast.Name)})
+        my_locals = {}
+        code = f"""
+        def result(value_dict):
+            {", ".join(variables)} = {", ".join(f'value_dict["{v}"]' for v in variables)}
+            rvalue = {expression}
+            ivalue = int(rvalue)
+            return ClueValue(str(ivalue)) if ivalue > 0 and rvalue == ivalue else None
+        """
+        exec(textwrap.dedent(code), None, my_locals)
+        return Evaluator(my_locals['result'], variables)
+
     def __call__(self, arg: Dict[Letter, int]) -> Optional[ClueValue]:
         return self.callable(arg)
+
+    def __hash__(self):
+        return id(self.callable)
 
 
 class Clue:
@@ -43,9 +62,9 @@ class Clue:
         self.length = length
         if expression:
             python_pieces = Clue.convert_expression_to_python(expression)
-            self.evaluators = tuple(map(make_evaluator, python_pieces))
+            self.evaluators = tuple(map(Evaluator.make, python_pieces))
         else:
-            self.evaluators = [Evaluator(lambda _: ClueValue("0"), ())]
+            self.evaluators = ()
         self.generator = generator
         self.context = context
         self.location_list = tuple(self.generate_location_list())
@@ -252,21 +271,8 @@ class ClueList:
                   top_bars, left_bars, **more_args)
 
 
-def make_evaluator(my_code: str) -> Evaluator:
-    my_code_ast = ast.parse(my_code.strip(), mode='eval')
-    variables = sorted({Letter(node.id) for node in ast.walk(my_code_ast) if isinstance(node, ast.Name)})
-    holder:  List[Callable[[Dict[Letter, int]], ClueValue]] = []
-    code = f"""
-def result(value_dict):
-    {", ".join(variables)} = {", ".join(f'value_dict["{v}"]' for v in variables)}
-    value = {my_code}
-    ivalue = int(value)
-    return str(ivalue) if ivalue > 0 and value == ivalue else None
-holder.append(result)
-"""
-    exec(code, None, dict(holder=holder))
-    return Evaluator(holder.pop(), variables)
-
-
 if __name__ == '__main__':
-    make_evaluator('a + b / c')
+    x = Evaluator.make('a + b / c')
+    assert x(dict(a=1, b=10, c=2)) == '6'
+    assert x(dict(a=1, b=10, c=3)) is None
+    assert x(dict(a=-5, b=10, c=2)) is None

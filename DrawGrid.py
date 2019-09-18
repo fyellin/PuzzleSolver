@@ -41,7 +41,7 @@ def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
     # Fill in the black squares
     for row, column in itertools.product(range(1, max_row), range(1, max_column)):
         if (row, column) in shading:
-            color = shading[(row, column)]
+            color = shading[row, column]
             axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor=color, linewidth=0))
         elif (row, column) not in clued_locations:
             axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor='black', linewidth=0))
