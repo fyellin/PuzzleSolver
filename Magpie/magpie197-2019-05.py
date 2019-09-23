@@ -3,7 +3,7 @@ Standard.  Nothing exciting.
 """
 
 from ClueList import ClueList
-from GenericSolver import EquationSolver
+from EquationSolver import EquationSolver
 
 # noinspection SpellCheckingInspection
 ACROSS = """

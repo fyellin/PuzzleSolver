@@ -1,17 +1,17 @@
 import ast
 import copy
 import textwrap
-from typing import NamedTuple, Callable, Dict, Optional, Sequence, Any, cast
+from typing import NamedTuple, Callable, Dict, Optional, Sequence, Any
 
 from ClueTypes import ClueValue, Letter
 
-BASIC_MODULE_DEF = cast(ast.Module, ast.parse(textwrap.dedent("""
+BASIC_MODULE_DEF: Any = ast.parse(textwrap.dedent("""
 def result(var_dict: Dict[Letter, int]) -> Optional[ClueValue]:
     __LEFT__ = __RIGHT__
     rvalue = __EXPRESSION__
     ivalue = int(rvalue)
     return ClueValue(str(ivalue)) if ivalue == rvalue > 0 else None
-""")))
+"""))
 
 
 class Evaluator (NamedTuple):
@@ -20,7 +20,7 @@ class Evaluator (NamedTuple):
 
     @staticmethod
     def make(expression: str) -> 'Evaluator':
-        expression_ast = cast(ast.Expression, ast.parse(expression.strip(), mode='eval'))
+        expression_ast: Any = ast.parse(expression.strip(), mode='eval')
         variables = sorted({Letter(node.id) for node in ast.walk(expression_ast) if isinstance(node, ast.Name)})
         code = f"""
         def result(value_dict):
@@ -36,7 +36,7 @@ class Evaluator (NamedTuple):
 
     @staticmethod
     def make2(expression: str) -> 'Evaluator':
-        expression_ast= cast(ast.Expression, ast.parse(expression.strip(), mode='eval'))
+        expression_ast: Any = ast.parse(expression.strip(), mode='eval')
         variables = sorted({Letter(node.id) for node in ast.walk(expression_ast) if isinstance(node, ast.Name)})
 
         module_def = copy.deepcopy(BASIC_MODULE_DEF)
@@ -64,7 +64,7 @@ class Evaluator (NamedTuple):
 
     @staticmethod
     def make3(expression: str) -> 'Evaluator':
-        expression_ast = cast(ast.Expression, ast.parse(expression.strip(), mode='eval'))
+        expression_ast: Any = ast.parse(expression.strip(), mode='eval')
         variables = sorted({Letter(node.id) for node in ast.walk(expression_ast) if isinstance(node, ast.Name)})
 
         module_def = copy.deepcopy(BASIC_MODULE_DEF)
@@ -74,7 +74,7 @@ class Evaluator (NamedTuple):
         # noinspection PyPep8Naming
         # noinspection PyMethodMayBeStatic
         class ReWriter(ast.NodeTransformer):
-            def visit_Name(self, node: ast.Name) -> ast.AST:
+            def visit_Name(self, node: ast.Name) -> Any:
                 if node.id == "__LEFT__":
                     return ast.Tuple(
                         elts=[ast.Name(id=var, ctx=ast.Store()) for var in variables],
@@ -103,18 +103,3 @@ class Evaluator (NamedTuple):
 
     def __hash__(self) -> int:
         return id(self.callable)
-
-
-if __name__ == '__main__':
-    x = Evaluator.make3('a + b / c')
-    assert x(dict(a=1, b=10, c=2)) == '6'
-    assert x(dict(a=1, b=10, c=3)) is None
-    assert x(dict(a=-5, b=10, c=2)) is None
-
-    y = Evaluator.make3('25')
-    assert y({}) == '25'
-
-    z = Evaluator.make3('x **3  / 2')
-    assert z(dict(x=10)) == '500'
-    assert z(dict(x=11)) is None
-    assert z(dict(x=-10)) is None

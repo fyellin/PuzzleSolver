@@ -8,10 +8,11 @@ import re
 from datetime import datetime
 from typing import Sequence, Dict, Set, Optional, Pattern
 
+from BaseSolver import BaseSolver
 from Clue import Clue
 from ClueList import ClueList
 from ClueTypes import ClueValue, Letter
-from GenericSolver import BaseSolver, EquationSolver
+from EquationSolver import EquationSolver
 from Intersection import Intersection
 
 GRID = """

@@ -1,11 +1,11 @@
 import itertools
-from typing import Set, Dict, Tuple, Any, cast
+from typing import Set, Dict, Any, cast
 
 from matplotlib import pyplot as plt, patches
 from matplotlib.axes import Axes
 from matplotlib.transforms import Bbox
 
-Location = Tuple[int, int]
+from ClueTypes import Location
 
 
 def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],

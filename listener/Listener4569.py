@@ -4,7 +4,7 @@ from typing import Dict, Iterable, List, Tuple, Set, Any
 from Clue import Clue
 from ClueList import ClueList
 from ClueTypes import Location, ClueValue, Letter
-from GenericSolver import EquationSolver
+from EquationSolver import EquationSolver
 
 ACROSS = """
 1 GS − Gz − S (6)

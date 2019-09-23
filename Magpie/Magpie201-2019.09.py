@@ -2,7 +2,7 @@ from typing import Dict, Set, Any
 
 from ClueList import ClueList
 from ClueTypes import Location
-from GenericSolver import EquationSolver
+from EquationSolver import EquationSolver
 
 ACROSS = """
 1 JE(RK + S) (4)

@@ -7,7 +7,7 @@ from typing import Dict, Sequence, Iterable
 
 from ClueList import ClueList
 from ClueTypes import Location, Letter
-from GenericSolver import EquationSolver
+from EquationSolver import EquationSolver
 
 
 class MySolver(EquationSolver):
