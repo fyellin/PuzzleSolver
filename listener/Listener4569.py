@@ -1,7 +1,9 @@
 import re
 from typing import Dict, Iterable, List, Tuple, Set, Any
 
-from Clue import Location, Letter, ClueList, Clue, ClueValue
+from Clue import Clue
+from ClueList import ClueList
+from ClueTypes import Location, ClueValue, Letter
 from GenericSolver import EquationSolver
 
 ACROSS = """

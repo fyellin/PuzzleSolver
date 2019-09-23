@@ -5,7 +5,8 @@ is_zero_allowed:    This puzzle doesn't allow 0 in any intersection
 
 from typing import Dict, Sequence, Iterable
 
-from Clue import Location, Letter, ClueList
+from ClueList import ClueList
+from ClueTypes import Location, Letter
 from GenericSolver import EquationSolver
 
 

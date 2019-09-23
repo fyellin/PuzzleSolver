@@ -12,7 +12,9 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 
-from Clue import ClueValueGenerator, Clue, ClueList, ClueValue
+from Clue import Clue, ClueValueGenerator
+from ClueList import ClueList
+from ClueTypes import ClueValue
 from GenericSolver import ConstraintSolver
 
 PDF_FILE_NAME = '/tmp/magpie199.pdf'

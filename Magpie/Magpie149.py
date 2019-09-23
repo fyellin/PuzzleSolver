@@ -8,7 +8,9 @@ import re
 from datetime import datetime
 from typing import Sequence, Dict, Set, Optional, Pattern
 
-from Clue import Clue, ClueList, ClueValue, Letter
+from Clue import Clue
+from ClueList import ClueList
+from ClueTypes import ClueValue, Letter
 from GenericSolver import BaseSolver, EquationSolver
 from Intersection import Intersection
 

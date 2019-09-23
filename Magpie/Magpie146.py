@@ -14,7 +14,9 @@ from operator import itemgetter
 from typing import Dict, Sequence, Tuple, List, Set, Iterable, Any
 
 import Generators
-from Clue import ClueList, Letter, ClueValue, Clue
+from Clue import Clue
+from ClueList import ClueList
+from ClueTypes import ClueValue, Letter
 from GenericSolver import ConstraintSolver
 
 CLUE_DATA = """

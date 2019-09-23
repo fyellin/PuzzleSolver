@@ -7,7 +7,9 @@ import itertools
 from typing import Callable, Iterable, Optional, Dict, List, Union
 
 import Generators
-from Clue import Location, ClueValueGenerator, Clue, ClueValue, ClueList
+from Clue import Clue, ClueValueGenerator
+from ClueList import ClueList
+from ClueTypes import Location, ClueValue
 from GenericSolver import ConstraintSolver
 
 """

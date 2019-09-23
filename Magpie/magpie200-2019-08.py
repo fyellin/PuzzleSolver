@@ -3,7 +3,9 @@ import re
 from typing import Iterable, Sequence, Optional, Tuple, Dict, cast, Any
 
 import Generators
-from Clue import ClueValueGenerator, Clue, ClueList, ClueValue
+from Clue import Clue, ClueValueGenerator
+from ClueList import ClueList
+from ClueTypes import ClueValue
 from GenericSolver import ConstraintSolver
 
 ACROSS = """

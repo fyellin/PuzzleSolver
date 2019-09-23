@@ -4,7 +4,9 @@ in a different base.
 """
 
 import Generators
-from Clue import Location, ClueValueGenerator, Clue, ClueList
+from Clue import Clue, ClueValueGenerator
+from ClueList import ClueList
+from ClueTypes import Location
 from Generators import triangular, lucas, fibonacci, square, cube, prime, palindrome
 from GenericSolver import ConstraintSolver
 

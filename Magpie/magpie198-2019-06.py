@@ -4,7 +4,9 @@ from enum import Enum
 from typing import Iterable, Optional, Dict, Tuple
 
 import Generators
-from Clue import Location, ClueValueGenerator, Clue, ClueValue, ClueList
+from Clue import Clue, ClueValueGenerator
+from ClueList import ClueList
+from ClueTypes import Location, ClueValue
 from GenericSolver import ConstraintSolver
 
 

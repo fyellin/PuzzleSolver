@@ -10,7 +10,10 @@ from typing import Tuple, Dict, List, NamedTuple, Set, Sequence, cast, Callable,
 
 from mypy_extensions import VarArg
 
-from Clue import ClueValueGenerator, Clue, ClueValue, Letter, ClueList, Location, Evaluator
+from Clue import Clue, ClueValueGenerator
+from ClueList import ClueList
+from ClueTypes import Location, ClueValue, Letter
+from Evaluator import Evaluator
 from Intersection import Intersection
 
 KnownLetterDict = Dict[Letter, int]

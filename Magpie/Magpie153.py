@@ -2,7 +2,8 @@ import itertools
 from typing import Iterator, Sequence, Tuple, Optional, List, Iterable, Callable
 
 import Generators
-from Clue import Clue, ClueList, ClueValueGenerator
+from Clue import Clue, ClueValueGenerator
+from ClueList import ClueList
 from GenericSolver import ConstraintSolver
 
 """

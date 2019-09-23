@@ -2,9 +2,8 @@
 Standard.  Nothing exciting.
 """
 
+from ClueList import ClueList
 from GenericSolver import EquationSolver
-from Clue import ClueList
-
 
 # noinspection SpellCheckingInspection
 ACROSS = """

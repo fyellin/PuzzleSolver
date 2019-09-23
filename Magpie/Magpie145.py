@@ -8,7 +8,8 @@ from collections import defaultdict
 from typing import Iterator, Mapping, Sequence, List
 
 import Generators
-from Clue import Clue, ClueList
+from Clue import Clue
+from ClueList import ClueList
 from GenericSolver import ConstraintSolver
 
 

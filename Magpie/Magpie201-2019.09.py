@@ -1,6 +1,7 @@
 from typing import Dict, Set, Any
 
-from Clue import Location, ClueList
+from ClueList import ClueList
+from ClueTypes import Location
 from GenericSolver import EquationSolver
 
 ACROSS = """
