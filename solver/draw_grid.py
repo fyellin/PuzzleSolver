@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt, patches
 from matplotlib.axes import Axes
 from matplotlib.transforms import Bbox
 
-from ClueTypes import Location
+from solver.clue_types import Location
 
 
 def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],

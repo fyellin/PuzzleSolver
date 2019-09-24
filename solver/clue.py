@@ -1,8 +1,8 @@
 import re
 from typing import Iterable, Optional, Any, FrozenSet, Sequence, Callable, Union
 
-from ClueTypes import Location
-from Evaluator import Evaluator
+from .clue_types import Location
+from .evaluator import Evaluator
 
 ClueValueGenerator = Callable[['Clue'], Iterable[Union[str, int]]]
 
@@ -70,5 +70,3 @@ class Clue:
 
     def __repr__(self) -> str:
         return str(self)
-
-

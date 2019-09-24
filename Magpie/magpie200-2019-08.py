@@ -2,11 +2,8 @@ import itertools
 import re
 from typing import Iterable, Sequence, Optional, Tuple, Dict, cast, Any
 
-import Generators
-from Clue import Clue, ClueValueGenerator
-from ClueList import ClueList
-from ClueTypes import ClueValue
-from GenericSolver import ConstraintSolver
+from solver import Clue, ClueValueGenerator, ClueList, ClueValue, ConstraintSolver
+from solver import generators
 
 ACROSS = """
 a 159 56 165 67 5      4
@@ -64,7 +61,7 @@ class MyString(str):
 
 def generator(values: Sequence[int]) -> ClueValueGenerator:
     def result(clue: Clue) -> Iterable[MyString]:
-        min_value, max_value = Generators.get_min_max(clue)
+        min_value, max_value = generators.get_min_max(clue)
         for ops in itertools.permutations("+*-/"):
             def get_value(lparen: int, rparen: int) -> Tuple[str, Optional[int]]:
                 def q(i: int) -> str:

@@ -1,10 +1,8 @@
 import re
 from typing import Dict, Iterable, List, Tuple, Set, Any
 
-from Clue import Clue
-from ClueList import ClueList
-from ClueTypes import Location, ClueValue, Letter
-from EquationSolver import EquationSolver
+from solver import Clue, ClueList, ClueValue, Letter, Location
+from solver import EquationSolver
 
 ACROSS = """
 1 GS − Gz − S (6)

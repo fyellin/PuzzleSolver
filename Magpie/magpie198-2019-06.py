@@ -3,11 +3,8 @@ import itertools
 from enum import Enum
 from typing import Iterable, Optional, Dict, Tuple
 
-import Generators
-from Clue import Clue, ClueValueGenerator
-from ClueList import ClueList
-from ClueTypes import Location, ClueValue
-from GenericSolver import ConstraintSolver
+from solver import Clue, ClueValueGenerator, ClueList, Location, ClueValue, ConstraintSolver
+from solver import generators
 
 
 class AnswerType(Enum):
@@ -22,11 +19,11 @@ def create_to_type_dict() -> Dict[str, AnswerType]:
     # Creates a map from legal entry values to the answer type of that entry.  Values are only allowed to belong
     # to one type.
     creator: Tuple[Tuple[AnswerType, ClueValueGenerator], ...] = (
-        (AnswerType.Fibonacci, Generators.fibonacci),
-        (AnswerType.Square, Generators.square),
-        (AnswerType.Triangle, Generators.triangular),
-        (AnswerType.Prime, Generators.prime),
-        (AnswerType.Palindrome, Generators.palindrome))
+        (AnswerType.Fibonacci, generators.fibonacci),
+        (AnswerType.Square, generators.square),
+        (AnswerType.Triangle, generators.triangular),
+        (AnswerType.Prime, generators.prime),
+        (AnswerType.Palindrome, generators.palindrome))
     items = [(length, answer_type, str(value))
              for length in (1, 2, 3) for answer_type, generator in creator
              for value in generator(Clue('fake', True, (1, 1), length))]
@@ -61,7 +58,7 @@ def down_4(clue: Clue) -> Iterable[str]:
 
 
 def down_8(clue: Clue) -> Iterable[int]:
-    return filter(lambda x: str(x) in TO_TYPE_DICT, Generators.square(clue))
+    return filter(lambda x: str(x) in TO_TYPE_DICT, generators.square(clue))
 
 
 CLUES = (

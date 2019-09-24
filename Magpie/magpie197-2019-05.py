@@ -2,8 +2,7 @@
 Standard.  Nothing exciting.
 """
 
-from ClueList import ClueList
-from EquationSolver import EquationSolver
+from solver import ClueList, EquationSolver
 
 # noinspection SpellCheckingInspection
 ACROSS = """

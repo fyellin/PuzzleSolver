@@ -13,11 +13,8 @@ from datetime import datetime
 from operator import itemgetter
 from typing import Dict, Sequence, Tuple, List, Set, Iterable, Any
 
-import Generators
-from Clue import Clue
-from ClueList import ClueList
-from ClueTypes import ClueValue, Letter
-from GenericSolver import ConstraintSolver
+from solver import Clue, ClueList, ClueValue, Letter, ConstraintSolver
+from solver import generators
 
 CLUE_DATA = """
 1 DDS
@@ -64,7 +61,7 @@ def make_clue_list(info: str) -> ClueList:
     return ClueList(clues)
 
 
-primes = list(itertools.takewhile(lambda x: x * x < 10_000_000, Generators.prime_generator()))
+primes = list(itertools.takewhile(lambda x: x * x < 10_000_000, generators.prime_generator()))
 primes_set = frozenset(primes)
 squares_set = frozenset(i * i for i in primes)
 

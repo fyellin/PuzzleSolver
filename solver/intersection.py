@@ -1,9 +1,9 @@
 import re
 from typing import NamedTuple, Sequence, Callable, Dict, Pattern, List, Optional
 
-from Clue import Clue
-from ClueList import ClueList
-from ClueTypes import Location, ClueValue
+from .clue import Clue
+from .clue_list import ClueList
+from .clue_types import Location, ClueValue
 
 
 class Intersection(NamedTuple):

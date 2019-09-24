@@ -6,11 +6,11 @@ from typing import Tuple, Dict, List, Sequence, cast, Callable, FrozenSet, Any, 
 
 from mypy_extensions import VarArg
 
-from BaseSolver import BaseSolver
-from Clue import Clue, ClueValueGenerator
-from ClueList import ClueList
-from ClueTypes import ClueValue
-from Intersection import Intersection
+from .base_solver import BaseSolver
+from .clue import Clue, ClueValueGenerator
+from .clue_list import ClueList
+from .clue_types import ClueValue
+from .intersection import Intersection
 
 KnownClueDict = Dict[Clue, ClueValue]
 

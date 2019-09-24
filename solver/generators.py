@@ -2,7 +2,7 @@ import itertools
 import math
 from typing import Iterable, Callable, Tuple, Iterator, List, Union
 
-from Clue import Clue
+from solver.clue import Clue
 
 """A collection of generators to use in various other puzzles."""
 BASE = 10

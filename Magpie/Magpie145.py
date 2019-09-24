@@ -7,10 +7,8 @@ import re
 from collections import defaultdict
 from typing import Iterator, Mapping, Sequence, List
 
-import Generators
-from Clue import Clue
-from ClueList import ClueList
-from GenericSolver import ConstraintSolver
+from solver import Clue, ClueList, ConstraintSolver
+from solver import generators
 
 
 def fibonacci_generator() -> Iterator[int]:
@@ -20,7 +18,7 @@ def fibonacci_generator() -> Iterator[int]:
         i, j = j, i + j
 
 
-primes = frozenset(itertools.takewhile(lambda x: x < 10000, Generators.prime_generator()))
+primes = frozenset(itertools.takewhile(lambda x: x < 10000, generators.prime_generator()))
 squares = frozenset(itertools.takewhile(lambda x: x < 10000, (i*i for i in itertools.count(1))))
 cubes = frozenset(itertools.takewhile(lambda x: x < 10000, (i*i*i for i in itertools.count(1))))
 fibonaccis = frozenset(itertools.takewhile(lambda x: x < 10000, fibonacci_generator()))
@@ -55,7 +53,7 @@ def make_clue_list(lines: str, acrosses: str, downs: str) -> List[Clue]:
             number = int(match.group(1))
             info = match.group(2)
             clue = Clue(f'{number}{suffix}', is_across, locations[number], len(info),
-                        generator=Generators.known(*MY_TABLE[info]))
+                        generator=generators.known(*MY_TABLE[info]))
             clues.append(clue)
     return clues
 

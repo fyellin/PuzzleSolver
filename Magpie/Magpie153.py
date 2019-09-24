@@ -1,10 +1,9 @@
 import itertools
 from typing import Iterator, Sequence, Tuple, Optional, List, Iterable, Callable
 
-import Generators
-from Clue import Clue, ClueValueGenerator
-from ClueList import ClueList
-from GenericSolver import ConstraintSolver
+from solver import Clue, ClueList, ClueValueGenerator
+from solver import ConstraintSolver
+from solver import generators
 
 """
 A decomposition n = a^2 - b^2 = (a-b)(a+b) = d*(n/d) is given for each divisor d less than
@@ -25,7 +24,7 @@ Pull out all factors of 2.  Number of factors of that.  Subtract 1 to remove sin
 
 def set_up_tables() -> Tuple[Sequence[int], Sequence[int], Sequence[int], Sequence[int]]:
     max_value = 100_000
-    primes = tuple(itertools.takewhile(lambda x: x < max_value, Generators.prime_generator()))
+    primes = tuple(itertools.takewhile(lambda x: x < max_value, generators.prime_generator()))
     primes_set = set(primes)
 
     prime_info = [(1, 1, 0)] * max_value
@@ -111,7 +110,7 @@ def generate_17d18d(min_power: int) -> Callable[[Clue], Iterable[int]]:
     def generator(clue: Clue) -> Iterator[int]:
         min_value = 10 ** (clue.length - 1)
         max_value = 10 ** clue.length
-        primes = Generators.prime_generator()
+        primes = generators.prime_generator()
         for prime in primes:
             for power in itertools.count(min_power):
                 result = prime ** power
@@ -146,47 +145,47 @@ X....X..
 
 CLUES = make_clue_list(GRID,
                        ((1, 7, generate_1a),
-                        (8, 2, Generators.allvalues),
-                        (9, 5, Generators.allvalues),
+                        (8, 2, generators.allvalues),
+                        (9, 5, generators.allvalues),
                         (11, 3, show_items(P=3, R=3, S=4)),
                         (12, 2, show_items(P=2)),
                         (13, 3, show_items(P=1)),
-                        (14, 4, Generators.allvalues),
-                        (16, 4, Generators.allvalues),
+                        (14, 4, generators.allvalues),
+                        (16, 4, generators.allvalues),
                         (19, 5, show_items(P=1, R=3)),
-                        (20, 2, Generators.allvalues),
-                        (21, 2, Generators.allvalues),
+                        (20, 2, generators.allvalues),
+                        (21, 2, generators.allvalues),
                         (22, 5, show_items(F=20, P=2, R=1)),
-                        (25, 4, Generators.allvalues),
-                        (27, 4, Generators.allvalues),
-                        (30, 3, Generators.allvalues),
+                        (25, 4, generators.allvalues),
+                        (27, 4, generators.allvalues),
+                        (30, 3, generators.allvalues),
                         (32, 2, show_items(R=3)),
-                        (33, 3, Generators.allvalues),
+                        (33, 3, generators.allvalues),
                         (34, 5, show_items(P=2)),
                         (35, 2, generate_35a),
-                        (36, 7, Generators.known(2 ** 20, 2 ** 21, 2 ** 22, 2 ** 23))),
-                       ((1, 4, Generators.allvalues),
+                        (36, 7, generators.known(2 ** 20, 2 ** 21, 2 ** 22, 2 ** 23))),
+                       ((1, 4, generators.allvalues),
                         (2, 4, show_items(F=16, P=3, R=3, S=4)),
                         (3, 3, show_items(F=6, S=0)),
-                        (4, 5, Generators.allvalues),
+                        (4, 5, generators.allvalues),
                         (5, 3, generate_5d),
                         (6, 3, show_items(F=18, P=3, S=0)),
-                        (7, 6, Generators.allvalues),
+                        (7, 6, generators.allvalues),
                         (10, 3, show_items(P=1)),
-                        (15, 4, Generators.allvalues),
+                        (15, 4, generators.allvalues),
                         (16, 2, show_items(P=1)),
                         (17, 4, generate_17d18d(2)),
                         (18, 6, generate_17d18d(5)),
-                        (19, 2, Generators.allvalues),
-                        (20, 2, Generators.allvalues),
-                        (23, 2, Generators.allvalues),
+                        (19, 2, generators.allvalues),
+                        (20, 2, generators.allvalues),
+                        (23, 2, generators.allvalues),
                         (24, 5, show_items(F=32, P=3, S=0)),
                         (26, 3, show_items(S=3)),
                         (28, 4, show_items(F=54, P=4)),
                         (29, 4, show_items(F=18, P=2)),
-                        (31, 3, Generators.allvalues),
+                        (31, 3, generators.allvalues),
                         (32, 3, show_items(R=7, S=0)),
-                        (33, 3, Generators.allvalues)))
+                        (33, 3, generators.allvalues)))
 
 
 class MySolver(ConstraintSolver):

@@ -6,11 +6,9 @@ import functools
 import itertools
 from typing import Callable, Iterable, Optional, Dict, List, Union
 
-import Generators
-from Clue import Clue, ClueValueGenerator
-from ClueList import ClueList
-from ClueTypes import Location, ClueValue
-from GenericSolver import ConstraintSolver
+from solver import Clue, ClueList, ClueValue, ClueValueGenerator
+from solver import ConstraintSolver, Location
+from solver import generators
 
 """
 Looking at 16a/17d, the only number/cube that intersect that way are:
@@ -101,7 +99,7 @@ def break_row_into_primes(line: str) -> List[List[str]]:
 
 
 def generate_13a(clue: Clue) -> Iterable[int]:
-    return Generators.within_clue_limits(clue, (i * i - 1 for i in itertools.count(1)))
+    return generators.within_clue_limits(clue, (i * i - 1 for i in itertools.count(1)))
 
 
 def generate_18a(_clue: Clue) -> Iterable[int]:
@@ -142,27 +140,27 @@ def make(name: str, base_location: Location, length: int, generator: Optional[Cl
 
 
 CLUES = (
-    make('A1',  (1, 1), 7, with_prime_pattern(Generators.cube)),
-    make('A8',  (2, 1), 3, Generators.not_prime),
-    make('A9',  (2, 4), 4, Generators.known(1173, 1927, 2777)),
-    make('A10', (3, 1), 7, with_prime_pattern(Generators.permutation())),
-    make('A12', (4, 1), 2, Generators.prime),
+    make('A1', (1, 1), 7, with_prime_pattern(generators.cube)),
+    make('A8', (2, 1), 3, generators.not_prime),
+    make('A9', (2, 4), 4, generators.known(1173, 1927, 2777)),
+    make('A10', (3, 1), 7, with_prime_pattern(generators.permutation())),
+    make('A12', (4, 1), 2, generators.prime),
     make('A13', (4, 3), 3, generate_13a),
-    make('A14', (4, 6), 2, Generators.not_prime),
-    make('A15', (5, 1), 7, with_prime_pattern(Generators.permutation())),
-    make('A16', (6, 1), 4, Generators.known(1331)),
+    make('A14', (4, 6), 2, generators.not_prime),
+    make('A15', (5, 1), 7, with_prime_pattern(generators.permutation())),
+    make('A16', (6, 1), 4, generators.known(1331)),
     make('A18', (6, 5), 3, generate_18a),
-    make('A19', (7, 1), 7, with_prime_pattern(Generators.known(1771569))),
+    make('A19', (7, 1), 7, with_prime_pattern(generators.known(1771569))),
 
     make('D1',  (1, 1), 7, generate_1d),  # additional constraints added by A12
     make('D2',  (1, 2), 7, generate_2d),
     make('D3',  (1, 3), 7, None),  # this is checked in show_solutions()
-    make('D4',  (1, 4), 2, Generators.not_prime),
-    make('D5',  (1, 5), 7, Generators.square),
+    make('D4', (1, 4), 2, generators.not_prime),
+    make('D5', (1, 5), 7, generators.square),
     make('D6',  (1, 6), 7, generate_6d),
-    make('D7',  (1, 7), 7, Generators.known(1173**2, 1927**2, 2777**2)),
-    make('D11', (3, 4), 3, Generators.palindrome),
-    make('D17', (6, 4), 2, Generators.known(11)),
+    make('D7', (1, 7), 7, generators.known(1173 ** 2, 1927 ** 2, 2777 ** 2)),
+    make('D11', (3, 4), 3, generators.palindrome),
+    make('D17', (6, 4), 2, generators.known(11)),
 )
 
 

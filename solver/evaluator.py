@@ -3,7 +3,7 @@ import copy
 import textwrap
 from typing import NamedTuple, Callable, Dict, Optional, Sequence, Any
 
-from ClueTypes import ClueValue, Letter
+from .clue_types import ClueValue, Letter
 
 BASIC_MODULE_DEF: Any = ast.parse(textwrap.dedent("""
 def result(var_dict: Dict[Letter, int]) -> Optional[ClueValue]:

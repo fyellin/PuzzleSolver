@@ -8,12 +8,9 @@ import re
 from datetime import datetime
 from typing import Sequence, Dict, Set, Optional, Pattern
 
-from BaseSolver import BaseSolver
-from Clue import Clue
-from ClueList import ClueList
-from ClueTypes import ClueValue, Letter
-from EquationSolver import EquationSolver
-from Intersection import Intersection
+from solver import BaseSolver
+from solver import Clue, ClueList, ClueValue, Letter
+from solver import EquationSolver, Intersection
 
 GRID = """
 XXXXX.X
@@ -59,14 +56,8 @@ Z ZU"""
 
 
 def make_clue_list() -> ClueList:
-    lines = GRID.splitlines()
-    lines = [line for line in lines if line]
-    locations = [(0, 0)]
-    for row, line in enumerate(lines):
-        for column, item in enumerate(line):
-            if item == 'X':
-                locations.append((row + 1, column + 1))
-    clues = [Clue(str(i), i in ACROSSES, locations[i], LENGTHS[i]) for i in range(1, len(LENGTHS))]
+    locations = ClueList.get_locations_from_grid(GRID)  # first location is index 0
+    clues = [Clue(str(i), i in ACROSSES, locations[i - 1], LENGTHS[i]) for i in range(1, len(LENGTHS))]
     clue_list = ClueList(clues)
     clue_list.verify_is_180_symmetric()
     return clue_list
@@ -94,7 +85,7 @@ class Magpie149Solver(BaseSolver):
         super().__init__(clue_list)
         self.expressions = expressions
         self.missing_variables = {
-            # TODO(fy): Fix ME
+            # TODO(fy): Fix me.  We know that all clue.evaluators have length 1
             clue: set(evaluator_vars) - {clue.name}
             for clue in self.expressions for (_, evaluator_vars) in clue.evaluators
         }

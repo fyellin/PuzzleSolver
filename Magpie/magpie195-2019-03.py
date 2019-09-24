@@ -5,9 +5,7 @@ is_zero_allowed:    This puzzle doesn't allow 0 in any intersection
 
 from typing import Dict, Sequence, Iterable
 
-from ClueList import ClueList
-from ClueTypes import Location, Letter
-from EquationSolver import EquationSolver
+from solver import ClueList, Location, Letter, EquationSolver
 
 
 class MySolver(EquationSolver):
@@ -83,7 +81,7 @@ def run() -> None:
     clue_list = MyClueList.create_from_text(ACROSS, DOWN, locations)
     clue_list.verify_is_vertically_symmetric()
     solver = MySolver(clue_list)
-    solver.solve(debug=True)
+    solver.solve()
 
 
 if __name__ == '__main__':

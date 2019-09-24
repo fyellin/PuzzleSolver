@@ -3,12 +3,12 @@ from datetime import datetime
 from operator import itemgetter
 from typing import Dict, NamedTuple, Sequence, Callable, Pattern, Any, List, Iterable, Set, Tuple
 
-from BaseSolver import BaseSolver
-from Clue import Clue
-from ClueList import ClueList
-from ClueTypes import Letter, ClueValue, Location
-from Evaluator import Evaluator
-from Intersection import Intersection
+from .base_solver import BaseSolver
+from .clue import Clue
+from .clue_list import ClueList
+from .clue_types import Letter, ClueValue, Location
+from .evaluator import Evaluator
+from .intersection import Intersection
 
 KnownLetterDict = Dict[Letter, int]
 KnownClueDict = Dict[Clue, ClueValue]
@@ -101,8 +101,8 @@ class EquationSolver(BaseSolver):
         }
 
         def grading_function(clue_info: ClueInfo) -> Sequence[float]:
-            (clue, _, unknown_letters, _, locations) = clue_info
-            return -len(unknown_letters), len(locations) / clue.length, clue.length
+            (clue, _, letters, _, locations) = clue_info
+            return -len(letters), len(locations) / clue.length, clue.length
 
         while not_yet_ordered:
             clue, evaluator, unknown_letters, intersections, _ = max(not_yet_ordered.values(), key=grading_function)

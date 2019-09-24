@@ -4,11 +4,10 @@ from typing import Tuple, Dict, List
 
 import inflect  # type: ignore
 
-from Clue import Clue, ClueValueGenerator
-from ClueList import ClueList
-from ClueTypes import Location, ClueValue
-from Evaluator import Evaluator
-from GenericSolver import ConstraintSolver
+from solver import Clue, ClueList, ClueValue, ClueValueGenerator
+from solver import ConstraintSolver
+from solver import Evaluator
+from solver import Location
 
 eng = inflect.engine()
 

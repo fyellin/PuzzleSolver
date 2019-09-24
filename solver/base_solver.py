@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from ClueList import ClueList
+from .clue_list import ClueList
 
 
 class BaseSolver(ABC):

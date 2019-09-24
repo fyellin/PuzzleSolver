@@ -4,9 +4,9 @@ import typing
 from collections import Counter, OrderedDict
 from typing import Mapping, FrozenSet, Sequence, Tuple, List, Dict, Iterator, Set, Any
 
-from Clue import Clue
-from ClueTypes import Location, ClueValue
-from DrawGrid import draw_grid
+from .clue import Clue
+from .clue_types import Location, ClueValue
+from .draw_grid import draw_grid
 
 
 class ClueList:
