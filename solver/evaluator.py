@@ -18,8 +18,12 @@ class Evaluator (NamedTuple):
     callable: Callable[[Dict[Letter, int]], Optional[ClueValue]]
     vars: Sequence[Letter]
 
-    @staticmethod
-    def make(expression: str) -> 'Evaluator':
+    @classmethod
+    def make(cls, expression: str) -> 'Evaluator':
+        return cls.make1(expression)
+
+    @classmethod
+    def make1(cls, expression: str) -> 'Evaluator':
         expression_ast: Any = ast.parse(expression.strip(), mode='eval')
         variables = sorted({Letter(node.id) for node in ast.walk(expression_ast) if isinstance(node, ast.Name)})
         code = f"""
@@ -33,70 +37,49 @@ class Evaluator (NamedTuple):
         exec(textwrap.dedent(code), None, namespace)
         return Evaluator(namespace['result'], variables)
 
-
-    @staticmethod
-    def make2(expression: str) -> 'Evaluator':
+    @classmethod
+    def make2(cls, expression: str) -> 'Evaluator':
         expression_ast: Any = ast.parse(expression.strip(), mode='eval')
         variables = sorted({Letter(node.id) for node in ast.walk(expression_ast) if isinstance(node, ast.Name)})
 
         module_def = copy.deepcopy(BASIC_MODULE_DEF)
         function_def = module_def.body[0]
         argument_name = function_def.args.args[0].arg
-        # replace "left" with a tuple of the variables
-        function_def.body[0].targets = [ast.Tuple(
-            elts=[ast.Name(id=var, ctx=ast.Store()) for var in variables],
-            ctx=ast.Store())]
-        # replace "right" with a tuple of var_dict lookups, using the variable name as a string lookup key
-        function_def.body[0].value = ast.Tuple(
-            elts=[ast.Subscript(slice=ast.Index(value=ast.Str(var)),
-                                value=ast.Name(id=argument_name, ctx=ast.Load()),
-                                ctx=ast.Load())
-                  for var in variables],
-            ctx=ast.Load())
-        # replace "expression" with the passed in expression.
-        function_def.body[1].value = expression_ast.body
 
-        ast.fix_missing_locations(module_def)
-        code = compile(module_def, "", mode='exec')
-        namespace: Dict[str, Any] = {}
-        eval(code, None, namespace)
-        return Evaluator(namespace['result'], variables)
-
-    @staticmethod
-    def make3(expression: str) -> 'Evaluator':
-        expression_ast: Any = ast.parse(expression.strip(), mode='eval')
-        variables = sorted({Letter(node.id) for node in ast.walk(expression_ast) if isinstance(node, ast.Name)})
-
-        module_def = copy.deepcopy(BASIC_MODULE_DEF)
-        function_def = module_def.body[0]
-        argument_name = function_def.args.args[0].arg
+        # Change __LEFT__, __RIGHT__, and __EXPRESSION__ to their proper values
+        id_map = {"__LEFT__":       cls.__assignment_left(variables),
+                  "__RIGHT__":      cls.__assignment_right(variables, argument_name),
+                  "__EXPRESSION__": expression_ast.body}
 
         # noinspection PyPep8Naming
         # noinspection PyMethodMayBeStatic
         class ReWriter(ast.NodeTransformer):
             def visit_Name(self, node: ast.Name) -> Any:
-                if node.id == "__LEFT__":
-                    return ast.Tuple(
-                        elts=[ast.Name(id=var, ctx=ast.Store()) for var in variables],
-                        ctx=ast.Store())
-                elif node.id == "__RIGHT__":
-                    return ast.Tuple(
-                        elts=[ast.Subscript(slice=ast.Index(value=ast.Str(var)),
-                                            value=ast.Name(id=argument_name, ctx=ast.Load()),
-                                            ctx=ast.Load())
-                              for var in variables],
-                        ctx=ast.Load())
-                elif node.id == "__EXPRESSION__":
-                    return expression_ast.body
-                else:
-                    return node
+                return id_map.get(node.id, node)
 
         module_def = ReWriter().visit(module_def)
+
+        # Convert the module_def into a callable function
         ast.fix_missing_locations(module_def)
         code = compile(module_def, "", mode='exec')
         namespace: Dict[str, Any] = {}
         eval(code, None, namespace)
         return Evaluator(namespace['result'], variables)
+
+    @classmethod
+    def __assignment_left(cls, variables):
+        return ast.Tuple(
+            elts=[ast.Name(id=var, ctx=ast.Store()) for var in variables],
+            ctx=ast.Store())
+
+    @classmethod
+    def __assignment_right(cls, variables, argument_name):
+        return ast.Tuple(
+            elts=[ast.Subscript(slice=ast.Index(value=ast.Str(var)),
+                                value=ast.Name(id=argument_name, ctx=ast.Load()),
+                                ctx=ast.Load())
+                  for var in variables],
+            ctx=ast.Load())
 
     def __call__(self, arg: Dict[Letter, int]) -> Optional[ClueValue]:
         return self.callable(arg)

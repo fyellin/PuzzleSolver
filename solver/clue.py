@@ -28,7 +28,7 @@ class Clue:
         self.length = length
         if expression:
             python_pieces = Clue.convert_expression_to_python(expression)
-            self.evaluators = tuple(map(Evaluator.make, python_pieces))
+            self.evaluators = tuple(Evaluator.make(piece) for piece in python_pieces)
         else:
             self.evaluators = ()
         self.generator = generator

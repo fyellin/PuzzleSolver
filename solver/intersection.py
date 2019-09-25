@@ -79,7 +79,8 @@ class Intersection(NamedTuple):
         return getter
 
     def __str__(self) -> str:
-        return f'<{self.this_clue.name}[{self.this_index}]={self.other_clue.name}[{self.other_index}]>'
+        return f'<{self.this_clue.name}[{self.this_index}]={self.other_clue.name}[{self.other_index}] ' \
+            f'@ {self.get_location()}>'
 
     def __repr__(self) -> str:
         return str(self)

@@ -1,5 +1,5 @@
 """
-Amusing puzzle, but all the word was in setting up the generators.  After that, it is straightforward
+Amusing puzzle, but all the work was in setting up the generators.  After that, it is straightforward
 """
 
 import itertools
@@ -58,16 +58,17 @@ def make_clue_list(lines: str, acrosses: str, downs: str) -> List[Clue]:
     return clues
 
 
-CLUES = make_clue_list(
-"""
+GRID = """
 XXXXXXX
 X..X...
 X.XX.XX
 XXX.XX.
 X..XX.X
 X..X...
-""",
 """
+
+
+ACROSS = """
 1 0111
 5 211
 8 110
@@ -82,8 +83,10 @@ X..X...
 22 301
 24 011
 25 3002
-""",
 """
+
+
+DOWN = """
 1 01
 2 111
 3 021
@@ -100,11 +103,12 @@ X..X...
 19 102
 20 10
 21 01
-23 20""")
+23 20"""
 
 
 def run() -> None:
-    clue_list = ClueList(CLUES)
+    clues = make_clue_list(GRID, ACROSS, DOWN)
+    clue_list = ClueList(clues)
     clue_list.verify_is_180_symmetric()
     solver = ConstraintSolver(clue_list)
     solver.solve()

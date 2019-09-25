@@ -61,6 +61,7 @@ def set_up_tables() -> Tuple[Sequence[int], Sequence[int], Sequence[int], Sequen
 pp, ff, rr, ss = set_up_tables()
 
 
+# noinspection PyPep8Naming
 def show_items(*, P: Optional[int] = None, F: Optional[int] = None, R: Optional[int] = None, S: Optional[int] = None) \
         -> Callable[[Clue], Iterable[int]]:
     def generator(clue: Clue) -> Iterable[int]:

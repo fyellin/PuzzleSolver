@@ -2,7 +2,7 @@ import functools
 import random
 from collections import defaultdict
 from datetime import datetime
-from typing import Tuple, Dict, List, Sequence, cast, Callable, FrozenSet, Any, Union, Optional
+from typing import Tuple, Dict, List, Sequence, cast, Callable, FrozenSet, Any, Union, Optional, Collection
 
 from mypy_extensions import VarArg
 
@@ -24,9 +24,9 @@ class ConstraintSolver(BaseSolver):
     constraint_names: Dict[Callable[..., bool], str]
 
     def __init__(self, clue_list: ClueList, **kwargs: Any) -> None:
+        super().__init__(clue_list, **kwargs)
         self.constraints = defaultdict(list)
         self.constraint_names = {}
-        super().__init__(clue_list)
 
     def add_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., bool],
                        *, name: Optional[str] = None) -> None:
@@ -59,6 +59,7 @@ class ConstraintSolver(BaseSolver):
         if show_time:
             print(f'Solutions {self.solution_count}; Steps: {self.step_count}; '
                   f'Setup: {time2 - time1}; Execution: {time3 - time2}; Total: {time3 - time1}')
+            ConstraintSolver.__show_get_insertions_cache()
         return self.solution_count
 
     def __solve(self, unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> None:
@@ -75,36 +76,41 @@ class ConstraintSolver(BaseSolver):
                 print(f'{" | " * depth}{clue.name} XX')
             return
         constraints = self.constraints[clue]
+        seen_values = set(self.known_clues.values())
 
         try:
             self.step_count += len(values)
             for i, value in enumerate(sorted(values)):
+                is_duplicate = not self.allow_duplicates and value in seen_values
                 if self.debug:
-                    print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: {value} -->')
+                    print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: {value} --> '
+                          f'{"dup" if is_duplicate else ""}')
+                if is_duplicate:
+                    continue
+
                 self.known_clues[clue] = value
+                # Make a shallow copy of unknown_clues, but remove this clue.
                 next_unknown_clues = dict(unknown_clues)
                 next_unknown_clues.pop(clue)
+                # Check the constraints.
                 if not all(constraint(next_unknown_clues) for constraint in constraints):
                     continue
                 for clue2, values2 in next_unknown_clues.items():
-                    intersections = self.__get_insersections(clue2, clue)
+                    intersections = self.__get_intersections(clue, clue2)
                     if intersections:
-                        temp = list(values2) if self.allow_duplicates else [x for x in values2 if x != value]
+                        new_value2: Collection[ClueValue] = values2
+                        new_size = len(new_value2)
                         for intersection in intersections:
-                            temp = [x for x in temp if intersection.values_match(x, value)]
-                        result = frozenset(temp)
-                    elif self.allow_duplicates or value not in values2:
-                        result = values2
-                    else:
-                        result = values2 - {value}
-
-                    if self.debug and result != values2:
-                        print(f'{"   " * depth}   {clue2.name} {len(values2)} -> {len(result)}')
-                    next_unknown_clues[clue2] = result
-                    if not result:
-                        break
+                            new_value2 = [x for x in new_value2 if intersection.values_match(value, x)]
+                            if self.debug and len(new_value2) != new_size:
+                                print(f'{"   " * depth}   {clue2.name} {new_size} -> {len(new_value2)} '
+                                      f'[{intersection}]')
+                                new_size = len(new_value2)
+                        if not new_value2:
+                            break
+                        next_unknown_clues[clue2] = frozenset(new_value2)
                 else:
-                    # If none of the clues above caused a "break" from going to zero, then we continue.
+                    # If none of the clues above caused a "break" by going to zero, then we continue.
                     self.__solve(next_unknown_clues)
 
         finally:
@@ -121,8 +127,13 @@ class ConstraintSolver(BaseSolver):
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def __get_insersections(this: Clue, other: Clue) -> Sequence[Intersection]:
+    def __get_intersections(this: Clue, other: Clue) -> Sequence[Intersection]:
         return Intersection.get_intersections(this, other)
+
+    @staticmethod
+    def __show_get_insertions_cache() -> None:
+        cache_info = ConstraintSolver.__get_intersections.cache_info()
+        print(cache_info)
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         return True
