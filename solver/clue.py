@@ -50,7 +50,7 @@ class Clue:
 
     @staticmethod
     def convert_expression_to_python(expression: str) -> Sequence[str]:
-        expression = expression.replace("–", "-")   # Magpie use a strange minus sign
+        expression = expression.replace("–", "-")   # magpie use a strange minus sign
         expression = expression.replace('−', '-')   # Listener uses a different strange minus sign
         expression = expression.replace("^", "**")  # Replace exponentiation with proper one
         for _ in range(2):

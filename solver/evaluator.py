@@ -67,13 +67,13 @@ class Evaluator (NamedTuple):
         return Evaluator(namespace['result'], variables)
 
     @classmethod
-    def __assignment_left(cls, variables):
+    def __assignment_left(cls, variables: Sequence[Letter]) -> Any:
         return ast.Tuple(
             elts=[ast.Name(id=var, ctx=ast.Store()) for var in variables],
             ctx=ast.Store())
 
     @classmethod
-    def __assignment_right(cls, variables, argument_name):
+    def __assignment_right(cls, variables: Sequence[Letter], argument_name: str) -> Any:
         return ast.Tuple(
             elts=[ast.Subscript(slice=ast.Index(value=ast.Str(var)),
                                 value=ast.Name(id=argument_name, ctx=ast.Load()),

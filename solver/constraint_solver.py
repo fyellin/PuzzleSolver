@@ -95,20 +95,21 @@ class ConstraintSolver(BaseSolver):
                 # Check the constraints.
                 if not all(constraint(next_unknown_clues) for constraint in constraints):
                     continue
-                for clue2, values2 in next_unknown_clues.items():
-                    intersections = self.__get_intersections(clue, clue2)
-                    if intersections:
-                        new_value2: Collection[ClueValue] = values2
-                        new_size = len(new_value2)
+
+                # Look at all other clues intersecting "clue", and their intersections.
+                for clue2, intersections in self.__get_all_intersections(clue):
+                    if clue2 in next_unknown_clues:
+                        values2: Collection[ClueValue] = next_unknown_clues[clue2]
+                        values2_size = len(values2)
                         for intersection in intersections:
-                            new_value2 = [x for x in new_value2 if intersection.values_match(value, x)]
-                            if self.debug and len(new_value2) != new_size:
-                                print(f'{"   " * depth}   {clue2.name} {new_size} -> {len(new_value2)} '
+                            values2 = [x for x in values2 if intersection.values_match(value, x)]
+                            if self.debug and len(values2) != values2_size:
+                                print(f'{"   " * depth}   {clue2.name} {values2_size} -> {len(values2)} '
                                       f'[{intersection}]')
-                                new_size = len(new_value2)
-                        if not new_value2:
+                                values2_size = len(values2)
+                        if not values2:
                             break
-                        next_unknown_clues[clue2] = frozenset(new_value2)
+                        next_unknown_clues[clue2] = frozenset(values2)
                 else:
                     # If none of the clues above caused a "break" by going to zero, then we continue.
                     self.__solve(next_unknown_clues)
@@ -125,14 +126,16 @@ class ConstraintSolver(BaseSolver):
         result = frozenset(x for x in string_values if pattern.match(x))
         return cast(FrozenSet[ClueValue], result)
 
-    @staticmethod
     @functools.lru_cache(maxsize=None)
-    def __get_intersections(this: Clue, other: Clue) -> Sequence[Intersection]:
-        return Intersection.get_intersections(this, other)
+    def __get_all_intersections(self, this_clue: Clue) -> Sequence[Tuple[Clue, Sequence[Intersection]]]:
+        clues_and_intersections = [(other_clue, Intersection.get_intersections(this_clue, other_clue))
+                                   for other_clue in self.clue_list if other_clue != this_clue]
+        # Only keep those pairs that actually have intersections
+        return [(clue, intersections) for (clue, intersections) in clues_and_intersections if intersections]
 
     @staticmethod
     def __show_get_insertions_cache() -> None:
-        cache_info = ConstraintSolver.__get_intersections.cache_info()
+        cache_info = ConstraintSolver.__get_all_intersections.cache_info()
         print(cache_info)
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
