@@ -89,11 +89,8 @@ class MyClueList(ClueList):
 
 
 class MySolver (EquationSolver):
-    good_values: Tuple[int, ...]
-
     def __init__(self, clue_list: ClueList) -> None:
         super().__init__(clue_list, items=MySolver.get_clue_values())
-        self.good_values = tuple(self.get_clue_values())
 
     def show_solution(self,  known_clues: Dict[Clue, ClueValue], known_letters: Dict[Letter, int]) -> None:
         super().show_solution(known_clues, known_letters)

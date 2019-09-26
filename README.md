@@ -21,8 +21,8 @@ For example `(4, 1)` refers to the first column of the fourth row.
 
 This program can only handle rectangular grids. 
 However, since there is no requirement that a clue occupy
-consecutive location, this can usually be kludged around.
-For example, this program has been used to solve a 4x4x4 grid by pretending the layers are vertically stacked on each othe as a 16x4 grid.
+consecutive location, this can be kludged around.
+For example, we have used this program to solve a 4x4x4 grid by pretending the layers are vertically stacked on each other as a 16x4 grid.
 
 ### Clue
 
@@ -35,14 +35,22 @@ The basic unit of a puzzle is the `Clue`.  Each clue has the following attribute
 * `expression`: for `EquationSolver` puzzles, the expression giving the value of this clue.  This field is occasionally used by `ConstraintSolver` puzzles, too, 
 but its use in then up to the user.
 * `generator`: for `ConstraintSolver` puzzles, a generator that generates all legal values for this clue.
-
+* `context`: is not used by the solvers.  The user can use this to store additional information.
 
 #### The Expression
 The expression is a string representing an equation with variables, where the variables are
-upper- and lower-case letters.  This is converted into a Python expression and compiled.  The conversion process understands implied multiplication (i.e. `2ab(c+d)` means `2*a*b*(c+d)`); it also understands the subtraction symbol used by Listener and Magpie.
+upper- and lower-case letters.  This is converted into a Python expression and compiled.  The converter understands implied multiplication i.e. `2ab(c+d)` means `2*a*b*(c+d)`; it also understands the subtraction symbols used by 
+the typesetters of Listener and Magpie.
 
-Each expression is turned into an "Evaluator".  If 
-To evaluate a clue's expression, call `clue.eval(dictionary)`, where the `dictionary` argument is a mapping from variables to the integer value of those variable.  If the result is a positive integer, it is returned as a string. `None` is returned if the result is negative or non-integer.  
+Each expression is turned into on or more `Evaluator`s.   
+Multiple evaluators are created when the passed in equation contains an equals sign.
+A clue's list of evaluators is available as `clue.evaluators`.  
+
+An evaluator's list of free variables is available as `evaluator.vars`. 
+You can get the value an evaluator for a given set of values by calling
+`evaluator(dictionary)`, where the `dictionary` argument is a mapping from variables to the integer value of those variable.  
+If the result is a positive integer, it is returned as a string. 
+Otherwise, `None` is returned. 
 
 NOTE: We do not yet handle the expression throwing an error.  Should this be fixed?
 
@@ -53,14 +61,17 @@ The returned clue values can either be an integers or a string.  The generator r
 
 In very rare cases, the generator can be `None`.  This is described later.
 
-The file `Generators.py` contains several generators of the sort that are frequently found in Magpie puzzles.  It also contains generators that return a pre-calculated list and generators that just return every possible value.  The latter probably shouldn't be used for clues longer than length 6.
+The file `Generators.py` contains several generators of the sort that frequently appear in Magpie puzzles.  
+It also contains generators that return a pre-calculated list and generators that just return every possible value.  
+The latter probably shouldn't be used for clues longer than length 6.
 
 
 #### Non-standard clues and subclassing
    
-If your grid is not actually a rectangle or your clues go into the grid in an unusual way, you may need to subclass `Clue`.  
+If your grid is not actually a rectangle or your clues go into the grid in an unusual way, you can subclass `Clue`.  
 
-The code assumes that across clues start at the indicated location and move right (increasing the second index),  and that down clues start at the indicated location and move down (increasing the first index). 
+The code assumes that across clues start at the indicated location and move right (increasing the second index of the location),  
+and that down clues start at the indicated location and move down (increasing the first index). 
 If your puzzle has different rules, you should subclass `Clue` and override the method `generate_location_list` to generate the list of locations.
 
 TODO: Verify length?  Verify first element is base_location? 
@@ -68,9 +79,11 @@ TODO: Verify length?  Verify first element is base_location?
 
 ### Clue list
 
-A `ClueList` gathers together a set of clues and creates information them as a set.  
+A `ClueList` gathers together a set of clues and creates information about them as a set.  
 
 For the `EquationSolver`, there is a convenience function that lets you copy and paste the equations from the puzzle and directly generate a clue list.
+
+In general, you create a `ClueList` by passing the initializer a list of clues.
 
     clue_list = ClueList(sequence_of_clues)
  
@@ -78,14 +91,15 @@ For the `EquationSolver`, there is a convenience function that lets you copy and
     
 There are a few reasons to subclass `ClueList`:
 
-* In most puzzles, the first digit of an answer cannot be zero.  In some puzzles, there may be further constraints.
+* In most puzzles, the first digit of an answer cannot be zero.  
+In some puzzles, there may be further constraints.
     * The user can override `is_zero_allowed(location)` if there are alternative constraints.
 The default implementation returns `True` when the location is not the starting location of any clue.
 
     * Some puzzles may have other constraints on digits.
 The user can override `get_allowed_regexp(location)` to indicate the allowable values. 
 The default implementation calls `is_zero_allowed(location)` above and returns
-either `"."` or `"[^0]"` on a `true` or `false` result, respectively.
+either `"."` or `"[^0]"`, respectively, on a `true` or `false` result, respectively.
 Any appropriate regexp that matches at most a single character is allowed.
 
 * `ClueList` is responsible for printing the grid once a solution has been found.
@@ -100,23 +114,29 @@ Among some examples for overriding `draw_grid` are:
 
 #### Verification of the grid.
 
-`ClueList` contains three very important verication functions:
+`ClueList` contains three very important verification functions:
 
-* `clue_list.verify_is_180_symmetric`: The grid should look the same if it is rotated 180°.  The method throws an assertion error if that is not the case.
+* `clue_list.verify_is_180_symmetric`: 
+The grid should look the same when it is rotated 180°.  
+The method throws an assertion error if that is not the case.
 
-* `clue_list.verify_is_four_fold_symmetric`: The grid should look the same if it is rotated either 90° or 180°.  The method throws an assertion error if that is not the case.
+* `clue_list.verify_is_four_fold_symmetric`: 
+The grid should look the same if it is rotated either 90° or 180°.  
+The method throws an assertion error if that is not the case.
 
-* `clue_list.verify_is_vertically_symmetric`: The grid should look the same in a mirror as it does normally.
+* `clue_list.verify_is_vertically_symmetric`: 
+The grid should look the same in a mirror as it does normally.
 
 When first creating a grid, it is highly recommended that you write:
 
     clue_list = ....
     clue_list.plot_board({})
-    clue_list.verify_is_180_symmetric() # or whichever symmetry is appropraite
+    # replace the next line with whatever symmetry is appropriate
+    clue_list.verify_is_180_symmetric() 
     
 It is extremely easy to make a mistake when describing the grid.
 Asking Python to show you a picture of the empty 
-board and to verify that it has the symmetry you expect will save you a lot of grief.
+board and to verify that it has the symmetry you expect is sure to save you a lot of grief.
 
 
 ## Solving crossword puzzles
@@ -133,18 +153,24 @@ The arguments indicate:
 * The clue list for the puzzle, 
 
 * The allowable values for the variables are 1..26 inclusive, and each value can be used at most once.  
-\[Note, the values in the list must be distinct.  See below if variable values can be repeated.]
+\[Note, the values in the list must be distinct.  
+See below if variable values can be repeated.]
 
-* Each equation must yield a distinct value.  If duplicate values are allowed, then add the keyword argument `allow_duplicates=True` to the argument list.
+* Each equation must yield a distinct value.  
+If duplicate values are allowed, then add the keyword argument `allow_duplicates=True` to the argument list.
 
 There are three methods you may want to override:
 
 * `check_solution()` is called when the solver has found a tentative solution.
-The default implementation simply returns `True`, but additional puzzle-specific verification can be performed hear.
+The default implementation simply returns `True`, but additional puzzle-specific verification can be performed here.
 
-* `show_solution()` is called after `check_solution()` returns `True`.  It prints out the values of the variables and draws a picture of the grid.  Users can augment or replace this behaviour.
+* `show_solution()` is called after `check_solution()` returns `True`.  
+It prints out the values of the variables and draws a picture of the grid.  
+Users can augment or replace this behaviour.
 
-* `get_letter_values()` is called to find all possible values to assign to letters, given previously existing  assignments.  You must override this if the puzzle uses something more complicated than each variable must get a distinct value from the list passed as the `item=` argument. See Magpie195 for an example.
+* `get_letter_values()` is called to find all possible values to assign to letters, given previously existing  assignments.  
+You must override this if the puzzle uses something more complicated than each variable must get a distinct value from the list passed as the `item=` argument. 
+See Magpie195 for an example.
 
 The solver is run by calling `solver.run()`.  More information about the steps the solver is performing can
 be seen by adding the arguemnt `debug=True`.
@@ -159,24 +185,32 @@ This solver first determines the order in which to solve the clues.  It repeated
 1. If there is a tie, which is the longest.
 1. If there is still a tie, a random one is chosen
 
-After each "best remaining" clue is chosen, each of the remaining clues needs to be re-evaluated for the next round; some of its letters may no longer be unassigned, and some of its squares may have intersected the just chosen clue.
+After each "best remaining" clue is chosen, each of the remaining clues needs to be re-evaluated for the next round; 
+some of its letters may no longer be unassigned, and some of its squares may intersect the just chosen clue.
 
 The solver performs a search through the clues in this calculated order.  
-As a result, when the solver next looks a clue, it has already precalculated which letters in the clue have already been assigned, which letters still need to have a value assigned to hem, and which letters of its answer have already been filled by previous answers.
+As a result, when the solver looks a clue, it has already precalculated 
+which letters in the clue have already been assigned, 
+which letters still need to have a value assigned to them, and 
+which digits of its answer have already been filled by previous answers.
 
 Given this order for solving the clues, the solver calls the following recursive algorithm, starting with n = 0
 
-1. If n is the the number of clues, we have a tentative solution.  Call `check_solution()`, and if it returns `True`, call `show_solution()` and return.
+1. If n is the the number of clues, we have a tentative solution.  
+Call `check_solution()`, and if it returns `True`, call `show_solution()` and return.
 
 1. Find the n-th clue in the order we are solving them, as determined above.
+
 1. Calculate a regular expression that matches legal values for this clue, taking into account 
-   -  squares filled by previously solved clues that intersect this one,
-   -  squares that can't contain 0 because they are the first digit of another clue, and 
+   - squares filled by previously solved clues that intersect this one,
+   - squares that can't contain 0 because they are the first digit of another clue, and 
    - other interesting facts determined by `get_allowed_regexp()`.
-1. Call `get_letter_values()` to determine all possible values that this clue's unknown variables can take. For each set of possible values for the variables:
+
+1. Call `get_letter_values()` to determine all possible values that this clue's unknown variables can take. 
+For each set of possible values for the variables:
     1. Evaluate the expression using the variables and their values.
     1. If the value of the expression is an illegal result, or if the value
-       doesn't match the regular expression, continue.
+       doesn't match the regular expression, skip these values and continue.
     1. If the value of the expression is a value we've already used and `not use_duplicates`
        then continue
     1. Add the current variables and values to the set of known value
@@ -196,28 +230,34 @@ The arguments indicate:
 
 * Each clue must have a distinct value.  If duplicate values are allowed, then add the keyword argument `allow_duplicates=True` to the argument list.
 
-There are three methods you may want to override:
 
-There are multiple ways of specifying constraints:
+There are two primary ways of specifying constraints:
 
 * When you create a `Clue` you specify a generator which shows the possible values that the clue can have with no other considerations.  For example "This clue is a square", "This clue is prime", "This clue is a multiple of 17" are all constraints that are specified in the generator.
 
 * Certain constraints indicate a relationship between two clues.
 These are added to the `ConstraintSolver`. 
 For example the following two lines force d3 to be a multiple of a1, and force d3 to be the product of d1 and d2.  
-Note that the arguments passed to the predicate are strings, and the predicate is responsible for converting them to integers, if necessary.
-The items in the initial tuple can either be a `Clue` or the name of a clue.
-The predicate must take as many arguments a there are items in the tuple; the arguments are bound, in order, to the values of the corresponding clue.
 
 
     solver.add_constraint(('a1', 'd3'), lambda x, y: int(y) % int(x) == 0)
     solver.add_constraint(('d1', 'd2', 'd3'),  
         lambda x, y, z: int(x) * int(y) == int(z))
+        
+Note that the arguments passed to the predicate are strings, and the predicate is responsible for converting them to integers, if necessary.
+The items in the initial tuple can either be a `Clue` or the name of a clue.
+The predicate must take as many arguments a there are items in the tuple; the arguments are bound, in order, to the values of the corresponding clue.
+
                 
+There are three methods you may want to override:
 
-* You can override `check_solution()`, which is called then the solver has found a tentative solution.  The default implementation just returns `True`, but you can perform additional puzzle-specific tests.  This is a good place to test conditions like: "This clue must be the some of all digits in the puzzle"
+* You can override `check_solution()`, which is called then the solver has found a tentative solution.  
+The default implementation just returns `True`, but you can perform additional puzzle-specific tests.  
+This is a good place to test conditions like: "This clue must be the some of all digits in the puzzle" that can't
+easily be tested otherwise.
 
-You may also want to override `show_solution()`, which is called when `check_solution()` returns true.  The default implementation draws a grid, but you can replace or augment this functionality.
+You may also want to override `show_solution()`, which is called when `check_solution()` returns true.  
+The default implementation draws a grid, but you can replace or augment this functionality.
 
 The solver is then run by calling `solver.run()`.  More information about the steps the solver is performing can be seen by adding the argument `debug=True`.
 
@@ -229,13 +269,18 @@ The solver is then run by calling `solver.run()`.  More information about the st
 It is rare, but legal to give a clue a generator of `None`.  This clue is completely
 ignored by the solver until it assigned a set of possible values by `post_clue_assignment_fixup`.
 
-In some rarer cases, it is necessary to delay the value of a clue until `check_solution()`.  For example, if a clue's value is listed as "the sum of all the digits in the puzzle" or "a seven-digit non-prime",  it's probably best to wait until `check_solution()` to see if a reasonable value has been put into the clue by crossing clues.
+In some rarer cases, it is necessary to delay the value of a clue until `check_solution()`.  
+For example, if a clue's value is listed as "the sum of all the digits in the puzzle" or "a seven-digit non-prime",  it's probably best to wait until `check_solution()` to see if a reasonable value has been put into the clue by crossing clues.
 
 ##### Subclassing `string`
 
-Sometimes, a clue value contains information beyond just its value.  The value must keep track of some particular fact about how it was generated, and this information is not easy to store into a table.  Python allows the user to subclass string.  See XXX for an example of how this is done.
+Sometimes, a clue value contains information beyond just its value.  
+For example, value must keep track of some particular fact about how it was generated, and other identical strings might have different information associated with them.
+Python allows the user to subclass string.  See XXX for an example of how this is done.
 
-Your generators should produce instances of your string subclass rather than integers or normal strings.  `SolveByLetter` will never produce new clue values on its own.  When `post_clue_assignment_fixup()` and `check_solution()` are called you can be assured that all
+Your generators should produce instances of your string subclass rather than integers or normal strings.  
+`ConstraintSolver` will never produce new clue values on its own.  
+When `check_solution()` and constraints are called you can be assured that all
 clue values, will be your subclass of string, and you can freely treat them as objects of that type.
 
 #### How it works
@@ -244,18 +289,30 @@ For each clue, the generator is called to calculate the set of all possible answ
 
 The following recursive algorithm is then followed.  We have as input a dictionary of clues, and for each clue a set of possible values that the clue can take.
 
-1. If the dictionary is empty, we are done.  Call `check_solution()`, and if that returns `true`, call `show_solution()`. Return.
-1. Find the clue that has the smallest number of possible values.  If there is a tie, use the clue that has the longest length.  If there is still a tie, pick one at random.  
+1. If the dictionary is empty, we are done. 
+Call `check_solution()`, and if that returns `true`, call `show_solution()`. 
+Return.
+
+1. Find the clue that has the smallest number of possible values.  
+If there is a tie, use the clue that has the longest length.  
+If there is still a tie, pick one at random.  
+
 1. If the number of possible values for this clue is zero, then return.
+
 1. For each possible value that this clue can take (the "current value"), do the following:
-   1. Call `post_clue_assignment_fixup`.  Continue if this returns `false`.
+   1. If this current value is a duplicate, continue.
+   
+   1. Look at all constraints associated with this clue.
+   For any constraint that has all but one clue assigned a value, restrict that clue
+   to only have values that satisfy the constraint.  Continue to the next "current value"
+   if some constraint yields the empty set.
+   
    1. Create a dictionary that is a copy of the current dictionary except:
       * The current clue is removed as a key
-      * Unless duplicate entries are allowed, remove the current value from all the other sets
       * If the current clue intersects with another clue, remove all entries that clash at the
         intersection.
+        
    1. Recursively call this function 
-
 
 # Sample code
 
@@ -304,6 +361,7 @@ The following code is then all you need to solve this puzzle:
 
 ## EquationSolver
 
+
 ### Listener 4569
 
 The grid is a cube, and there are "through" clues as well as clues that go across or down a single layer.  In addition, there are rules about a clue going off the edge of its own layer.  
@@ -314,10 +372,15 @@ To solve this, we model the 4x4x4 cube as a 16x4 rectangle, and subclass `Clue` 
 we print the grid a second time with letters replacing the digits in the grid.
 
 ### Magpie 195
-A straightforward set of equations that we could solve just by copy and paste.
+A straightforward set of equations that we could solve by copy and paste.
 
 ### Magpie 197
-A straightforward `EquationSolver` with no complications.
+A straightforward `EquationSolver` that we could solve by copy and paste.
+
+### Magpie 201
+A straightforward `EquationSolver` that we could solve by copy and paste.
+However we override `draw_grid` once we learn that all 3s, 7s, and 8s need to be shaded.
+
 
 ## ConstraintSolver
 
@@ -327,7 +390,8 @@ Each clue is labelled by a letter.  Each clue has a number and an equation assoc
 
 The solver is set up as a `ConstraintSolver`, where the generator lists all numbers that when are the number of digits specified by the clue and then when written out have the indicated number of letters.  
 
-The `post_clue_assignment_fixup` works cleverly.  Each time a clue (and thus a letter) gets a value, it looks through all the equations of all the clues, and finds those equations for which this letter is the unknown.  For each of those equations, it evaluates the value, and then uses `self.check_clue_filter` on the corresponding clue to ensure that only a correct value is in that slot.
+Each clue also includes an equation, which gets turned into one or more evaluators.  We use these evaluators to create the constraints in a somewhat 
+unusual way.
 
 ### Listener 4555
 
@@ -352,6 +416,16 @@ A complicated ConstraintSolver, with lots of work in the post fixup because lots
 ### Magpie 196
 A straightfoward `ConstraintSolver`, except the generators had to be adjusted for non-base-10
 
+### Magpie 198
+A straighforward `ConstraintSolver`, except that every across clue has a constraint with every other across clue, and every down clue has a constraint with every other down clue.  This lets the puzzle be solved quickly!
+
+### Magpie 199
+A `ConstraintSolver` in which the hard part was determining the initial possible values for each clue.  Much math was involved, but once we figured out the initial values, the solution was straightforward.
+
+### Magpie 200
+A `ConstraintSolver` in which we had to subtype `string`.  Each answer must be unique in the way it was produced.  Hence each clue has a constraint against every other clue.
+
+
 ## Other puzzles.
 
 ### Magpie 149
@@ -361,7 +435,6 @@ One of a kind.  Worth describing?
 ### Magpie 194
 An amazing extremely hard puzzle that didn't fit in with us.  Lots of logic.  
 
-## Magpie 198
 
 
 

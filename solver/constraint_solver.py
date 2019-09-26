@@ -1,4 +1,4 @@
-import functools
+import itertools
 import random
 from collections import defaultdict
 from datetime import datetime
@@ -22,11 +22,13 @@ class ConstraintSolver(BaseSolver):
     debug: bool
     constraints: Dict[Clue, List[Callable[..., bool]]]
     constraint_names: Dict[Callable[..., bool], str]
+    all_intersections: Dict[Clue, Sequence[Tuple[Clue, Sequence[Intersection]]]]
 
     def __init__(self, clue_list: ClueList, **kwargs: Any) -> None:
         super().__init__(clue_list, **kwargs)
         self.constraints = defaultdict(list)
         self.constraint_names = {}
+        self.all_intersections = self.__get_all_intersections()
 
     def add_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., bool],
                        *, name: Optional[str] = None) -> None:
@@ -51,7 +53,7 @@ class ConstraintSolver(BaseSolver):
         self.known_clues = {}
         self.debug = debug
         time1 = datetime.now()
-        initial_unknown_clues = {clue: self.__get_all_possible_values(clue)
+        initial_unknown_clues = {clue: self.__get_initial_values_for_clue(clue)
                                  for clue in self.clue_list if clue.generator}
         time2 = datetime.now()
         self.__solve(initial_unknown_clues)
@@ -59,7 +61,6 @@ class ConstraintSolver(BaseSolver):
         if show_time:
             print(f'Solutions {self.solution_count}; Steps: {self.step_count}; '
                   f'Setup: {time2 - time1}; Execution: {time3 - time2}; Total: {time3 - time1}')
-            ConstraintSolver.__show_get_insertions_cache()
         return self.solution_count
 
     def __solve(self, unknown_clues: Dict[Clue, FrozenSet[ClueValue]]) -> None:
@@ -96,8 +97,8 @@ class ConstraintSolver(BaseSolver):
                 if not all(constraint(next_unknown_clues) for constraint in constraints):
                     continue
 
-                # Look at all other clues intersecting "clue", and their intersections.
-                for clue2, intersections in self.__get_all_intersections(clue):
+                # Look at all the other clues intersecting "clue", and their intersections.
+                for clue2, intersections in self.all_intersections[clue]:
                     if clue2 in next_unknown_clues:
                         values2: Collection[ClueValue] = next_unknown_clues[clue2]
                         values2_size = len(values2)
@@ -117,7 +118,11 @@ class ConstraintSolver(BaseSolver):
         finally:
             self.known_clues.pop(clue, None)
 
-    def __get_all_possible_values(self, clue: Clue) -> FrozenSet[ClueValue]:
+    def __get_initial_values_for_clue(self, clue: Clue) -> FrozenSet[ClueValue]:
+        """
+        Generates all the possible values for the clue, but tosses out those that have a zero in a bad location,
+        or otherwise don't find the expected pattern.
+        """
         # Generates all the possible values for the clue, but tosses out those that have a zero in a bad location.
         pattern_generator = Intersection.make_pattern_generator(clue, (), self.clue_list)
         pattern = pattern_generator({})
@@ -126,22 +131,23 @@ class ConstraintSolver(BaseSolver):
         result = frozenset(x for x in string_values if pattern.match(x))
         return cast(FrozenSet[ClueValue], result)
 
-    @functools.lru_cache(maxsize=None)
-    def __get_all_intersections(self, this_clue: Clue) -> Sequence[Tuple[Clue, Sequence[Intersection]]]:
-        clues_and_intersections = [(other_clue, Intersection.get_intersections(this_clue, other_clue))
-                                   for other_clue in self.clue_list if other_clue != this_clue]
-        # Only keep those pairs that actually have intersections
-        return [(clue, intersections) for (clue, intersections) in clues_and_intersections if intersections]
-
-    @staticmethod
-    def __show_get_insertions_cache() -> None:
-        cache_info = ConstraintSolver.__get_all_intersections.cache_info()
-        print(cache_info)
+    def __get_all_intersections(self) -> Dict[Clue, Sequence[Tuple[Clue, Sequence[Intersection]]]]:
+        """
+        For each clue, returns every other clue that it intersects, and the list of those intersections
+        """
+        result = {clue: [] for clue in self.clue_list}
+        for clue, clue2 in itertools.permutations(self.clue_list, 2):
+            intersections = Intersection.get_intersections(clue, clue2)
+            if intersections:
+                result[clue].append((clue2, intersections))
+        return result
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
+        """Overridden by subclasses that need to confirm a solution."""
         return True
 
     def show_solution(self, known_clues: KnownClueDict) -> None:
+        """Overridden by subclasses that want to do more than just show a plot of the board."""
         self.clue_list.plot_board(known_clues)
 
     def __check_2_clue_constraint(
@@ -149,11 +155,11 @@ class ConstraintSolver(BaseSolver):
             unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
             clue_filter: Callable[[ClueValue, ClueValue], bool]) -> bool:
         """
-        Intended to be called from an override of post_clue_assignment_fixup.
+        Used by constraints with two variables.
         Ensures that clue1 and clue2 satisfy a certain relationship.
         If the value of both clues is already known, it will make sure that the values pass the relationship.
-        If the value of only one clue is known, the will remove all possible values of the unknown clue
-        that don't pass the relationship.
+        If the value of only one clue is known, this will remove all values of the other clue that don't pass the
+        relationship.
         """
         value1, value2 = self.known_clues.get(clue1, None), self.known_clues.get(clue2, None)
         unknown_values_count = (value1 is None) + (value2 is None)
@@ -178,11 +184,11 @@ class ConstraintSolver(BaseSolver):
                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
                                   clue_filter: Callable[[VarArg(ClueValue)], bool]) -> bool:
         """
-        Intended to be called from an override of post_clue_assignment_fixup.
-        Ensures that the values of the clues satisfy a certain relationship.
-        If the values of all clues is already known, it will make sure that the values pass the relationship.
-        If the value of all but one clue is known, the will remove all possible values of the unknown clue
-        that don't pass the relationship.
+        Used by constraints with more than two variables.
+        Ensures that the clues satisfy a certain relationship.
+        If the value of all clues is already known, it will make sure that the values pass the relationship.
+        If the value of all but one is known, this will remove all values of the remaining unknown clue that don't
+        pass the relationship.
         """
         values = [self.known_clues.get(clue, None) for clue in clues]
         unknown_values_count = values.count(None)
