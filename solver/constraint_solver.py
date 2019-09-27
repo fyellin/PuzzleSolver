@@ -135,12 +135,13 @@ class ConstraintSolver(BaseSolver):
         """
         For each clue, returns every other clue that it intersects, and the list of those intersections
         """
-        result = {clue: [] for clue in self.clue_list}
+        result: Dict[Clue, List[Tuple[Clue, Sequence[Intersection]]]] = {clue: [] for clue in self.clue_list}
         for clue, clue2 in itertools.permutations(self.clue_list, 2):
             intersections = Intersection.get_intersections(clue, clue2)
             if intersections:
                 result[clue].append((clue2, intersections))
-        return result
+        # mypy isn't happy returning a List when I've declared "sequence"
+        return cast(Dict[Clue, Sequence[Tuple[Clue, Sequence[Intersection]]]], result)
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         """Overridden by subclasses that need to confirm a solution."""

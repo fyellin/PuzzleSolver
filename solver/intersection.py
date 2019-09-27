@@ -35,8 +35,8 @@ class Intersection(NamedTuple):
     @staticmethod
     def get_intersections(this: 'Clue', other: 'Clue') -> Sequence['Intersection']:
         clashes = this.location_set.intersection(other.location_set)
-        return [Intersection(this, this.location_list.index(clash), other, other.location_list.index(clash))
-                for clash in clashes]
+        return tuple(Intersection(this, this.location_list.index(clash), other, other.location_list.index(clash))
+                     for clash in clashes)
 
     def values_match(self, this_value: ClueValue, other_value: ClueValue) -> bool:
         return this_value[self.this_index] == other_value[self.other_index]

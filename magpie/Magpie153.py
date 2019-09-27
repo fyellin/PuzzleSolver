@@ -193,6 +193,7 @@ class MySolver(ConstraintSolver):
     def __init__(self, cl: ClueList):
         super().__init__(cl)
         for (clue1, clue2) in (
+            ## clue1 is a divisor of clue2
                 ('8a',  '9a'),
                 ('16a', '14a'),
                 ('20a', '9a'),
