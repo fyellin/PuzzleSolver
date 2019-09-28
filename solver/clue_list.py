@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import re
 import typing
@@ -19,7 +21,7 @@ class ClueList:
     __intersections: FrozenSet[Location]
 
     def __init__(self, clues: Sequence[Clue]):
-        all_locations: typing.Counter[Location] = Counter(location for clue in clues for location in clue.locations())
+        all_locations: typing.Counter[Location] = Counter(location for clue in clues for location in clue.locations)
         self.__name_to_clue = OrderedDict((clue.name, clue) for clue in clues)
         self.__max_row = 1 + max(row for (row, _) in all_locations)
         self.__max_column = 1 + max(column for (_, column) in all_locations)
@@ -35,7 +37,7 @@ class ClueList:
                 if item == 'X']
 
     @classmethod
-    def create_from_text(cls, across: str, down: str, locations: Sequence[Tuple[int, int]]) -> 'ClueList':
+    def create_from_text(cls, across: str, down: str, locations: Sequence[Tuple[int, int]]) -> ClueList:
         result: List[Clue] = []
         for lines, is_across, letter in ((across, True, 'a'), (down, False, 'd')):
             for line in lines.splitlines():
@@ -49,14 +51,6 @@ class ClueList:
                 clue = Clue(f'{number}{letter}', is_across, location, int(match.group(3)), expression=match.group(2))
                 result.append(clue)
         return cls(result)
-
-    def get_board(self, clue_values: Dict[Clue, ClueValue]) -> List[List[str]]:
-        """Print the board, based on the values for each of the clues"""
-        board = [['' for _ in range(self.__max_column)] for _ in range(self.__max_row)]
-        for clue, clue_value in clue_values.items():
-            for (row, column), letter in zip(clue.locations(), clue_value):
-                board[row][column] = letter
-        return board
 
     def clue_named(self, name: str) -> Clue:
         """Returns the new with the specified name"""
@@ -150,9 +144,9 @@ class ClueList:
                 location_to_clue_number[clue.base_location] = f'{old}, {clue.name}' if old else clue.name
 
             # These squares are filled.
-            clued_locations.update(clue.locations())
+            clued_locations.update(clue.locations)
             if clue in clue_values:
-                for location, value in zip(clue.locations(), clue_values[clue]):
+                for location, value in zip(clue.locations, clue_values[clue]):
                     if location in location_to_entry:
                         assert value == location_to_entry[location]
                     else:

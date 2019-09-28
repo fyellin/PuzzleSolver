@@ -173,23 +173,24 @@ class MySolver(ConstraintSolver):
         self.add_constraint(('A12', 'A13', 'A14'), lambda a12, a13, a14: bool(break_row_into_primes(a12 + a13 + a14)))
 
     def check_solution(self, known_clues: Dict[Clue, ClueValue]) -> bool:
-        board = self.clue_list.get_board(known_clues)
+        board = {location: value for clue, clue_value in known_clues.items()
+                 for location, value in zip(clue.locations, clue_value)}
 
         # A18 must be the sum of the digits in the grid
         answer_a18 = int(known_clues[self.clue_list.clue_named("A18")])
-        total = sum(int(board[i][j]) for i in range(1, 8) for j in range(1, 8))
+        total = sum(int(board[i, j]) for i in range(1, 8) for j in range(1, 8))
         if total != answer_a18:
             return False
 
         # D3 must not be prime
-        d3_locations = self.clue_list.clue_named("D3").locations()
-        d3_values = [board[i][j] for i, j in d3_locations]
+        d3 = self.clue_list.clue_named("D3")
+        d3_values = [board[location] for location in d3.locations]
         answer_d3 = int(''.join(d3_values))
 
         if all(answer_d3 % prime != 0 for prime in primes):
             return False
 
-        rows = [''.join(str(board[row][column]) for column in range(1, 8)) for row in range(1, 8)]
+        rows = [''.join(str(board[row, column]) for column in range(1, 8)) for row in range(1, 8)]
         rows[5] = rows[5][0:-1]
         row_breaks = tuple(break_row_into_primes(row) for row in rows)
         for row_break in itertools.product(*row_breaks):

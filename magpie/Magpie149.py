@@ -150,7 +150,7 @@ class Magpie149Solver(BaseSolver):
         EquationSolver(self.clue_list).show_solution(known_clues, known_letters)
 
     def make_runtime_pattern(self, clue: Clue, known_clues: Dict[Clue, ClueValue]) -> Pattern[str]:
-        pattern_list = [self.clue_list.get_allowed_regexp(location) for location in clue.locations()]
+        pattern_list = [self.clue_list.get_allowed_regexp(location) for location in clue.locations]
         pattern_list.append('$')
         for other_clue, other_clue_value in known_clues.items():
             intersections = Intersection.get_intersections(clue, other_clue)

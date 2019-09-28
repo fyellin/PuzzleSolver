@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from typing import NamedTuple, Sequence, Callable, Dict, Pattern, List, Optional
 
@@ -12,39 +14,23 @@ class Intersection(NamedTuple):
     other_clue: Clue
     other_index: int
 
-    @staticmethod
-    def get_intersections_fast(this: Clue, other: Clue) -> Sequence['Intersection']:
-        """If this clue and the other clue have an intersection, return it.  Otherwise return None."""
-        if this.is_across == other.is_across:
-            return ()
-        this_row, this_column = this.base_location
-        other_row, other_column = other.base_location
-        # if "this" is an across clue, the intersection is at (this_row, other_column).
-        # if "this" is a down clue, the intersection is at (this_column, other_row).
-        row_delta, column_delta = other_row - this_row, other_column - this_column
-        my_index, other_index = (column_delta, -row_delta) if this.is_across else (row_delta, -column_delta)
-        # if both indices are within bounds, we have an intersection.
-        if 0 <= my_index < this.length and 0 <= other_index < other.length:
-            return Intersection(this, my_index, other, other_index),
-        return ()
-
     def get_location(self) -> Location:
         """Returns the location of this intersection"""
-        return self.this_clue.location_list[self.this_index]
+        return self.this_clue.locations[self.this_index]
 
     @staticmethod
-    def get_intersections(this: 'Clue', other: 'Clue') -> Sequence['Intersection']:
+    def get_intersections(this: Clue, other: Clue) -> Sequence[Intersection]:
         clashes = this.location_set.intersection(other.location_set)
-        return tuple(Intersection(this, this.location_list.index(clash), other, other.location_list.index(clash))
+        return tuple(Intersection(this, this.locations.index(clash), other, other.locations.index(clash))
                      for clash in clashes)
 
     def values_match(self, this_value: ClueValue, other_value: ClueValue) -> bool:
         return this_value[self.this_index] == other_value[self.other_index]
 
     @staticmethod
-    def make_pattern_generator(clue: Clue, intersections: Sequence['Intersection'], clue_list: ClueList) -> \
+    def make_pattern_generator(clue: Clue, intersections: Sequence[Intersection], clue_list: ClueList) -> \
             Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
-        pattern_list = [clue_list.get_allowed_regexp(location) for location in clue.locations()]
+        pattern_list = [clue_list.get_allowed_regexp(location) for location in clue.locations]
         pattern_list.append('$')
 
         if not intersections:

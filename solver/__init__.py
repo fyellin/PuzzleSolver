@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .base_solver import BaseSolver
 from .clue import Clue, ClueValueGenerator
 from .clue_list import ClueList

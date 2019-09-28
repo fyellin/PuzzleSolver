@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import itertools
 import math
 from typing import Iterable, Callable, Tuple, Iterator, List, Union
 
-from solver.clue import Clue
+from .clue import Clue
 
 """A collection of generators to use in various other puzzles."""
 BASE = 10
 
-ClueValueGenerator = Callable[['Clue'], Iterable[Union[str, int]]]
+ClueValueGenerator = Callable[[Clue], Iterable[Union[str, int]]]
 
 
 def allvalues(clue: Clue) -> Iterable[int]:

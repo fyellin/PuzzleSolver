@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import ast
 import copy
 import textwrap
@@ -19,11 +21,11 @@ class Evaluator (NamedTuple):
     vars: Sequence[Letter]
 
     @classmethod
-    def make(cls, expression: str) -> 'Evaluator':
+    def make(cls, expression: str) -> Evaluator:
         return cls.make1(expression)
 
     @classmethod
-    def make1(cls, expression: str) -> 'Evaluator':
+    def make1(cls, expression: str) -> Evaluator:
         expression_ast: Any = ast.parse(expression.strip(), mode='eval')
         variables = sorted({Letter(node.id) for node in ast.walk(expression_ast) if isinstance(node, ast.Name)})
         code = f"""
@@ -38,7 +40,7 @@ class Evaluator (NamedTuple):
         return Evaluator(namespace['result'], variables)
 
     @classmethod
-    def make2(cls, expression: str) -> 'Evaluator':
+    def make2(cls, expression: str) -> Evaluator:
         expression_ast: Any = ast.parse(expression.strip(), mode='eval')
         variables = sorted({Letter(node.id) for node in ast.walk(expression_ast) if isinstance(node, ast.Name)})
 

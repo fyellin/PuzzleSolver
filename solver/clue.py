@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from typing import Iterable, Optional, Any, FrozenSet, Sequence, Callable, Union
 
@@ -5,7 +7,6 @@ from .clue_types import Location
 from .evaluator import Evaluator
 
 ClueValueGenerator = Callable[['Clue'], Iterable[Union[str, int]]]
-
 
 class Clue:
     name: str
@@ -15,7 +16,7 @@ class Clue:
     evaluators: Sequence[Evaluator]
     generator: Optional[ClueValueGenerator]
     context: Any
-    location_list: Sequence[Location]
+    locations: Sequence[Location]
     location_set:  FrozenSet[Location]
 
     def __init__(self, name: str, is_across: bool, base_location: Location, length: int, *,
@@ -27,29 +28,29 @@ class Clue:
         self.base_location = base_location
         self.length = length
         if expression:
-            python_pieces = Clue.convert_expression_to_python(expression)
+            python_pieces = Clue.__convert_expression_to_python(expression)
             self.evaluators = tuple(Evaluator.make(piece) for piece in python_pieces)
         else:
             self.evaluators = ()
         self.generator = generator
         self.context = context
-        self.location_list = tuple(self.generate_location_list())
-        self.location_set = frozenset(self.location_list)
+        self.locations = tuple(self.generate_location_list())
+        assert self.locations[0] == self.base_location
+        assert len(self.locations) == self.length
+        self.location_set = frozenset(self.locations)
 
     def generate_location_list(self) -> Iterable[Location]:
+        """Generates the list of locations for this clue.  Subclasses can override this."""
         row, column = self.base_location
         column_delta, row_delta = (1, 0) if self.is_across else (0, 1)
         for i in range(self.length):
             yield row + i * row_delta, column + i * column_delta
 
-    def locations(self) -> Sequence[Location]:
-        return self.location_list
-
     def location(self, i: int) -> Location:
-        return self.location_list[i]
+        return self.locations[i]
 
     @staticmethod
-    def convert_expression_to_python(expression: str) -> Sequence[str]:
+    def __convert_expression_to_python(expression: str) -> Sequence[str]:
         expression = expression.replace("–", "-")   # magpie use a strange minus sign
         expression = expression.replace('−', '-')   # Listener uses a different strange minus sign
         expression = expression.replace("^", "**")  # Replace exponentiation with proper one
