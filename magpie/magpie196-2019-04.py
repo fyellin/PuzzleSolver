@@ -3,7 +3,7 @@ A puzzle that works in bases other than 10.  We modify the generators to produce
 in a different base.
 """
 
-from solver import Clue, ClueValueGenerator, ClueList, Location, ConstraintSolver
+from solver import Clue, ClueValueGenerator, Location, ConstraintSolver
 from solver import generators
 from solver.generators import triangular, lucas, fibonacci, square, cube, prime, palindrome
 
@@ -36,9 +36,8 @@ CLUES = (
 
 
 def run() -> None:
-    clue_list = ClueList(CLUES)
-    clue_list.verify_is_180_symmetric()
-    solver = ConstraintSolver(clue_list)
+    solver = ConstraintSolver(CLUES)
+    solver.verify_is_180_symmetric()
 
     for generators.BASE in range(2, 65):
         print(f'Running in base {generators.BASE}')

@@ -13,7 +13,7 @@ from datetime import datetime
 from operator import itemgetter
 from typing import Dict, Sequence, Tuple, List, Set, Iterable, Any
 
-from solver import Clue, ClueList, ClueValue, Letter, ConstraintSolver
+from solver import Clue, ClueValue, Letter, ConstraintSolver
 from solver import generators
 
 CLUE_DATA = """
@@ -49,7 +49,7 @@ CLUE_DATA = """
 30 (L – S)DDDDD"""
 
 
-def make_clue_list(info: str) -> ClueList:
+def make_clue_list(info: str) -> Sequence[Clue]:
     clues = []
     for line in info.splitlines():
         if not line:
@@ -58,7 +58,7 @@ def make_clue_list(info: str) -> ClueList:
         assert match
         clue = Clue(match.group(1), True, (1, 1), 1, expression=match.group(2))
         clues.append(clue)
-    return ClueList(clues)
+    return clues
 
 
 primes = list(itertools.takewhile(lambda x: x * x < 10_000_000, generators.prime_generator()))
@@ -88,14 +88,14 @@ def is_legal_value(clue_value: ClueValue) -> bool:
 
 
 class Magpie146Solver:
-    clue_list: ClueList
+    clue_list: Sequence[Clue]
     count_total: int
     known_letters: Dict[Letter, int]
     known_clues: Dict[Clue, ClueValue]
     solving_order: Sequence[Any]
     debug: bool
 
-    def __init__(self, clue_list: ClueList) -> None:
+    def __init__(self, clue_list: Sequence[Clue]) -> None:
         self.clue_list = clue_list
 
     def solve(self, *, show_time: bool = True, debug: bool = False) -> None:
@@ -214,8 +214,7 @@ def run2(entries: Sequence[ClueValue]) -> None:
             q, r = divmod(xy - 11, 10)
             clue = Clue(f'{xy}{suffix}', is_across, (q + 1, r + 1), length, generator=generator)
             clues.append(clue)
-    clue_list = ClueList(clues)
-    solver = ConstraintSolver(clue_list)
+    solver = ConstraintSolver(clues)
     solver.solve()
 
 

@@ -8,7 +8,6 @@ from mypy_extensions import VarArg
 
 from .base_solver import BaseSolver
 from .clue import Clue, ClueValueGenerator
-from .clue_list import ClueList
 from .clue_types import ClueValue
 from .intersection import Intersection
 
@@ -24,7 +23,7 @@ class ConstraintSolver(BaseSolver):
     constraint_names: Dict[Callable[..., bool], str]
     all_intersections: Dict[Clue, Sequence[Tuple[Clue, Sequence[Intersection]]]]
 
-    def __init__(self, clue_list: ClueList, **kwargs: Any) -> None:
+    def __init__(self, clue_list: Sequence[Clue], **kwargs: Any) -> None:
         super().__init__(clue_list, **kwargs)
         self.constraints = defaultdict(list)
         self.constraint_names = {}
@@ -32,7 +31,7 @@ class ConstraintSolver(BaseSolver):
 
     def add_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., bool],
                        *, name: Optional[str] = None) -> None:
-        actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_list.clue_named(clue) for clue in clues)
+        actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue) for clue in clues)
         if len(actual_clues) == 2:
             clue1, clue2 = actual_clues
 
@@ -54,7 +53,7 @@ class ConstraintSolver(BaseSolver):
         self.debug = debug
         time1 = datetime.now()
         initial_unknown_clues = {clue: self.__get_initial_values_for_clue(clue)
-                                 for clue in self.clue_list if clue.generator}
+                                 for clue in self._clue_list if clue.generator}
         time2 = datetime.now()
         self.__solve(initial_unknown_clues)
         time3 = datetime.now()
@@ -82,7 +81,7 @@ class ConstraintSolver(BaseSolver):
         try:
             self.step_count += len(values)
             for i, value in enumerate(sorted(values)):
-                is_duplicate = not self.allow_duplicates and value in seen_values
+                is_duplicate = not self._allow_duplicates and value in seen_values
                 if self.debug:
                     print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: {value} --> '
                           f'{"dup" if is_duplicate else ""}')
@@ -124,7 +123,7 @@ class ConstraintSolver(BaseSolver):
         or otherwise don't find the expected pattern.
         """
         # Generates all the possible values for the clue, but tosses out those that have a zero in a bad location.
-        pattern_generator = Intersection.make_pattern_generator(clue, (), self.clue_list)
+        pattern_generator = Intersection.make_pattern_generator(clue, (), self)
         pattern = pattern_generator({})
         clue_generator = cast(ClueValueGenerator, clue.generator)  # we know clue_generator isn't None
         string_values = ((str(x) if isinstance(x, int) else x) for x in clue_generator(clue))
@@ -135,8 +134,8 @@ class ConstraintSolver(BaseSolver):
         """
         For each clue, returns every other clue that it intersects, and the list of those intersections
         """
-        result: Dict[Clue, List[Tuple[Clue, Sequence[Intersection]]]] = {clue: [] for clue in self.clue_list}
-        for clue, clue2 in itertools.permutations(self.clue_list, 2):
+        result: Dict[Clue, List[Tuple[Clue, Sequence[Intersection]]]] = {clue: [] for clue in self._clue_list}
+        for clue, clue2 in itertools.permutations(self._clue_list, 2):
             intersections = Intersection.get_intersections(clue, clue2)
             if intersections:
                 result[clue].append((clue2, intersections))
@@ -149,7 +148,7 @@ class ConstraintSolver(BaseSolver):
 
     def show_solution(self, known_clues: KnownClueDict) -> None:
         """Overridden by subclasses that want to do more than just show a plot of the board."""
-        self.clue_list.plot_board(known_clues)
+        self.plot_board(known_clues)
 
     def __check_2_clue_constraint(
             self, clue1: Clue, clue2: Clue,

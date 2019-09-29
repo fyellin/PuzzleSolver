@@ -3,8 +3,8 @@ from __future__ import annotations
 import re
 from typing import NamedTuple, Sequence, Callable, Dict, Pattern, List, Optional
 
+from .base_solver import BaseSolver
 from .clue import Clue
-from .clue_list import ClueList
 from .clue_types import Location, ClueValue
 
 
@@ -28,9 +28,9 @@ class Intersection(NamedTuple):
         return this_value[self.this_index] == other_value[self.other_index]
 
     @staticmethod
-    def make_pattern_generator(clue: Clue, intersections: Sequence[Intersection], clue_list: ClueList) -> \
+    def make_pattern_generator(clue: Clue, intersections: Sequence[Intersection], solver: BaseSolver) -> \
             Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
-        pattern_list = [clue_list.get_allowed_regexp(location) for location in clue.locations]
+        pattern_list = [solver.get_allowed_regexp(location) for location in clue.locations]
         pattern_list.append('$')
 
         if not intersections:

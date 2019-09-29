@@ -1,6 +1,6 @@
-from typing import Dict, Set, Any
+from typing import Dict, Set, Any, Sequence
 
-from solver import ClueList, Location, EquationSolver
+from solver import Clue, Clues, Location, EquationSolver
 
 ACROSS = """
 1 JE(RK + S) (4)
@@ -61,7 +61,7 @@ X...X..X...
 """
 
 
-class MyClueList(ClueList):
+class MySolver(EquationSolver):
     def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
                   location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
                   top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
@@ -72,15 +72,15 @@ class MyClueList(ClueList):
                           top_bars, left_bars, **more_args)
 
 
-def create_clue_list() -> ClueList:
-    locations = ClueList.get_locations_from_grid(GRID)
-    return MyClueList.create_from_text(ACROSS, DOWN, locations)
+def create_clue_list() -> Sequence[Clue]:
+    locations = Clues.get_locations_from_grid(GRID)
+    return Clues.create_from_text(ACROSS, DOWN, locations)
 
 
 def run() -> None:
     clue_list = create_clue_list()
-    clue_list.verify_is_180_symmetric()
-    solver = EquationSolver(clue_list, items=list(range(1, 27)))
+    solver = MySolver(clue_list, items=list(range(1, 27)))
+    solver.verify_is_180_symmetric()
     solver.solve(debug=False)
 
 

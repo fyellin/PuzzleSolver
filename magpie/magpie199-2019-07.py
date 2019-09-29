@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 
-from solver import Clue, ClueValueGenerator, ClueList, ClueValue, ConstraintSolver
+from solver import Clue, ClueValueGenerator, ClueValue, ConstraintSolver
 
 PDF_FILE_NAME = '/tmp/magpie199.pdf'
 
@@ -152,7 +152,7 @@ DOWNS = (('a', 17), ('b', 90), ('c', 85), ('d', 71), ('e', 27),
          ('h', 140), ('i', 63), ('j', 44), ('k', 99), ('l', 77))
 
 
-def make_clue_list(clue_map: ClueMap) -> ClueList:
+def make_clue_list(clue_map: ClueMap) -> Sequence[Clue]:
     def generator(clue_value: int) -> ClueValueGenerator:
         def result(_: Clue) -> Iterable[str]:
             values_list = [v for (v, _) in clue_map[clue_value]]
@@ -169,22 +169,21 @@ def make_clue_list(clue_map: ClueMap) -> ClueList:
         clues.append(Clue(letter.upper(), True, location, 5, context=value, generator=generator(value)))
     for (letter, value), location in zip(DOWNS, itertools.product((1, 5), (1, 3, 5, 7, 9))):
         clues.append(Clue(letter, False, location, 5, context=value, generator=generator(value)))
-    clue_list = ClueList(clues)
-    return clue_list
+    return clues
 
 
 class MySolver(ConstraintSolver):
     clue_map: ClueMap
 
-    def __init__(self, clue_list: ClueList, clue_map: ClueMap):
+    def __init__(self, clue_list: Sequence[Clue], clue_map: ClueMap):
         super().__init__(clue_list)
         self.clue_map = clue_map
 
     def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
-        all_clues = collections.deque(self.clue_list)
+        all_clues = collections.deque(self._clue_list)
         with PdfPages(PDF_FILE_NAME) as pdf:
             figure, axis = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
-            self.clue_list.plot_board(known_clues, axes=axis)
+            self.plot_board(known_clues, axes=axis)
             pdf.savefig()
             plt.close()
 
@@ -217,8 +216,8 @@ def get_dumped_map() -> ClueMap:
 def run(clue_map: Optional[ClueMap] = None) -> None:
     clue_map = clue_map or get_dumped_map()
     clue_list = make_clue_list(clue_map)
-    clue_list.verify_is_four_fold_symmetric()
     solver = MySolver(clue_list, clue_map)
+    solver.verify_is_four_fold_symmetric()
     solver.solve(debug=False)
 
 

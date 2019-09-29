@@ -7,7 +7,7 @@ import re
 from collections import defaultdict
 from typing import Iterator, Mapping, Sequence, List
 
-from solver import Clue, ClueList, ConstraintSolver
+from solver import Clue, ConstraintSolver
 from solver import generators
 
 
@@ -107,10 +107,9 @@ DOWN = """
 
 
 def run() -> None:
-    clues = make_clue_list(GRID, ACROSS, DOWN)
-    clue_list = ClueList(clues)
-    clue_list.verify_is_180_symmetric()
+    clue_list = make_clue_list(GRID, ACROSS, DOWN)
     solver = ConstraintSolver(clue_list)
+    solver.verify_is_180_symmetric()
     solver.solve()
 
 

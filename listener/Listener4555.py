@@ -4,9 +4,9 @@ Painful, but relatively straightforward.
 
 import functools
 import itertools
-from typing import Callable, Iterable, Optional, Dict, List, Union
+from typing import Callable, Iterable, Optional, Dict, List, Union, Sequence
 
-from solver import Clue, ClueList, ClueValue, ClueValueGenerator
+from solver import Clue, ClueValue, ClueValueGenerator
 from solver import ConstraintSolver, Location
 from solver import generators
 
@@ -165,25 +165,33 @@ CLUES = (
 
 
 class MySolver(ConstraintSolver):
-    def __init__(self, clue_list: ClueList):
+    def __init__(self, clue_list: Sequence[Clue]):
         super().__init__(clue_list)
         self.add_constraint(('A12', 'D1'), lambda a12, d1: int(d1) % int(a12) == 0)
         self.add_constraint(('A9', 'D7'), lambda a9, d7: int(d7) == int(a9) ** 2)
         self.add_constraint(('A8', 'A9'), lambda a8, a9: bool(break_row_into_primes(a8 + a9)))
         self.add_constraint(('A12', 'A13', 'A14'), lambda a12, a13, a14: bool(break_row_into_primes(a12 + a13 + a14)))
 
+    def get_allowed_regexp(self, location: Location) -> str:
+        _, column = location
+        if column == 2:
+            # As explained in the intro, the second column can only contain these digits
+            return '[1379]'
+        else:
+            return super().get_allowed_regexp(location)
+
     def check_solution(self, known_clues: Dict[Clue, ClueValue]) -> bool:
         board = {location: value for clue, clue_value in known_clues.items()
                  for location, value in zip(clue.locations, clue_value)}
 
         # A18 must be the sum of the digits in the grid
-        answer_a18 = int(known_clues[self.clue_list.clue_named("A18")])
+        answer_a18 = int(known_clues[self.clue_named("A18")])
         total = sum(int(board[i, j]) for i in range(1, 8) for j in range(1, 8))
         if total != answer_a18:
             return False
 
         # D3 must not be prime
-        d3 = self.clue_list.clue_named("D3")
+        d3 = self.clue_named("D3")
         d3_values = [board[location] for location in d3.locations]
         answer_d3 = int(''.join(d3_values))
 
@@ -205,20 +213,9 @@ class MySolver(ConstraintSolver):
         return False
 
 
-class MyClueList (ClueList):
-    def get_allowed_regexp(self, location: Location) -> str:
-        _, column = location
-        if column == 2:
-            # As explained in the intro, the second column can only contain these digits
-            return '[1379]'
-        else:
-            return super().get_allowed_regexp(location)
-
-
 def run() -> None:
-    clue_list = MyClueList(CLUES)
-    clue_list.verify_is_180_symmetric()
-    solver = MySolver(clue_list)
+    solver = MySolver(CLUES)
+    solver.verify_is_180_symmetric()
     solver.solve()
 
 

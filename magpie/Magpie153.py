@@ -1,7 +1,7 @@
 import itertools
 from typing import Iterator, Sequence, Tuple, Optional, List, Iterable, Callable
 
-from solver import Clue, ClueList, ClueValueGenerator
+from solver import Clue, Clues, ClueValueGenerator
 from solver import ConstraintSolver
 from solver import generators
 
@@ -82,7 +82,7 @@ def show_items(*, P: Optional[int] = None, F: Optional[int] = None, R: Optional[
 def make_clue_list(lines: str,
                    acrosses: Sequence[Tuple[int, int, ClueValueGenerator]],
                    downs: Sequence[Tuple[int, int, ClueValueGenerator]]) -> List[Clue]:
-    locations = ClueList.get_locations_from_grid(lines)
+    locations = Clues.get_locations_from_grid(lines)
     clues = [Clue(f'{location}{suffix}', is_across, locations[location - 1], length, generator=generator)
              for is_across, suffix, clue_set in ((True, 'a', acrosses), (False, 'd', downs))
              for (location, length, generator) in clue_set]
@@ -184,8 +184,8 @@ CLUES = make_clue_list(GRID,
 
 
 class MySolver(ConstraintSolver):
-    def __init__(self, cl: ClueList):
-        super().__init__(cl)
+    def __init__(self, clue_list: Sequence[Clue]):
+        super().__init__(clue_list)
         for (clue1, clue2) in (
             # clue1 is a divisor of clue2
                 ('8a',  '9a'),
@@ -208,9 +208,8 @@ class MySolver(ConstraintSolver):
 
 
 def run() -> None:
-    clue_list = ClueList(CLUES)
-    clue_list.verify_is_180_symmetric()
-    solver = MySolver(clue_list)
+    solver = MySolver(CLUES)
+    solver.verify_is_180_symmetric()
     solver.solve()
 
 

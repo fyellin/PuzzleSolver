@@ -2,7 +2,7 @@ import itertools
 import re
 from typing import Iterable, Sequence, Optional, Tuple, Dict, cast, Any
 
-from solver import Clue, ClueValueGenerator, ClueList, ClueValue, ConstraintSolver
+from solver import Clue, ClueValueGenerator, ClueValue, ConstraintSolver
 from solver import generators
 
 ACROSS = """
@@ -84,7 +84,7 @@ def generator(values: Sequence[int]) -> ClueValueGenerator:
     return result
 
 
-def make_clue_list() -> ClueList:
+def make_clue_list() -> Sequence[Clue]:
     locations = {}
     for row, line in enumerate(MAP.split()):
         for column, item in enumerate(line):
@@ -103,12 +103,11 @@ def make_clue_list() -> ClueList:
             location = locations[letter]
             clue = Clue(f'{letter}{suffix}', is_across, location, length, generator=generator(values))
             clues.append(clue)
-    clue_list = ClueList(clues)
-    return clue_list
+    return clues
 
 
 class MySolver(ConstraintSolver):
-    def __init__(self, clue_list: ClueList) -> None:
+    def __init__(self, clue_list: Sequence[Clue]) -> None:
         super().__init__(clue_list)
         for clue1, clue2 in itertools.combinations(clue_list, 2):
             self.add_constraint((clue1, clue2), MySolver.must_be_different)
@@ -125,15 +124,15 @@ class MySolver(ConstraintSolver):
 
     def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         super().show_solution(known_clues)
-        for clue in self.clue_list:
+        for clue in self._clue_list:
             value = cast(MyString, known_clues[clue])
             print(f'{clue.name} {value:<5} = {value.expression}')
 
 
 def run() -> None:
     clue_list = make_clue_list()
-    clue_list.verify_is_180_symmetric()
     solver = MySolver(clue_list)
+    solver.verify_is_180_symmetric()
     solver.solve(debug=False)
 
 

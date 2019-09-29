@@ -1,10 +1,10 @@
 import collections
 from operator import itemgetter
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Sequence
 
 import inflect  # type: ignore
 
-from solver import Clue, ClueList, ClueValue, ClueValueGenerator
+from solver import Clue, ClueValue, ClueValueGenerator
 from solver import ConstraintSolver
 from solver import Evaluator
 from solver import Location
@@ -69,7 +69,7 @@ CLUES = (
 
 
 class MySolver(ConstraintSolver):
-    def __init__(self, clue_list: ClueList):
+    def __init__(self, clue_list: Sequence[Clue]):
         super().__init__(clue_list)
         for clue in clue_list:
             for evaluator in clue.evaluators:
@@ -102,9 +102,8 @@ class MySolver(ConstraintSolver):
 
 
 def run() -> None:
-    clue_list = ClueList(CLUES)
-    clue_list.verify_is_180_symmetric()
-    solver = MySolver(clue_list)
+    solver = MySolver(CLUES)
+    solver.verify_is_180_symmetric()
     solver.solve(debug=True)
 
 

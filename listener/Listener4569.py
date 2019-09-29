@@ -1,7 +1,7 @@
 import re
-from typing import Dict, Iterable, List, Tuple, Set, Any
+from typing import Dict, Iterable, List, Set, Any, Sequence
 
-from solver import Clue, ClueList, ClueValue, Letter, Location
+from solver import Clue, ClueValue, Letter, Location
 from solver import EquationSolver
 
 ACROSS = """
@@ -73,7 +73,16 @@ class MyClue(Clue):
             assert False
 
 
-class MyClueList(ClueList):
+class MySolver (EquationSolver):
+    def __init__(self, clue_list: Sequence[Clue]) -> None:
+        super().__init__(clue_list, items=MySolver.get_clue_values())
+
+
+    def show_solution(self,  known_clues: Dict[Clue, ClueValue], known_letters: Dict[Letter, int]) -> None:
+        super().show_solution(known_clues, known_letters)
+        for clue in self._clue_list:
+            print(clue.name, known_clues[clue])
+
     def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
                   location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
                   top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
@@ -87,16 +96,6 @@ class MyClueList(ClueList):
         super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
                           top_bars, left_bars, **more_args)
 
-
-class MySolver (EquationSolver):
-    def __init__(self, clue_list: ClueList) -> None:
-        super().__init__(clue_list, items=MySolver.get_clue_values())
-
-    def show_solution(self,  known_clues: Dict[Clue, ClueValue], known_letters: Dict[Letter, int]) -> None:
-        super().show_solution(known_clues, known_letters)
-        for clue in self.clue_list:
-            print(clue.name, known_clues[clue])
-
     @staticmethod
     def get_clue_values() -> List[int]:
         result = set()
@@ -108,7 +107,7 @@ class MySolver (EquationSolver):
         return sorted(result)
 
 
-def create_clue_list() -> 'ClueList':
+def create_clue_list() -> Sequence[Clue]:
     locations = [(0, 0)]
     for row, line in enumerate(GRID.split()):
         for column, item in enumerate(line):
@@ -128,7 +127,7 @@ def create_clue_list() -> 'ClueList':
             expression = match.group(2)
             clue = MyClue(f'{number}{letter}', is_across, location, int(match.group(3)), expression=expression)
             result.append(clue)
-    return MyClueList(result)
+    return result
 
 
 def run() -> None:

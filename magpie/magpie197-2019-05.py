@@ -2,7 +2,7 @@
 Standard.  Nothing exciting.
 """
 
-from solver import ClueList, EquationSolver
+from solver import Clues, EquationSolver
 
 # noinspection SpellCheckingInspection
 ACROSS = """
@@ -63,10 +63,10 @@ X..X.X.
 
 
 def run() -> None:
-    locations = ClueList.get_locations_from_grid(LOCATIONS)
-    clue_list = ClueList.create_from_text(ACROSS, DOWN, locations)
-    clue_list.verify_is_four_fold_symmetric()
+    locations = Clues.get_locations_from_grid(LOCATIONS)
+    clue_list = Clues.create_from_text(ACROSS, DOWN, locations)
     solver = EquationSolver(clue_list, items=tuple(range(1, 17)), allow_duplicates=True)
+    solver.verify_is_four_fold_symmetric()
     solver.solve()
 
 

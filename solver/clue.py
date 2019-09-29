@@ -8,6 +8,7 @@ from .evaluator import Evaluator
 
 ClueValueGenerator = Callable[['Clue'], Iterable[Union[str, int]]]
 
+
 class Clue:
     name: str
     is_across: bool

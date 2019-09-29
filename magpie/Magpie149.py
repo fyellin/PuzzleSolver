@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Sequence, Dict, Set, Optional, Pattern
 
 from solver import BaseSolver
-from solver import Clue, ClueList, ClueValue, Letter
+from solver import Clue, Clues, ClueValue, Letter
 from solver import EquationSolver, Intersection
 
 GRID = """
@@ -55,12 +55,10 @@ Y Y2 + S
 Z ZU"""
 
 
-def make_clue_list() -> ClueList:
-    locations = ClueList.get_locations_from_grid(GRID)  # first location is index 0
+def make_clue_list() -> Sequence[Clue]:
+    locations = Clues.get_locations_from_grid(GRID)  # first location is index 0
     clues = [Clue(str(i), i in ACROSSES, locations[i - 1], LENGTHS[i]) for i in range(1, len(LENGTHS))]
-    clue_list = ClueList(clues)
-    clue_list.verify_is_180_symmetric()
-    return clue_list
+    return clues
 
 
 def make_expressions() -> Sequence[Clue]:
@@ -81,7 +79,7 @@ class Magpie149Solver(BaseSolver):
     solution_count: int
     debug: bool
 
-    def __init__(self, clue_list: ClueList, expressions: Sequence[Clue]) -> None:
+    def __init__(self, clue_list: Sequence[Clue], expressions: Sequence[Clue]) -> None:
         super().__init__(clue_list)
         self.expressions = expressions
         self.missing_variables = {
@@ -112,7 +110,7 @@ class Magpie149Solver(BaseSolver):
         expressions_to_try = [expression for expression in self.expressions
                               if expression.name not in known_letters_set
                               if self.missing_variables[expression].issubset(known_letters_set)]
-        clues_to_try = [clue for clue in self.clue_list if clue not in known_clues]
+        clues_to_try = [clue for clue in self._clue_list if clue not in known_clues]
         clue_to_pattern = {clue: self.make_runtime_pattern(clue, known_clues)
                            for clue in clues_to_try}
 
@@ -147,10 +145,10 @@ class Magpie149Solver(BaseSolver):
             del known_clues[clue]
 
     def show_solution(self, known_clues: Dict[Clue, ClueValue], known_letters: Dict[Letter, int]) -> None:
-        EquationSolver(self.clue_list).show_solution(known_clues, known_letters)
+        EquationSolver(self._clue_list).show_solution(known_clues, known_letters)
 
     def make_runtime_pattern(self, clue: Clue, known_clues: Dict[Clue, ClueValue]) -> Pattern[str]:
-        pattern_list = [self.clue_list.get_allowed_regexp(location) for location in clue.locations]
+        pattern_list = [self.get_allowed_regexp(location) for location in clue.locations]
         pattern_list.append('$')
         for other_clue, other_clue_value in known_clues.items():
             intersections = Intersection.get_intersections(clue, other_clue)

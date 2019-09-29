@@ -1,9 +1,9 @@
 import collections
 import itertools
 from enum import Enum
-from typing import Iterable, Optional, Dict, Tuple
+from typing import Iterable, Optional, Dict, Tuple, Sequence
 
-from solver import Clue, ClueValueGenerator, ClueList, Location, ClueValue, ConstraintSolver
+from solver import Clue, ClueValueGenerator, Location, ClueValue, ConstraintSolver
 from solver import generators
 
 
@@ -84,7 +84,7 @@ CLUES = (
 
 
 class MySolver(ConstraintSolver):
-    def __init__(self, clue_list: ClueList):
+    def __init__(self, clue_list: Sequence[Clue]):
         super().__init__(clue_list)
         #  sqrt(d8) is a divisor of a16,, which is the same as d8 being a divisor of a16**2
         self.add_constraint(('D8', 'A16'), lambda d8, a16: int(a16) ** 2 % int(d8) == 0)
@@ -99,15 +99,14 @@ class MySolver(ConstraintSolver):
 
     def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
         super().show_solution(known_clues)
-        for clue in self.clue_list:
+        for clue in self._clue_list:
             value = known_clues[clue]
             print(f'{clue.name:<3} {value:>3} {TO_TYPE_DICT[value].name}')
 
 
 def run() -> None:
-    clue_list = ClueList(CLUES)
-    clue_list.verify_is_180_symmetric()
-    solver = MySolver(clue_list)
+    solver = MySolver(CLUES)
+    solver.verify_is_180_symmetric()
     solver.solve(debug=False)
 
 

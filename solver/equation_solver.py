@@ -5,7 +5,6 @@ from typing import Dict, NamedTuple, Sequence, Callable, Pattern, Any, List, Ite
 
 from .base_solver import BaseSolver
 from .clue import Clue
-from .clue_list import ClueList
 from .clue_types import Letter, ClueValue, Location
 from .evaluator import Evaluator
 from .intersection import Intersection
@@ -31,7 +30,7 @@ class EquationSolver(BaseSolver):
     items: Sequence[int]
     debug: bool
 
-    def __init__(self, clue_list: ClueList, *, items: Sequence[int] = (), **args: Any) -> None:
+    def __init__(self, clue_list: Sequence[Clue], *, items: Sequence[int] = (), **args: Any) -> None:
         super().__init__(clue_list, **args)
         self.items = items
 
@@ -75,7 +74,7 @@ class EquationSolver(BaseSolver):
                 else:
                     if not (clue_value and pattern.match(clue_value)):
                         continue
-                    if not self.allow_duplicates and clue_value in self.known_clues.values():
+                    if not self._allow_duplicates and clue_value in self.known_clues.values():
                         continue
                     self.known_clues[clue] = clue_value
 
@@ -97,7 +96,7 @@ class EquationSolver(BaseSolver):
         not_yet_ordered: Dict[Any, ClueInfo] = {
             # co_names are the unbound variables in the compiled expression: exactly what we want!
             evaluator: (clue, evaluator, set(evaluator.vars), [], set())
-            for clue in self.clue_list for evaluator in clue.evaluators
+            for clue in self._clue_list for evaluator in clue.evaluators
         }
 
         def grading_function(clue_info: ClueInfo) -> Sequence[float]:
@@ -107,7 +106,7 @@ class EquationSolver(BaseSolver):
         while not_yet_ordered:
             clue, evaluator, unknown_letters, intersections, _ = max(not_yet_ordered.values(), key=grading_function)
             not_yet_ordered.pop(evaluator)
-            pattern = Intersection.make_pattern_generator(clue, intersections, self.clue_list)
+            pattern = Intersection.make_pattern_generator(clue, intersections, self)
             result.append(SolvingStep(clue, evaluator, tuple(sorted(unknown_letters)), pattern))
             for other_clue, _, other_unknown_letters, other_intersections, other_locations in not_yet_ordered.values():
                 # Update the remaining not_yet_ordered clues, indicating more known letters and updated intersections
@@ -154,7 +153,7 @@ class EquationSolver(BaseSolver):
         return True
 
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
-        self.clue_list.plot_board(known_clues)
+        self.plot_board(known_clues)
         max_length = max(len(str(i)) for i in known_letters.values())
         print()
         pairs = [(letter, value) for letter, value in known_letters.items()]
