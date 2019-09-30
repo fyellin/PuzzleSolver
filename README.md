@@ -35,6 +35,7 @@ Each clue is created with the following attributes:
 * `is_across`: true if this is an across clue, false if this is a down clue
 * `length`: the number of squares of this clue
 * `expression`: for `EquationSolver` puzzles, the expression giving the value of this clue.
+It may have one or more equal signs in it.
 This field can be used by `ConstraintSolver` puzzles, too, but its use in then up to the user.
 * `generator`: for `ConstraintSolver` puzzles, a generator that defines the initial set of
  legal values for this clue.
@@ -75,82 +76,106 @@ It also contains generators that return a pre-calculated list and generators tha
 The latter probably shouldn't be used for clues longer than length 6.
 
 
-#### Non-standard clues and subclassing
-If your grid is not actually a rectangle or your clues go into the grid in an unusual way, you can subclass `Clue`.
+#### Non-standard clues
+The code normally assumes that clues start at the indicated `base_location` and that across clues move right
+(increasing the second index of the location) and that down clues move down (increasing the first index). 
 
-The code assumes that across clues start at the indicated location and move right
-(increasing the second index of the location),  
-and that down clues start at the indicated location and move down (increasing the first index). 
-If your puzzle has different rules, you should subclass `Clue` and override the method `generate_location_list`
-to generate the list of locations.
+If your grid is not actually a rectangle or your clues go into the grid in an unusual way, you can specify
+the exact grid locations of each clue by passing the keyword-only `locations` argument.
+The clue will go precisely into the locations indicated by the value of the argument.
+If you use this argument, the `length` and `base_location` arguments passed to the `Clue` constructor 
+must be specified (as required arguments) but will be ignored.
+The base location of the clue will use the first element of `locations` as the length of `locations` will be the
+length of the clue.  The value of `clue.is_across` will be whatever is passed to the constructor, but its value
+is otherwise ignored. 
 
-TODO: Verify length?  Verify first element is base_location? 
+
+### The solvers
 
 
-### The clue list
+### Constraints
 
-A `ClueList` gathers together a set of clues and creates information about them as a set.
+A constraint lets you specify a relationship between clues.
+You specify a constraint by indicating the clues
+that it applies to, and a predicate that applies to those clues.
 
-For the `EquationSolver`, there is a convenience function that lets you copy and paste the equations 
-from the puzzle and directly generate a clue list.
+For example:
 
-In general, you create a `ClueList` by passing the initializer a list of the puzzle's clues.
+`solver.add_constraint(('d1', 'd3'), lambda x, y: int(y) % int(x) == 0)`
 
-    clue_list = ClueList(sequence_of_clues)
- 
-#### Subclassing ClueList
-    
-There are a few reasons to subclass `ClueList`:
+indicates that d3 must be a multiple of d1.
+The second argument must be a function (or lambda) that takes as many arguments as there were clues specified.
+The function is called with the arguments in the same order as specified in the first argument.
 
-* In most puzzles, the first digit of an answer cannot be zero.
-In some puzzles, there may be further constraints.
-    * The user can override `is_zero_allowed(location)` if there are alternative constraints.
-The default implementation returns `True` when the location is not the starting location of any clue.
+For the `ConstraintSolver` each constraint must specify at least two clues.  
+(Constraints on a single clue should be handled by the generator).
+The constraint is checked when all but one of the clues has been assigned a value.  
 
-    * Some puzzles may have other constraints on digits.
-The user can override `get_allowed_regexp(location)` to indicate the allowable values. 
-The default implementation calls `is_zero_allowed(location)` above and returns
-either `"."` or `"[^0]"`, respectively, on a `true` or `false` result, respectively.
+For the `EauationSolver`, each constraint must specify one or more clues.
+The constraint is handled when all the clues have been assigned a value.
+
+
+## Solving crossword puzzles
+
+### Common methods and overrides of both solvers
+There are two solvers, `EquationSolver` and `ConstraintSolver`, but they share many features.  
+You will want to use one of these solvers, or construct a subclass of one of them.
+
+Both solvers take as the first argument of their constructor a sequence of `Clue`s, which are the clues to solve.
+
+Among the methods shared by the two solvers that you may want to override:
+
+* `get_allowed_regexp(self, location)`  
+In most puzzles, any location that is the first digit of an answer cannot be zero.
+Some puzzles may have more stringent restrictions.  
+You can override `get_allowed_regexp(location)` to indicate the allowable values.
+The default implementation returns `'[^0]'` if `self.is_starting_location(location)` and `'.'` otherwise.
 Any appropriate regexp that matches at most a single character is allowed.
 
-* `ClueList` is responsible for printing the grid once a solution has been found.
+* `draw_grid(self, ...)`   
 The default implementation of `draw_grid` just calls the `DrawGrid` utility with the arguments it has been passed.
-By overriding this method, the user can intervene and modify the arguments before calling `super().draw_grid(...)`.
+By overriding this method, the user can intervene and modify the arguments before calling `super().draw_grid(...)`.  
+Some examples of this are:
+    * Replacing the digits in the result with the letters of a key word
+    * Adding shading to the grid
+    * Changing the location of thick bars.
+    
+* `check_solution(self, ...)`  
+This method is called when the solver has found a tentative solution.
+The default implementation simply returns `True`, but additional puzzle-specific verification that is not easy
+to otherwise specify can be performed here.  
+The `EquationSolver` and `ConstraintSolver` versions of this function take slightly different arguments. 
 
-Among some examples for overriding `draw_grid` are:
-
-* Replacing the digits in the result with the letters of a key word
-* Adding shading to the grid
-* Changing the location of thick bars.
+* `show_solution(self, ...)` is called when `check_solution()` returns `True`.
+It prints out the values of the variables and draws the filled-in grid.
+Users can augment or replace this behaviour.
+The `EquationSolver` and `ConstraintSolver` versions of this function take slightly different arguments. 
 
 #### Verification of the grid.
 
-`ClueList` contains three very important verification functions:
+The solvers contains three very important verification functions:
 
-* `clue_list.verify_is_180_symmetric`: 
+* `verify_is_180_symmetric(self)`:  
 The grid should look the same when it is rotated 180°.
 The method throws an assertion error if that is not the case.
 
-* `clue_list.verify_is_four_fold_symmetric`: 
+* `verify_is_four_fold_symmetric(self)`:  
 The grid should look the same if it is rotated either 90° or 180°.
 The method throws an assertion error if that is not the case.
 
-* `clue_list.verify_is_vertically_symmetric`: 
+* `verify_is_vertically_symmetric(self)`: 
 The grid should look the same in a mirror as it does normally.
 
 When first creating a grid, it is highly recommended that you write:
 
-    clue_list = ....
-    clue_list.plot_board({})
+    solver = MySolver(clue_list, ....)
+    solver.plot_board({})
     # replace the next line with whatever symmetry is appropriate
-    clue_list.verify_is_180_symmetric() 
+    solver.verify_is_180_symmetric() 
     
 It is extremely easy to make a mistake when describing the grid.
 Asking Python to show you a picture of the empty 
 board and to verify that it has the symmetry you expect is sure to save you a lot of grief.
-
-
-## Solving crossword puzzles
 
 ### The equation solver
 
@@ -170,15 +195,7 @@ See below if variable values can be repeated.]
 * Each equation must (by default) yield a distinct value.
 If duplicate values are allowed, then add the keyword argument `allow_duplicates=True` to the argument list.
 
-There are three methods you may want to override:
-
-* `check_solution()` is called when the solver has found a tentative solution.
-The default implementation simply returns `True`, but additional puzzle-specific verification that is not easy
-to otherwise specify can be performed here.
-
-* `show_solution()` is called when `check_solution()` returns `True`.
-It prints out the values of the variables and draws the filled-in grid.
-Users can augment or replace this behaviour.
+In addition to the methods mentioned above, there is one more method you many need to override:
 
 * `get_letter_values()` is called to find all possible values to assign to letters, 
 given previously existing  assignments.
@@ -211,9 +228,10 @@ and some of its clue's squares may intersect the just chosen evaluator's clue.
 
 The solver performs a search through the evaluators in this pre-calculated order.
 As a result, when the solver looks a evaluator and its clue, it has already determined 
-which letters in the clue have already been assigned, 
-which letters still need to have a value assigned to them, and 
-which digits of its answer have been filled by previous answers.
+* Which letters in the clue have already been assigned, 
+* Which letters still need to have a value assigned to them, 
+* Which digits of its answer have been filled by previous answers, and
+* Which constraints now have all of its clue values known.
 
 Given this order for solving the evaluators, the solver calls the following recursive algorithm, starting with n = 0
 
@@ -234,6 +252,7 @@ For each set of possible values for the variables:
        doesn't match the regular expression, skip these values and try again.
     1. If the value of the expression is a value we're already using for a previous evaluator and `not use_duplicates`
        then continue
+    1. Check all constraints; if any return False, then continue.
     1. Add the current variables and values to the set of known value
     1. Recursively run this algorithm with n + 1
     1. Remove the current variables and values from the set of known values
@@ -243,7 +262,7 @@ For each set of possible values for the variables:
 
 A typical call to create a constraint solver looks like the following:
 
-    EquationSolver(clue_list)
+    ConstraintSolver(clue_list)
 
 The arguments indicate:
 
@@ -259,7 +278,7 @@ with no other considerations.
 For example "This clue is a square", "This clue is prime", 
 "This clue is a multiple of 17" are all constraints that are specified in the generator.
 
-* Certain constraints indicate a relationship between two clues.
+* Certain constraints indicate a relationship between two or more clues.
 These are added to the `ConstraintSolver`. 
 For example the following two lines force d3 to be a multiple of a1, and force d3 to be the product of d1 and d2.
 
@@ -273,18 +292,7 @@ the predicate is responsible for converting them to integers, if necessary.
 The items in the initial tuple can either be a `Clue` or the name of a clue.
 The predicate must take as many arguments a there are items in the tuple; 
 the arguments are bound, in order, to the values of the corresponding clue.
-
                 
-There are three methods you may want to override:
-
-* You can override `check_solution()`, which is called then the solver has found a tentative solution.
-The default implementation just returns `True`, but you can perform additional puzzle-specific tests.
-This is a good place to test conditions like: "This clue must be the some of all digits in the puzzle" that can't
-easily be tested otherwise.
-
-You may also want to override `show_solution()`, which is called when `check_solution()` returns true.
-The default implementation draws a grid, but you can replace or augment this functionality.
-
 The solver is then run by calling `solver.run()`.
 More information about the steps the solver is performing can be seen by adding the argument `debug=True`.
 
@@ -386,8 +394,8 @@ You create a grid and a list of across and down clues.
 
 The following code is then all you need to solve this puzzle:
 
-    locations = ClueList.get_locations_from_grid(GRID)
-    clue_list ClueList.create_from_text(ACROSS, DOWN, locations)
+    locations = Clues.get_locations_from_grid(GRID)
+    clue_list = Clues.create_from_text(ACROSS, DOWN, locations)
     solver = EquationSolver(clue_list, VALUES)
     solver.run()().
     
@@ -401,10 +409,11 @@ The following code is then all you need to solve this puzzle:
 The grid is a cube, and there are "through" clues as well as clues that go across or down a single layer.
 In addition, there are rules about a clue going off the edge of its own layer.
 
-To solve this, we model the 4x4x4 cube as a 16x4 rectangle, and subclass `Clue` in order to implement the clue rules.
+To solve this, we model the 4x4x4 cube as a 16x4 rectangle, and use the `locations=` argument to the `Clue` constructor
+to indicate the locations of each of the clues.
 The solution is straightforward
 
-`ClueList` is overridden so that the generated grid appears more pleasing.
+`draw_grid` is overridden in the solver so that the generated grid appears more pleasing.
 We don't want the normal thick bars printed out.
 Instead, we just want thick bars as a break between each of the 4x4 layers.
 In addition, once we read the hidden message and know the secret ten-letter word, 

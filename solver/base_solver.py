@@ -38,13 +38,21 @@ class BaseSolver(ABC):
         return self.__name_to_clue[name]
 
     def is_intersection(self, location: Location) -> bool:
+        """Returns true if the location is used by more than one clue."""
         return location in self.__intersections
 
     def is_start_location(self, location: Location) -> bool:
+        """Returns true if the location is the starting location of a clue."""
         return location in self.__start_locations
 
     # Override this if there are addition restrictions on the value that can go into a field.
     def get_allowed_regexp(self, location: Location) -> str:
+        """
+        Return a regular expression indicating the possible values for this square.
+
+        By default, allows any value except 0 if this is the starting location of a clue, and any value otherwise.
+        Can be overridden if necessary.
+        """
         return '[^0]' if self.is_start_location(location) else '.'
 
     def verify_is_vertically_symmetric(self) -> None:
@@ -86,6 +94,7 @@ class BaseSolver(ABC):
         return {(clue.base_location, clue.length, clue.is_across) for clue in self.__name_to_clue.values()}
 
     def plot_board(self, clue_values: Dict[Clue, ClueValue], **more_args: Any) -> None:
+        """Draws a picture of the grid with the specified clues filled in."""
         max_row = self.__max_row
         max_column = self.__max_column
 
@@ -104,10 +113,9 @@ class BaseSolver(ABC):
         # Location of squares that have a heavy bar at their top
         top_bars = set(itertools.product(range(2, max_row), range(1, max_column)))
 
+        # The location of left heavy bars, top heavy bars, and squares that are part of an answer
         # Note that we determine top_bars and left_bars by elimination.  We originally place all
         # possible locations in the set, then remove those bars that are in the interior of a clue.
-        # The location of left heavy bars, top heavy bars, and squares that are part of an answer
-
         for clue in self._clue_list:
             match = re.search(r'\d+', clue.name)
             if match:

@@ -181,6 +181,7 @@ class MySolver(ConstraintSolver):
             return super().get_allowed_regexp(location)
 
     def check_solution(self, known_clues: Dict[Clue, ClueValue]) -> bool:
+        # A map from locations to the value in that location.
         board = {location: value for clue, clue_value in known_clues.items()
                  for location, value in zip(clue.locations, clue_value)}
 

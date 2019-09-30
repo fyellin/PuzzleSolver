@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Iterable, List, Set, Any, Sequence
+from typing import Dict, List, Set, Any, Sequence
 
 from solver import Clue, ClueValue, Letter, Location
 from solver import EquationSolver
@@ -59,20 +59,6 @@ X...
 """
 
 
-class MyClue(Clue):
-    def generate_location_list(self) -> Iterable[Location]:
-        if self.name[-1] == 'd':
-            return super().generate_location_list()
-        elif self.name[-1] == 't':
-            (row, column) = self.base_location
-            return ((row + 4 * i, column) for i in range(self.length))
-        elif self.name[-1] == 'a':
-            locations = super().generate_location_list()
-            return [(row + ((column - 1) // 4) * 4, ((column - 1) % 4) + 1) for (row, column) in locations]
-        else:
-            assert False
-
-
 class MySolver (EquationSolver):
     def __init__(self, clue_list: Sequence[Clue]) -> None:
         super().__init__(clue_list, items=MySolver.get_clue_values())
@@ -115,7 +101,7 @@ def create_clue_list() -> Sequence[Clue]:
                 locations.append((row + 1, column + 1))
 
     result: List[Clue] = []
-    for lines, is_across, letter in ((ACROSS, True, 'a'), (DOWN, False, 'd'), (THROUGH, False, 't')):
+    for lines, is_across, suffix in ((ACROSS, True, 'a'), (DOWN, False, 'd'), (THROUGH, False, 't')):
         for line in lines.splitlines():
             line = line.strip()
             if not line:
@@ -125,7 +111,21 @@ def create_clue_list() -> Sequence[Clue]:
             number = int(match.group(1))
             location = locations[number]
             expression = match.group(2)
-            clue = MyClue(f'{number}{letter}', is_across, location, int(match.group(3)), expression=expression)
+            length = int(match.group(3))
+
+            row, column = location
+            if suffix == 'd':
+                location_list = [(row + i, column) for i in range(length)]
+            elif suffix == 't':
+                location_list =  [(row + 4 * i, column) for i in range(length)]
+            elif suffix == 'a':
+                temp = [(row, column + i) for i in range(length)]
+                location_list = [(row + ((column - 1) // 4) * 4, ((column - 1) % 4) + 1) for (row, column) in temp]
+            else:
+                assert False
+
+            clue = Clue(f'{number}{suffix}', is_across, location, length, expression=expression,
+                        locations=location_list)
             result.append(clue)
     return result
 

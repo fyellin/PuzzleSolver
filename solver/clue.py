@@ -23,11 +23,21 @@ class Clue:
     def __init__(self, name: str, is_across: bool, base_location: Location, length: int, *,
                  expression: str = '',
                  generator: Optional[ClueValueGenerator] = None,
-                 context: Any = None):
+                 context: Any = None,
+                 locations: Optional[Iterable[Location]] = None):
         self.name = name
         self.is_across = is_across
-        self.base_location = base_location
-        self.length = length
+        if locations:
+            self.locations = tuple(locations)
+            self.base_location = self.locations[0]
+            self.length = len(self.locations)
+        else:
+            self.base_location = (row, column) = base_location
+            self.length = length
+            if self.is_across:
+                self.locations = tuple((row, column + i) for i in range(length))
+            else:
+                self.locations = tuple((row + i, column) for i in range(length))
         if expression:
             python_pieces = Clue.__convert_expression_to_python(expression)
             self.evaluators = tuple(Evaluator.make(piece) for piece in python_pieces)
@@ -35,17 +45,7 @@ class Clue:
             self.evaluators = ()
         self.generator = generator
         self.context = context
-        self.locations = tuple(self.generate_location_list())
-        assert self.locations[0] == self.base_location
-        assert len(self.locations) == self.length
         self.location_set = frozenset(self.locations)
-
-    def generate_location_list(self) -> Iterable[Location]:
-        """Generates the list of locations for this clue.  Subclasses can override this."""
-        row, column = self.base_location
-        column_delta, row_delta = (1, 0) if self.is_across else (0, 1)
-        for i in range(self.length):
-            yield row + i * row_delta, column + i * column_delta
 
     def location(self, i: int) -> Location:
         return self.locations[i]

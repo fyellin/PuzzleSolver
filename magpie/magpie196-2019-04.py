@@ -41,9 +41,7 @@ def run() -> None:
 
     for generators.BASE in range(2, 65):
         print(f'Running in base {generators.BASE}')
-        solver.solve(show_time=False, debug=False)
-        print(f'Using {solver.step_count} steps')
-
+        solver.solve()
 
 if __name__ == '__main__':
     run()
