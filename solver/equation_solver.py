@@ -45,7 +45,6 @@ class EquationSolver(BaseSolver):
             name = '_'.join(clue.name for clue in actual_clues)
 
         def check_relationship() -> bool:
-            values = [self._known_clues[clue] for clue in actual_clues]
             return predicate(*(self._known_clues[clue] for clue in actual_clues))
 
         check_relationship.__name__ = name

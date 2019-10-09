@@ -2,6 +2,7 @@ import itertools
 import random
 from collections import defaultdict
 from datetime import datetime
+from heapq import nlargest, nsmallest
 from typing import Tuple, Dict, List, Sequence, cast, Callable, FrozenSet, Any, Union, Optional, Collection
 
 from mypy_extensions import VarArg
@@ -127,6 +128,14 @@ class ConstraintSolver(BaseSolver):
         clue_generator = cast(ClueValueGenerator, clue.generator)  # we know clue_generator isn't None
         string_values = ((str(x) if isinstance(x, int) else x) for x in clue_generator(clue))
         result = frozenset(x for x in string_values if pattern.match(x))
+        if self._debug:
+            if len(result) <= 10:
+                print(f'{clue.name}: ({", ".join(sorted(result))})')
+            else:
+                smallest = nsmallest(5, result)
+                largest = nlargest(5, result)
+                largest.reverse()
+                print(f'{clue.name}: ({", ".join(smallest)} [{len(result) - 10} skipped] {", ".join(largest)})')
         return cast(FrozenSet[ClueValue], result)
 
     def __get_all_intersections(self) -> Dict[Clue, Sequence[Tuple[Clue, Sequence[Intersection]]]]:

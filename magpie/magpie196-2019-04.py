@@ -43,5 +43,7 @@ def run() -> None:
         print(f'Running in base {generators.BASE}')
         solver.solve()
 
+
+# noinspection PyPep8
 if __name__ == '__main__':
     run()

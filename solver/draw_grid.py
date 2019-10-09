@@ -18,9 +18,10 @@ def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
     if _axes:
         axes = cast(Axes, _axes)
     else:
-        _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
+        _, axes = plt.subplots(1, 1, figsize=(11, 8), dpi=100)
 
-    shading = cast(Dict[Location, str], more_args.get('shading', set()))
+    shading = cast(Dict[Location, str], more_args.get('shading', {}))
+    rotation = cast(Dict[Location, int], more_args.get('rotations', {}))
 
     # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
     axes.axis([1, max_column, max_row, 1])
@@ -65,7 +66,8 @@ def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
     # Fill in the values
     for (row, column), entry in location_to_entry.items():
         axes.text(column + 1 / 2, row + 1 / 2, entry, fontsize=points_per_data/2, fontweight='bold',
-                  verticalalignment='center', horizontalalignment='center')
+                  verticalalignment='center', horizontalalignment='center',
+                  rotation=rotation.get((row, column), 0))
 
     # Fill in the clue numbers
     for (row, column), clue_number in location_to_clue_number.items():
