@@ -1,5 +1,4 @@
 import itertools
-import random
 from collections import defaultdict
 from datetime import datetime
 from heapq import nlargest, nsmallest
@@ -68,9 +67,12 @@ class ConstraintSolver(BaseSolver):
             if self.check_solution(self._known_clues):
                 self.show_solution(self._known_clues)
                 self._solution_count += 1
+                if self._debug:
+                    print(f'{"***" * depth}***SOLVED***"')
+
             return
         # find the clue -> values with the smallest possible number of values and the greatest length
-        clue, values = min(unknown_clues.items(), key=lambda x: (len(x[1]), -x[0].length, random.random()))
+        clue, values = min(unknown_clues.items(), key=lambda x: (len(x[1]), -x[0].length, x[0].name))
         if not values:
             if self._debug:
                 print(f'{" | " * depth}{clue.name} XX')
@@ -126,16 +128,16 @@ class ConstraintSolver(BaseSolver):
         pattern_generator = Intersection.make_pattern_generator(clue, (), self)
         pattern = pattern_generator({})
         clue_generator = cast(ClueValueGenerator, clue.generator)  # we know clue_generator isn't None
-        string_values = ((str(x) if isinstance(x, int) else x) for x in clue_generator(clue))
-        result = frozenset(x for x in string_values if pattern.match(x))
+        string_values = [(str(x) if isinstance(x, int) else x) for x in clue_generator(clue)]
+        result = frozenset([x for x in string_values if pattern.fullmatch(x)])
         if self._debug:
-            if len(result) <= 10:
+            if len(result) <= 20:
                 print(f'{clue.name}: ({", ".join(sorted(result))})')
             else:
-                smallest = nsmallest(5, result)
-                largest = nlargest(5, result)
+                smallest = nsmallest(8, result)
+                largest = nlargest(8, result)
                 largest.reverse()
-                print(f'{clue.name}: ({", ".join(smallest)} [{len(result) - 10} skipped] {", ".join(largest)})')
+                print(f'{clue.name}: ({", ".join(smallest)} [{len(result) - 16} skipped] {", ".join(largest)})')
         return cast(FrozenSet[ClueValue], result)
 
     def __get_all_intersections(self) -> Dict[Clue, Sequence[Tuple[Clue, Sequence[Intersection]]]]:

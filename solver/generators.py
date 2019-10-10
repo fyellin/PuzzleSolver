@@ -108,7 +108,7 @@ def within_clue_limits(clue: Clue, stream: Iterator[int]) -> Iterator[int]:
             yield value
 
 
-def convert_to_base(num: int, base: int = BASE) -> str:
+def convert_to_base(num: int, base) -> str:
     """Converts a number to the specified base, and returns the value as a string"""
     result = []
     if not num:

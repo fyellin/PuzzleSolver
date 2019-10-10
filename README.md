@@ -484,6 +484,18 @@ A `ConstraintSolver` in which we had to subtype `string`.
 Each answer must be unique in the way it was produced.
 Hence each clue has a constraint against every other clue.
 
+### Magpie 202
+The puzzle was in hexadecimal, so all generators had to produce strings (because integers would be converted into
+strings as base 10), and all constraints had to be careful to convert between hexadecimal and string.
+
+When done, the solution had to be printed out with other letters replacing the hexadecimal letters, and with some
+letters shaded and some letters rotated.
+
+A large number of clues only have contraints, and no other restrictions on them.  
+Yet most of them are only two digits long (256 possibilities) so the algorithm runs pretty quickly.
+
+
+
 ## Other puzzles.
 
 ### Magpie 149

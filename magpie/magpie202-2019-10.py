@@ -1,5 +1,4 @@
 import itertools
-import operator
 from collections import defaultdict
 from typing import Iterable, Sequence, Dict, Any, Set, Iterator, Callable, Optional, Tuple
 
@@ -15,12 +14,12 @@ X.X....X.X..
 """
 
 ROTATIONS = """
-.....LR
-.LLLRRRRLLR
-RRLLTRRTLLRR
-R.BLTRLBRB.R
-BBBBB..TTBTB
-..L.B..T.L
+.....13
+.1113333113
+331103301133
+3.21031232.3
+22222..00202
+..1.2..0.1
 """
 
 SHADING = """
@@ -32,6 +31,7 @@ SHADING = """
 ..7.5..6.8
 """
 
+generators.BASE = 16
 
 CUBES = {i ** 3 for i in range(1, 50) if i ** 3 <= 0xFFFF}
 
@@ -69,10 +69,13 @@ def handle_4a(_: Clue) -> Iterator[str]:
     for i, j, k, l in itertools.product(range(16), repeat=4):
         if i + j + k + l in SQUARES:
             sum_of_four[i + j + k + l].append(ix(i) + ix(j) + ix(k) + ix(l))
+    result = []
     for a in sorted(sum_of_four.keys()):
         for b in sorted(sum_of_four.keys()):
             if (a + b) % 17 == 0:
-                yield from itertools.starmap(operator.add, itertools.product(sum_of_four[a], sum_of_four[b]))
+                for x, y in itertools.product(sum_of_four[a], sum_of_four[b]):
+                    result.append(x + y)
+    return result
 
 
 def handle_15a(_: Clue) -> Iterator[str]:
@@ -96,23 +99,18 @@ def handle_Ea(_: Clue) -> Iterator[str]:
 
 def fixed(items: Iterable[int]) -> ClueValueGenerator:
     def generator(clue: Clue) -> Iterable[str]:
-        min_value = 1 << (4 * clue.length - 4)
-        max_value = min_value << 4
-        for item in items:
-            if min_value <= item < max_value:
-                yield ix(item)
+        min_value, max_value = generators.get_min_max(clue)
+        return [ix(item) for item in items if min_value <= item < max_value]
     return generator
 
 
 def all_values(clue: Clue) -> Iterable[str]:
-    min_value = 1 << (4 * clue.length - 4)
-    max_value = min_value << 4
-    return (ix(value) for value in range(min_value, max_value))
+    min_value, max_value = generators.get_min_max(clue)
+    return [ix(value) for value in range(min_value, max_value)]
 
 
 def handle_7d(_: Clue) -> Iterable[str]:
-    for i in range(1, 10):
-        yield ix(2 * i * i * i + 1)[::-1]
+    return [ix(2 * i * i * i + 1)[::-1] for i in range(1, 10)]
 
 
 def reverse_delta(delta: int) -> Callable[[ClueValue, ClueValue], bool]:
@@ -202,11 +200,10 @@ class MySolver(ConstraintSolver):
         location_to_clue_number.clear()
 
         rotations = {}
-        mymap = dict(L=90, D=180, B=180, R=270, T=0)
         for row, line in enumerate(ROTATIONS.strip().split()):
             for column, item in enumerate(line):
                 if item != '.':
-                    rotations[row+1, column + 1] = mymap[item]
+                    rotations[row+1, column + 1] = int(item) * 90
 
         shading = {(row, column): "white" for row in range(1, 7) for column in range(1, 13)}
         colormap = ["", '#D1E8B4', '#FBD3A5', '#FBF888', '#F5B1D0', '#F8BBA6', '#C9C6E3', '#C9C6E3', '#E1C698']
