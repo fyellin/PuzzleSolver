@@ -4,11 +4,11 @@ The solver/ directory contains code to help you solve generic numeric crossword 
 It is designed to solve two different sorts of numeric crossword puzzles:
 
 * `EquationSolver`: Puzzles where each clue has an equation with letters as the variables.
-The solver must find the correct assignment of a number to each letter so that the grid can be filled.
+The solver determines the correct assignment of a value to each letter so that the grid can be filled.
 
 * `ConstraintSolver`: Each clue has constraints on the answers that can go into that spot, such as "must be prime"
-or "must be square".
-In some cases, there are further constraints between the answers of clues, so as that one clue divide another.
+or "must be square". Some contraints apply onto to a single clue, while others require a relationship between
+clues.
 
 ## Key terms
 
@@ -19,11 +19,11 @@ Locations are represented by a tuple of two small integers representing
 the row and column, respectively, with `(1, 1)` being the top left corner.
 For example `(4, 1)` refers to the first column of the fourth row.
 
-This program can only handle rectangular grids. 
+This program only handles rectangular grids. 
 However, since there is no requirement that a clue occupy
-consecutive location, this can be kludged around.
+consecutive location, this requirement can be kludged around.
 For example, we have used this program to solve a 4x4x4 grid by pretending the layers are vertically 
-stacked on each other as a 16x4 grid.
+stacked on each other as a 16x4 grid (Listener 4569).
 
 ### Clue
 
@@ -36,17 +36,17 @@ Each clue is created with the following attributes:
 * `length`: the number of squares of this clue
 * `expression`: for `EquationSolver` puzzles, the expression giving the value of this clue.
 It may have one or more equal signs in it.
-This field can be used by `ConstraintSolver` puzzles, too, but its use in then up to the user.
+This field can be used by `ConstraintSolver` puzzles, too, but its use in then up to you.
 * `generator`: for `ConstraintSolver` puzzles, a generator that defines the initial set of
  legal values for this clue.
-* `context`: The user can use this to store additional information.
+* `context`: you can use this to store additional information.
 
 #### The Expression, Evaluators
 The expression is a string representing an equation with variables, where the variables are
 upper- and lower-case letters.
 This is converted into a Python expression and compiled.
 The converter understands implied multiplication i.e. `2ab(c+d)` means `2*a*b*(c+d)`;
-it also understands the subtraction symbols used by  the typesetters of Listener and Magpie.
+it also understands the subtraction symbols used by the typesetters of Listener and Magpie.
 
 Each expression is turned into on or more `Evaluator`s.
 Multiple evaluators are created when the passed in equation contains an equals sign.
@@ -65,15 +65,17 @@ Should this be fixed?
 
 #### The Generator
 The generator is a function that takes a `Clue` argument (mainly for its length) and returns possible clue values.
-The returned clue values can either be an integers or a string.
-The generator returns either an iterator, a list, or a generator of such values.
+The individual clue values can eacg either be an integer or a string.
+The generator returns either an iterator, a list, or a generator of such values (i.e. something that can be iterated)
 
 In very rare cases, the generator can be `None`.
 This is described later.
 
 The file `Generators.py` contains several generators of the sort that frequently appear in Magpie puzzles.
-It also contains generators that return a pre-calculated list and generators that just return every possible value.
+It also contains a generator that return a pre-calculated list and a generator that just return every possible value.
 The latter probably shouldn't be used for clues longer than length 6.
+
+Each clue's generator is called once, so the generator does not need to be that efficient.
 
 
 #### Non-standard clues
@@ -84,9 +86,10 @@ If your grid is not actually a rectangle or your clues go into the grid in an un
 the exact grid locations of each clue by passing the keyword-only `locations` argument.
 The clue will go precisely into the locations indicated by the value of the argument.
 If you use this argument, the `length` and `base_location` arguments passed to the `Clue` constructor 
-must be specified (as required arguments) but will be ignored.
-The base location of the clue will use the first element of `locations` as the length of `locations` will be the
-length of the clue.  The value of `clue.is_across` will be whatever is passed to the constructor, but its value
+must still be specified (as they are required arguments) but will be ignored.
+The fields `clue.base_location` and `clue.length` will be set to the first element of `locations` and
+then length of `locations`, respectively.
+The field `clue.is_across` will be whatever is passed to the constructor, but its value
 is otherwise ignored. 
 
 
@@ -97,22 +100,29 @@ is otherwise ignored.
 
 A constraint lets you specify a relationship between clues.
 You specify a constraint by indicating the clues
-that it applies to, and a predicate that applies to those clues.
+that it applies to, and a predicate (a function returning True or False) that applies to those clues.
 
 For example:
 
-`solver.add_constraint(('d1', 'd3'), lambda x, y: int(y) % int(x) == 0)`
+```solver.add_constraint(('d1', 'd3'), lambda x, y: int(y) % int(x) == 0)```
 
 indicates that d3 must be a multiple of d1.
-The second argument must be a function (or lambda) that takes as many arguments as there were clues specified.
+The second argument must be a function (or lambda) that takes as many arguments as there are clues specified.
 The function is called with the arguments in the same order as specified in the first argument.
 
-For the `ConstraintSolver` each constraint must specify at least two clues.  
+You may either find it easier, or more confusing, to write:
+```solver.add_constraint(('d1', 'd3'), lambda d1, d3: int(d3) % int(d1) == 0)```  
+The variables are given the same name as the clues for convenience.
+This convention makes the contraint easier to understand.  However it is up to you to ensure that the order
+of the clues and the order of the variables are the same.
+
+
+For the `ConstraintSolver` each constraint must specify at least two clues.
 (Constraints on a single clue should be handled by the generator).
-The constraint is checked when all but one of the clues has been assigned a value.  
+The constraint is applied when all but one of the clues has been assigned a value.  
 
 For the `EauationSolver`, each constraint must specify one or more clues.
-The constraint is handled when all the clues have been assigned a value.
+The constraint is checked when all the clues have been assigned a value.
 
 
 ## Solving crossword puzzles
@@ -129,26 +139,27 @@ Among the methods shared by the two solvers that you may want to override:
 In most puzzles, any location that is the first digit of an answer cannot be zero.
 Some puzzles may have more stringent restrictions.  
 You can override `get_allowed_regexp(location)` to indicate the allowable values.
+This function should return a string representing a regular expression that matches at most a single character.
 The default implementation returns `'[^0]'` if `self.is_starting_location(location)` and `'.'` otherwise.
-Any appropriate regexp that matches at most a single character is allowed.
+
 
 * `draw_grid(self, ...)`   
 The default implementation of `draw_grid` just calls the `DrawGrid` utility with the arguments it has been passed.
-By overriding this method, the user can intervene and modify the arguments before calling `super().draw_grid(...)`.  
+By overriding this method, you can intervene and modify the arguments before calling `super().draw_grid(...)`.
 Some examples of this are:
     * Replacing the digits in the result with the letters of a key word
     * Adding shading to the grid
     * Changing the location of thick bars.
     
 * `check_solution(self, ...)`  
-This method is called when the solver has found a tentative solution.
-The default implementation simply returns `True`, but additional puzzle-specific verification that is not easy
+This method is called when the solver has found a plausible solution.
+The default implementation returns `True`, but additional puzzle-specific verification that is not easy
 to otherwise specify can be performed here.  
 The `EquationSolver` and `ConstraintSolver` versions of this function take slightly different arguments. 
 
 * `show_solution(self, ...)` is called when `check_solution()` returns `True`.
 It prints out the values of the variables and draws the filled-in grid.
-Users can augment or replace this behaviour.
+You can augment or replace this behaviour.
 The `EquationSolver` and `ConstraintSolver` versions of this function take slightly different arguments. 
 
 #### Verification of the grid.
@@ -166,7 +177,7 @@ The method throws an assertion error if that is not the case.
 * `verify_is_vertically_symmetric(self)`: 
 The grid should look the same in a mirror as it does normally.
 
-When first creating a grid, it is highly recommended that you write:
+When first creating a grid, it is highly recommended that you write code like the following:
 
     solver = MySolver(clue_list, ....)
     solver.plot_board({})
@@ -174,8 +185,8 @@ When first creating a grid, it is highly recommended that you write:
     solver.verify_is_180_symmetric() 
     
 It is extremely easy to make a mistake when describing the grid.
-Asking Python to show you a picture of the empty 
-board and to verify that it has the symmetry you expect is sure to save you a lot of grief.
+Seeing a picture of the empty 
+board and verifying that it has the symmetry you expect is sure to save you a lot of grief.
 
 ### The equation solver
 
@@ -190,7 +201,7 @@ The arguments indicate:
 
 * The allowable values for the variables are 1..26 inclusive, and (by default) each value can be used at most once.
 \[Note, the values in the list must be distinct.
-See below if variable values can be repeated.]
+See `get_letter_values()` if variable values can be repeated.]
 
 * Each equation must (by default) yield a distinct value.
 If duplicate values are allowed, then add the keyword argument `allow_duplicates=True` to the argument list.
@@ -215,21 +226,20 @@ Most clues will have a single evaluator, but some clues may have multiple.
 
 It repeatedly ranks the evaluators (and their corresponding clues) based on the following criteria:
 
-1. Which clue has the fewest number of letters not yet assigned a value?
+1. Which evaluator has the fewest number of letters not yet assigned a value?
 1. If there is a tie, which of those evaluators belongs to a clue that has the largest percentage of squares 
-that intersect with already selected evaluators and their clues?
-1. If there is a tie, which belongs to the longest clue?
+that intersect with the clues of already selected evaluators?
+1. If there is a tie, which evaluator belongs to the longest clue?
 1. If there is still a tie, a random one is chosen
 
 After each "best remaining" evaluator is chosen, each of the not-yet-selected
-evaluators needs to be re-evaluated for the next round; 
+evaluators is rescorted for the next round; 
 some of its letters may have been assigned by the just selected clue, 
 and some of its clue's squares may intersect the just chosen evaluator's clue.
 
 The solver performs a search through the evaluators in this pre-calculated order.
 As a result, when the solver looks a evaluator and its clue, it has already determined 
-* Which letters in the clue have already been assigned, 
-* Which letters still need to have a value assigned to them, 
+* Which letters in the evaluator have already been assigned, and which still need a value assigned to them.
 * Which digits of its answer have been filled by previous answers, and
 * Which constraints now have all of its clue values known.
 
@@ -240,16 +250,15 @@ Call `check_solution()`, and if it returns `True`, call `show_solution()` and re
 
 1. Find the n-th evaluator in the order we are solving them, as determined above.
 
-1. Calculate a regular expression that matches legal values for this evaluator's clue, taking into account 
-   - squares filled by previously solved clues that intersect this one,
-   - squares that can't contain 0 because they are the first digit of this or another clue, and 
-   - other interesting facts determined by `get_allowed_regexp()`.
+1. Calculate a regular expression that matches legal values for this evaluator's clue.
+   - if a square is part of a previously filled square, it must have the same value
+   - otherwise,  `get_allowed_regexp(location)` gives the legal values for this square.
 
 1. Call `get_letter_values()` to determine all possible values that this evaluator's still unknown variables can take. 
 For each set of possible values for the variables:
     1. Evaluate the expression using the variables and their values.
     1. If the value of the expression is an illegal result, or if the value
-       doesn't match the regular expression, skip these values and try again.
+       doesn't match the regular expression, continue.
     1. If the value of the expression is a value we're already using for a previous evaluator and `not use_duplicates`
        then continue
     1. Check all constraints; if any return False, then continue.
@@ -287,6 +296,8 @@ For example the following two lines force d3 to be a multiple of a1, and force d
     solver.add_constraint(('d1', 'd2', 'd3'),  
         lambda x, y, z: int(x) * int(y) == int(z))
         
+Although it is easier to specify constraints using lambdas, you can also use a function.
+
 Note that the arguments passed to the predicate are strings, and 
 the predicate is responsible for converting them to integers, if necessary.
 The items in the initial tuple can either be a `Clue` or the name of a clue.
@@ -315,18 +326,19 @@ by crossing clues.
 Sometimes, a clue value contains information beyond just its value.
 For example, value must keep track of some particular fact about how it was generated, 
 and other seemingly identical strings might have different information associated with them.
-Python allows the user to subclass string.
+Python lets you subclass `str`, the string type.
 See XXX for an example of how this is done.
 
 Your generators should produce instances of your string subclass rather than integers or normal strings.
 `ConstraintSolver` will never produce new clue values on its own.
 When `check_solution()` and constraints are called you can be assured that all
-clue values, will be your subclass of string, and you can freely treat them as objects of that type.
+clue values, will be your subclass of string, and you can treat them as objects of that type.
 
 #### How it works
 
 For each clue, the generator is called to calculate the set of all possible answers for that clue.
- This list of clues is filtered by taking into account `is_zero_allowed()` and `get_allowed_regexp()` for each location, thereby ensuring that there are no zeros where they aren't allowed.
+ This list of clues is filtered by taking into account `get_allowed_regexp()` for each location, thereby ensuring that there are no zeros where they aren't allowed.  
+ (The constraint solver will handle eliminating values with a badly placed zero.  You do not need to deal with that.)
 
 The following recursive algorithm is then followed.
 We have as input a dictionary of clues, and for each clue a set of possible values that the clue can take.
@@ -342,13 +354,12 @@ If there is still a tie, pick one at random.
 1. If the number of possible values for this clue is zero, then return.
 
 1. For each possible value that this clue can take (the "current value"), do the following:
-   1. If this current value is a duplicate, continue.
+   1. If this current value is a duplicate and duplicates are not allowed, continue.
    
    1. Look at all constraints associated with this clue.
    For any constraint that has all but one clue assigned a value, restrict that clue
-   to only have values that satisfy the constraint.
-   Continue to the next "current value"
-   if some constraint yields the empty set.
+   so that it only has values that satisfy the constraint.  
+   If no value satisfies the contraint, then continue to the next "current value"
    
    1. Create a dictionary that is a copy of the current dictionary except:
       * The current clue is removed as a key

@@ -64,6 +64,7 @@ def max_prime_factor(value: int) -> int:
     return max(x for x in PRIMES if x <= value and value % x == 0)
 
 
+# 4a: Sum of first four digits is a square; sum of last four digits is a square; digit sum is a palindrome
 def handle_4a(_: Clue) -> Iterator[str]:
     sum_of_four = defaultdict(list)
     for i, j, k, l in itertools.product(range(16), repeat=4):
@@ -78,6 +79,7 @@ def handle_4a(_: Clue) -> Iterator[str]:
     return result
 
 
+# 15a: One prime factor is a two-digit palindrome; both the fi st and fourth digits are twice the second.
 def handle_15a(_: Clue) -> Iterator[str]:
     for i in range(1, 8):
         for j in range(16):
@@ -87,6 +89,7 @@ def handle_15a(_: Clue) -> Iterator[str]:
                     yield ix(temp)
 
 
+# Ea: One more than the sum of two even cubes; contains the same digit three times.
 # noinspection PyPep8
 def handle_Ea(_: Clue) -> Iterator[str]:
     # The sum of two even cubes is the same as 8 times the sum of two cubes
@@ -97,7 +100,14 @@ def handle_Ea(_: Clue) -> Iterator[str]:
                 yield value
 
 
+# 7d Reverse of one more than twice a cube
+def handle_7d(_: Clue) -> Iterable[str]:
+    # Note that 10 is probably a little bit too much, but that's okay.  Wrong length values get filtered out
+    return [ix(2 * i * i * i + 1)[::-1] for i in range(1, 10)]
+
+
 def fixed(items: Iterable[int]) -> ClueValueGenerator:
+    """Converts a list of items into a Clue"""
     def generator(clue: Clue) -> Iterable[str]:
         min_value, max_value = generators.get_min_max(clue)
         return [ix(item) for item in items if min_value <= item < max_value]
@@ -109,10 +119,6 @@ def all_values(clue: Clue) -> Iterable[str]:
     return [ix(value) for value in range(min_value, max_value)]
 
 
-def handle_7d(_: Clue) -> Iterable[str]:
-    return [ix(2 * i * i * i + 1)[::-1] for i in range(1, 10)]
-
-
 def reverse_delta(delta: int) -> Callable[[ClueValue, ClueValue], bool]:
     return lambda x, y: x == ix(xi(y) + delta)[::-1]
 
@@ -120,6 +126,7 @@ def reverse_delta(delta: int) -> Callable[[ClueValue, ClueValue], bool]:
 ACROSS: Sequence[Tuple[str, int, Optional[ClueValueGenerator]]] = (
     ('4', 8, handle_4a),
     ('A', 4, None),
+    # Ca: Twice a cube.
     ('C', 2, fixed(2 * x for x in CUBES)),
     ('E', 4, handle_Ea),
     ('11', 3, None),
@@ -129,23 +136,31 @@ ACROSS: Sequence[Tuple[str, int, Optional[ClueValueGenerator]]] = (
 )
 
 DOWN: Sequence[Tuple[str, int, Optional[ClueValueGenerator]]] = (
+    # 1d: Has two cubed as a factor; ....
     ('1', 2, fixed(range(0x10, 0xFF, 8))),
+    # 2d: Digit sum is a cube; largest prime factor is the difference between two cubes.
     ('2', 2, fixed(i for i in range(0x10, 0x100)
                    if digit_sum(ix(i)) in CUBES and max_prime_factor(i) in TWO_CUBES_DELTA)),
     ('3', 2, None),
     ('5', 2, None),
     ('6', 2, None),
     ('7', 2, handle_7d),
+    # 8d: Has the number of faces on a cube as a factor; smallest answer in the puzzle
     ('8', 2, fixed(range(6, 0x100, 6))),
     ('9', 2, None),
     ('A', 3, None),
+    # Bd: Difference between two cubes
     ('B', 2, fixed(TWO_CUBES_DELTA)),
+    # Cd: Four less than a cube
     ('C', 2, fixed(x - 4 for x in CUBES)),
+    # Dd: ... digit sum is a square
     ('D', 2, fixed(x for x in range(0x10, 0x100) if digit_sum(ix(x)) in SQUARES)),
     ('F', 2, None),
     ('10', 3, None),
+    # 12d: Two less than the sum of two cubes:
     ('12', 3, fixed(x - 2 for x in TWO_CUBES_SUM)),
     ('14', 3, None),
+    # 16d: Twice a cube
     ('16', 2, fixed(2 * x for x in CUBES)),
     ('18', 2, None)
 )
@@ -165,26 +180,42 @@ def make_clue_list() -> Sequence[Clue]:
 class MySolver(ConstraintSolver):
     def __init__(self, clue_list: Sequence[Clue]) -> None:
         super().__init__(clue_list)
+        # Aa: Difference between two cubes plus the difference between Cd and 8d
         self.add_constraint(('Aa', 'Cd', '8d'),
                             lambda x, y, z: xi(x) - (xi(y) - xi(z)) in TWO_CUBES_DELTA)  # this = TCD + (Cd - 8d)
+        # 11a: Same digit sum as 13a
         self.add_constraint(('11a', '13a'), lambda x, y: digit_sum(x) == digit_sum(y))
+        # 13a: Sum of 11a, 8d and Bd
         self.add_constraint(('13a', '11a', '8d', 'Bd'), lambda a, x, y, z: xi(a) == xi(x) + xi(y) + xi(z))
+        # 17a: Bd cubed minus(a third of 8d) cubed minus 8d
         self.add_constraint(('17a', 'Bd', '8d'), lambda a, x, y: xi(a) == xi(x)**3 - (xi(y) // 3) ** 3 - xi(y))
+        # 1d: ... has same largest prime factor as 7d
         self.add_constraint(('1d', '7d'), lambda x, y: max_prime_factor(xi(x)) == max_prime_factor(xi(y)))
+        # 3d: Reverse of one more than 2d
         self.add_constraint(('3d', '2d'), lambda x, y: x == ix(xi(y) + 1)[::-1])
+        # 5d: Reverse of two more than Cd
         self.add_constraint(('5d', 'Cd'), lambda x, y: x == ix(xi(y) + 2)[::-1])
+        # 6d: 1d plus a cube
         self.add_constraint(('6d', '1d'), lambda x, y: xi(x) - xi(y) in CUBES)
+        # 8d: ... smallest answer in the puzzle
         for clue in self._clue_list:
             if clue.name != '8d' and clue.length == 2:
                 self.add_constraint(('8d', clue), lambda x, y: xi(x) < xi(y), name=f'8d < {clue.name}')
+        # 9d: Sum of 8d and Fd
         self.add_constraint(('9d', '8d', 'Fd'), lambda x, y, z: xi(x) == xi(y) + xi(z))
+        # Ad: Cube minus Ca minus Cd (3)
         self.add_constraint(('Ad', 'Ca', 'Cd'), lambda x, y, z: xi(x) + xi(y) + xi(z) in CUBES)
+        # Dd: 8d plus a cube; ...
         self.add_constraint(('Dd', '8d'), lambda x, y: xi(x) - xi(y) in CUBES)
+        # Fd: Reverse of one less than 16d
         self.add_constraint(('Fd', '16d'), lambda x, y: x == ix(xi(y) - 1)[::-1])
+        # 10d: Sum of 3d, 6d, Ad and 16d
         self.add_constraint(('10d', '3d', '6d', 'Ad', '16d'),
                             lambda a, w, x, y, z: xi(a) == xi(w) + xi(x) + xi(y) + xi(z))
+        # 14d: Sum of Ca, 5d, 9d and Ad
         self.add_constraint(('14d', 'Ca', '5d', '9d', 'Ad'),
                             lambda a, w, x, y, z: xi(a) == xi(w) + xi(x) + xi(y) + xi(z))
+        # 18d: Difference between 9d and 7d
         self.add_constraint(('18d', '9d', '7d'), lambda x, y, z: xi(x) == xi(y) - xi(z))
 
 
