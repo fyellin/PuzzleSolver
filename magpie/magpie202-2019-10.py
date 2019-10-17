@@ -223,6 +223,7 @@ class MySolver(ConstraintSolver):
                   location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
                   top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
 
+        location_to_clue_number = {clue.base_location: clue.name[0:-1] for clue in self._clue_list}
         super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number, top_bars,
                           left_bars, **more_args)
 

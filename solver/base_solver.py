@@ -5,10 +5,10 @@ from abc import ABC, abstractmethod
 from collections import Counter, OrderedDict
 from typing import FrozenSet, Sequence, Any, Dict, Set, Tuple, Mapping
 
-from solver.draw_grid import draw_grid
 from .clue import Clue
 from .clue import Location
 from .clue_types import ClueValue
+from .draw_grid import draw_grid
 
 
 class BaseSolver(ABC):
@@ -145,6 +145,7 @@ class BaseSolver(ABC):
                   top_bars: Set[Location],
                   left_bars: Set[Location],
                   **more_args: Any) -> None:
+        """Override this method if you need to intercept the call to the draw_grid() function."""
         draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
                   top_bars, left_bars, **more_args)
 
