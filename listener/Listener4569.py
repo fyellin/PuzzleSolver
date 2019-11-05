@@ -117,7 +117,7 @@ def create_clue_list() -> Sequence[Clue]:
             if suffix == 'd':
                 location_list = [(row + i, column) for i in range(length)]
             elif suffix == 't':
-                location_list =  [(row + 4 * i, column) for i in range(length)]
+                location_list = [(row + 4 * i, column) for i in range(length)]
             elif suffix == 'a':
                 temp = [(row, column + i) for i in range(length)]
                 location_list = [(row + ((column - 1) // 4) * 4, ((column - 1) % 4) + 1) for (row, column) in temp]

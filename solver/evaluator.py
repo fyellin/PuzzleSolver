@@ -27,7 +27,9 @@ class Evaluator (NamedTuple):
     @classmethod
     def make1(cls, expression: str) -> Evaluator:
         expression_ast: Any = ast.parse(expression.strip(), mode='eval')
-        variables = sorted({Letter(node.id) for node in ast.walk(expression_ast) if isinstance(node, ast.Name)})
+        variables = sorted({Letter(node.id) for node in ast.walk(expression_ast)
+                            if isinstance(node, ast.Name) and len(node.id) == 1
+                            })
         code = f"""
         def result(value_dict):
             ({", ".join(variables)}) = ({", ".join(f'value_dict["{v}"]' for v in variables)})

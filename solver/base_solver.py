@@ -133,8 +133,7 @@ class BaseSolver(ABC):
                     else:
                         location_to_entry[location] = value
             # These are internal locations of an answer, so a heavy bar isn't needed.
-            (left_bars if clue.is_across else top_bars).difference_update(
-                (clue.location(i) for i in range(1, clue.length)))
+            (left_bars if clue.is_across else top_bars).difference_update(clue.locations[1:])
 
         self.draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
                        top_bars, left_bars, **more_args)

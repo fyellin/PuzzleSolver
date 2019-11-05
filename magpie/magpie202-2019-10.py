@@ -1,6 +1,6 @@
 import itertools
 from collections import defaultdict
-from typing import Iterable, Sequence, Dict, Any, Set, Iterator, Callable, Optional, Tuple
+from typing import Iterable, Sequence, Dict, Any, Set, Iterator, Callable, Optional, Tuple, List
 
 from solver import Clue, Clues, ClueValueGenerator, ClueValue, ConstraintSolver, Location, generators
 
@@ -65,12 +65,12 @@ def max_prime_factor(value: int) -> int:
 
 
 # 4a: Sum of first four digits is a square; sum of last four digits is a square; digit sum is a palindrome
-def handle_4a(_: Clue) -> Iterator[str]:
-    sum_of_four = defaultdict(list)
+def handle_4a(_: Clue) -> Iterable[str]:
+    sum_of_four: Dict[int, List[str]] = defaultdict(list)
     for i, j, k, l in itertools.product(range(16), repeat=4):
         if i + j + k + l in SQUARES:
             sum_of_four[i + j + k + l].append(ix(i) + ix(j) + ix(k) + ix(l))
-    result = []
+    result: List[str] = []
     for a in sorted(sum_of_four.keys()):
         for b in sorted(sum_of_four.keys()):
             if (a + b) % 17 == 0:
@@ -180,6 +180,7 @@ def make_clue_list() -> Sequence[Clue]:
 class MySolver(ConstraintSolver):
     def __init__(self, clue_list: Sequence[Clue]) -> None:
         super().__init__(clue_list)
+
         # Aa: Difference between two cubes plus the difference between Cd and 8d
         self.add_constraint(('Aa', 'Cd', '8d'),
                             lambda x, y, z: xi(x) - (xi(y) - xi(z)) in TWO_CUBES_DELTA)  # this = TCD + (Cd - 8d)
@@ -192,9 +193,9 @@ class MySolver(ConstraintSolver):
         # 1d: ... has same largest prime factor as 7d
         self.add_constraint(('1d', '7d'), lambda x, y: max_prime_factor(xi(x)) == max_prime_factor(xi(y)))
         # 3d: Reverse of one more than 2d
-        self.add_constraint(('3d', '2d'), lambda x, y: x == ix(xi(y) + 1)[::-1])
+        self.add_constraint(('3d', '2d'), reverse_delta(1))
         # 5d: Reverse of two more than Cd
-        self.add_constraint(('5d', 'Cd'), lambda x, y: x == ix(xi(y) + 2)[::-1])
+        self.add_constraint(('5d', 'Cd'), reverse_delta(2))
         # 6d: 1d plus a cube
         self.add_constraint(('6d', '1d'), lambda x, y: xi(x) - xi(y) in CUBES)
         # 8d: ... smallest answer in the puzzle
@@ -208,7 +209,7 @@ class MySolver(ConstraintSolver):
         # Dd: 8d plus a cube; ...
         self.add_constraint(('Dd', '8d'), lambda x, y: xi(x) - xi(y) in CUBES)
         # Fd: Reverse of one less than 16d
-        self.add_constraint(('Fd', '16d'), lambda x, y: x == ix(xi(y) - 1)[::-1])
+        self.add_constraint(('Fd', '16d'), reverse_delta(-1))
         # 10d: Sum of 3d, 6d, Ad and 16d
         self.add_constraint(('10d', '3d', '6d', 'Ad', '16d'),
                             lambda a, w, x, y, z: xi(a) == xi(w) + xi(x) + xi(y) + xi(z))

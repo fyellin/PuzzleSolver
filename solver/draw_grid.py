@@ -18,7 +18,7 @@ def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
     if _axes:
         axes = cast(Axes, _axes)
     else:
-        _, axes = plt.subplots(1, 1, figsize=(11, 8), dpi=100)
+        _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
 
     shading = cast(Dict[Location, str], more_args.get('shading', {}))
     rotation = cast(Dict[Location, int], more_args.get('rotations', {}))

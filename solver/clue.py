@@ -19,6 +19,7 @@ class Clue:
     context: Any
     locations: Sequence[Location]
     location_set:  FrozenSet[Location]
+    expression: str
 
     def __init__(self, name: str, is_across: bool, base_location: Location, length: int, *,
                  expression: str = '',
@@ -39,10 +40,14 @@ class Clue:
             else:
                 self.locations = tuple((row + i, column) for i in range(length))
         if expression:
-            python_pieces = Clue.__convert_expression_to_python(expression)
+            if not expression.startswith('@'):
+                python_pieces = Clue.__convert_expression_to_python(expression)
+            else:
+                python_pieces = expression[1:],
             self.evaluators = tuple(Evaluator.make(piece) for piece in python_pieces)
         else:
             self.evaluators = ()
+        self.expression = expression or ''
         self.generator = generator
         self.context = context
         self.location_set = frozenset(self.locations)

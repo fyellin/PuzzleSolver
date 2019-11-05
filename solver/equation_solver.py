@@ -1,4 +1,5 @@
 import itertools
+from collections import Counter, defaultdict
 from datetime import datetime
 from operator import itemgetter
 from typing import Dict, NamedTuple, Sequence, Callable, Pattern, Any, List, Iterable, Set, Tuple, Union, Optional
@@ -11,7 +12,14 @@ from .intersection import Intersection
 
 KnownLetterDict = Dict[Letter, int]
 KnownClueDict = Dict[Clue, ClueValue]
-ClueInfo = Tuple[Clue, Evaluator, Set[Letter], List[Intersection], Set[Location]]
+
+
+class ClueInfo(NamedTuple):
+    clue: Clue
+    evaluator: Evaluator
+    unbound_letters: Set[Letter]
+    intersections: List[Intersection]
+    known_locations: Set[Location]
 
 
 class SolvingStep(NamedTuple):
@@ -77,10 +85,10 @@ class EquationSolver(BaseSolver):
         twin_value = self._known_clues.get(clue, None)  # None if not a twin, twin's value if it is.
         pattern = pattern_maker(self._known_clues)
         if self._debug:
-            print(f'{" | " * current_index} {clue.name} length={clue_letters} pattern="{pattern.pattern}"')
+            print(f'{" | " * current_index} {clue.name} letters={clue_letters} pattern="{pattern.pattern}"')
 
         try:
-            for next_letter_values in self.get_letter_values(self._known_letters, len(clue_letters)):
+            for next_letter_values in self.get_letter_values(self._known_letters, clue_letters):
                 self._step_count += 1
                 for letter, value in zip(clue_letters, next_letter_values):
                     self._known_letters[letter] = value
@@ -112,18 +120,47 @@ class EquationSolver(BaseSolver):
     def _get_solving_order(self) -> Sequence[SolvingStep]:
         """Figures out the best order to solve the various clues."""
         result: List[SolvingStep] = []
-        not_yet_ordered: Dict[Any, ClueInfo] = {
-            # co_names are the unbound variables in the compiled expression: exactly what we want!
-            evaluator: (clue, evaluator, set(evaluator.vars), [], set())
+        # The number of times each letter appears
+        letter_count = Counter(letter for clue in self._clue_list
+                               for evaluator in clue.evaluators
+                               for letter in evaluator.vars)
+        not_yet_ordered: Dict[Evaluator, ClueInfo] = {
+            evaluator: ClueInfo(clue, evaluator, set(evaluator.vars), [], set())
             for clue in self._clue_list for evaluator in clue.evaluators
         }
         constraints = [(callable, set(clues)) for clues, callable in self._all_constraints]
 
         def grading_function(clue_info: ClueInfo) -> Sequence[float]:
-            (clue, _, letters, _, locations) = clue_info
-            return -len(letters), len(locations) / clue.length, clue.length
+            letters = frozenset(clue_info.unbound_letters)
+            clue_length = clue_info.clue.length
+            return (-len(letters),
+                    len(clue_info.known_locations) / clue_length, clue_length,
+                    unbound_letters_to_clue_count[letters],
+                    unbound_letters_to_letter_count[letters])
 
         while not_yet_ordered:
+            unbound_letters_to_clue_count = Counter(frozenset(clueinfo.unbound_letters)
+                                                     for clueinfo in not_yet_ordered.values())
+            # unbound_letters_to_clue_infos = defaultdict(list)
+            # for clue_info in not_yet_ordered.values():
+            #     unbound_letters_to_clue_infos[frozenset(clue_info.unbound_letters)].append(clue_info)
+            # unbound_letters_to_clue_count = {
+            #     letters: len(clue_infos) for letters, clue_infos in unbound_letters_to_clue_infos.items()
+            # }
+            unbound_letters_to_letter_count = {
+                letters: sum(letter_count[letter] for letter in letters)
+                for letters in unbound_letters_to_clue_count
+            }
+            # unbound_letters_to_clue_locations = {
+            #     letters: len({location for clue_info in clue_infos for location in clue_info.clue.locations })
+            #     for letters, clue_infos in unbound_letters_to_clue_infos.items()
+            # }
+            # unbound_letters_to_known_clue_locations = {
+            #     letters: len({location for clue_info in clue_infos for location in clue_info.known_locations })
+            #     for letters, clue_infos in unbound_letters_to_clue_infos.items()
+            # }
+
+            # For each set of not-yet-bound letters, determine the total number of letters in those clues
             clue, evaluator, unknown_letters, intersections, _ = max(not_yet_ordered.values(), key=grading_function)
             not_yet_ordered.pop(evaluator)
             pattern = Intersection.make_pattern_generator(clue, intersections, self)
@@ -141,13 +178,17 @@ class EquationSolver(BaseSolver):
                 other_intersections += new_intersections
                 other_locations.update(intersection.get_location() for intersection in new_intersections)
         assert not constraints
+        if self._debug:
+            for item in result:
+                print(item.clue, item.letters)
         return tuple(result)
 
-    def get_letter_values(self, known_letters: KnownLetterDict, count: int) -> Iterable[Sequence[int]]:
+    def get_letter_values(self, known_letters: KnownLetterDict, letters: Sequence[str]) -> Iterable[Sequence[int]]:
         """
         Returns the values that can be assigned to the next "count" variables.  We know that we have already assigned
         values to the variables indicated in known_letters.
         """
+        count = len(letters)
         if count == 0:
             yield ()
             return
