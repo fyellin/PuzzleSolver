@@ -214,6 +214,17 @@ You must override this method if the puzzle uses something more complicated than
 "each variable must get a distinct value from the list passed as the `item=` argument". 
 See Magpie195 for an example.
 
+* `make_pattern_generator()` is called once for each clue once we know the order in which the clues are going to be
+evaluated (see below).  Given a clue and the intersections of this clue with other clues whose values have already
+been assigned, it returns a function.  Later, that calculated function is called with a dictionary containing the
+actual values of those other clues, and it should return a regexp Pattern.  That pattern should only match a potential
+value for the clue argument if:
+    1. It has the right length.
+    1. It has the right value in the specified intersections.
+    1. It has a legal value in the locations of the clue that are not intersections. See `get_allowed_regexp()`. 
+In some rare puzzles, the value going into the grid is not actually the value of the expression.  You should generate
+the best regular expression you can, given these constraints. 
+
 The solver is run by calling `solver.run()`.
 Information about the steps the solver is performing can
 be seen by adding the arguemnt `debug=True`.

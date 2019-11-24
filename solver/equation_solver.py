@@ -1,5 +1,5 @@
 import itertools
-from collections import Counter, defaultdict
+from collections import Counter
 from datetime import datetime
 from operator import itemgetter
 from typing import Dict, NamedTuple, Sequence, Callable, Pattern, Any, List, Iterable, Set, Tuple, Union, Optional
@@ -68,14 +68,14 @@ class EquationSolver(BaseSolver):
         time1 = datetime.now()
         self._solving_order = self._get_solving_order()
         time2 = datetime.now()
-        self.__solve(0)
+        self._solve(0)
         time3 = datetime.now()
         if show_time:
             print(f'Solutions {self._solution_count}; steps: {self._step_count}; '
                   f'Setup: {time2 - time1}; Execution: {time3 - time2}; Total: {time3 - time1}')
         return self._solution_count
 
-    def __solve(self, current_index: int) -> None:
+    def _solve(self, current_index: int) -> None:
         if current_index == len(self._solving_order):
             if self.check_solution(self._known_clues, self._known_letters):
                 self.show_solution(self._known_clues, self._known_letters)
@@ -109,7 +109,7 @@ class EquationSolver(BaseSolver):
                     print(f'{" | " * current_index} {clue.name} {clue_letters} '
                           f'{next_letter_values} {clue_value} ({clue.length}): -->')
 
-                self.__solve(current_index + 1)
+                self._solve(current_index + 1)
 
         finally:
             for letter in clue_letters:
@@ -163,7 +163,7 @@ class EquationSolver(BaseSolver):
             # For each set of not-yet-bound letters, determine the total number of letters in those clues
             clue, evaluator, unknown_letters, intersections, _ = max(not_yet_ordered.values(), key=grading_function)
             not_yet_ordered.pop(evaluator)
-            pattern = Intersection.make_pattern_generator(clue, intersections, self)
+            pattern = self.make_pattern_generator(clue, intersections)
             for _, clues in constraints:
                 clues.discard(clue)
             # Pull out the constraints that we've now got solutions to all of its clues.
@@ -182,6 +182,23 @@ class EquationSolver(BaseSolver):
             for item in result:
                 print(item.clue, item.letters)
         return tuple(result)
+
+    def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
+            Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
+        """
+        This function takes a clue and the intersections of this clue with other clues whose values are already
+        known when we assign a value to this clue.  It returns a function.
+
+        That returned function, when passed a dictionary containing the actual values of those clues, returns a
+        regular expression.  This regular expression is used to determine if a potential value for "clue" matches.
+        It should only match if (1) it is the right length, (2) it has the right value in the specified intersections,
+        and (3) it matches the regexp specified by solver.get_allowed_regexp() for those locations that aren't one
+        of the specified intersections.  Typically, (3) is used to prevent a zero from appearing in a location that is
+        the start of a clue.
+
+        By default, we just call Intersection.make_pattern_generator().  But some implementations may override this.
+        """
+        return Intersection.make_pattern_generator(clue, intersections, self)
 
     def get_letter_values(self, known_letters: KnownLetterDict, letters: Sequence[str]) -> Iterable[Sequence[int]]:
         """
