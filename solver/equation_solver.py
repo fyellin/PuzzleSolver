@@ -97,7 +97,7 @@ class EquationSolver(BaseSolver):
                     if clue_value != twin_value:
                         continue
                 else:
-                    if not (clue_value and pattern.match(clue_value)):
+                    if not (clue_value and pattern.fullmatch(clue_value)):
                         continue
                     if not self._allow_duplicates and clue_value in self._known_clues.values():
                         continue
@@ -140,7 +140,7 @@ class EquationSolver(BaseSolver):
 
         while not_yet_ordered:
             unbound_letters_to_clue_count = Counter(frozenset(clueinfo.unbound_letters)
-                                                     for clueinfo in not_yet_ordered.values())
+                                                    for clueinfo in not_yet_ordered.values())
             # unbound_letters_to_clue_infos = defaultdict(list)
             # for clue_info in not_yet_ordered.values():
             #     unbound_letters_to_clue_infos[frozenset(clue_info.unbound_letters)].append(clue_info)
@@ -186,15 +186,17 @@ class EquationSolver(BaseSolver):
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
             Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
         """
-        This function takes a clue and the intersections of this clue with other clues whose values are already
+        This method takes a clue and the intersections of this clue with other clues whose values are already
         known when we assign a value to this clue.  It returns a function.
 
-        That returned function, when passed a dictionary containing the actual values of those clues, returns a
-        regular expression.  This regular expression is used to determine if a potential value for "clue" matches.
-        It should only match if (1) it is the right length, (2) it has the right value in the specified intersections,
-        and (3) it matches the regexp specified by solver.get_allowed_regexp() for those locations that aren't one
-        of the specified intersections.  Typically, (3) is used to prevent a zero from appearing in a location that is
-        the start of a clue.
+        That returned function, when passed a dictionary containing those clues and their actual values, returns a
+        regular expression.  This regular expression should be used to determine if a potential value for "clue" is
+        legal using pattern.fullmatch(value).  The value should only fully match the pattern if:
+           (1) it is the right length,
+           (2) it has the right value in the locations specified by the intersections,
+           (3) it has a legal value in the locations that are not specified by the intersections, as specified by
+                solver.get_allowed_regp()
+        Typically, condition #3 is used to prevent a zero from appearing in a location that is the start of a clue.
 
         By default, we just call Intersection.make_pattern_generator().  But some implementations may override this.
         """
@@ -237,6 +239,9 @@ class EquationSolver(BaseSolver):
 
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
         self.plot_board(known_clues)
+        self.show_letter_values(known_letters)
+
+    def show_letter_values(self, known_letters):
         max_length = max(len(str(i)) for i in known_letters.values())
         print()
         pairs = [(letter, value) for letter, value in known_letters.items()]

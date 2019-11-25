@@ -40,18 +40,19 @@ class Intersection(NamedTuple):
     def make_pattern_generator(clue: Clue, intersections: Sequence[Intersection], solver: BaseSolver) -> \
             Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
         """
-        This function takes a clue and the intersections of this clue with other clues whose values are already
+        This method takes a clue and the intersections of this clue with other clues whose values are already
         known when we assign a value to this clue.  It returns a function.
 
-        That returned function, when passed a dictionary containing the actual values of those clues, returns a
-        regular expression.  This regular expression is used to determine if a potential value for "clue" matches.
-        It should only match if (1) it is the right length, (2) it has the right value in the specified intersections,
-        and (3) it matches the regexp specified by solver.get_allowed_regexp() for those locations that aren't one
-        of the specified intersections.  Typically, (3) is used to prevent a zero from appearing in a location that is
-        the start of a clue.
+        That returned function, when passed a dictionary containing those clues and their actual values, returns a
+        regular expression.  This regular expression should be used to determine if a potential value for "clue" is
+        legal using pattern.fullmatch(value).  The value should only fully match the pattern if:
+           (1) it is the right length,
+           (2) it has the right value in the locations specified by the intersections,
+           (3) it has a legal value in the locations that are not specified by the intersections, as specified by
+                solver.get_allowed_regp()
+        Typically, condition #3 is used to prevent a zero from appearing in a location that is the start of a clue.
         """
         pattern_list = [solver.get_allowed_regexp(location) for location in clue.locations]
-        pattern_list.append('$')
 
         if not intersections:
             # There are no intersections.  We just return a function that generates our pattern.
@@ -63,23 +64,15 @@ class Intersection(NamedTuple):
         # {0}, {1}, etc represent the order the items appear in the  "intersections" argument, not necessarily
         # the order that they appear in the pattern.  format can handle that.
         seen_list: List[Optional[Intersection]] = [None] * clue.length
-        # If two intersections both refer to the same square, we record them in crashes.
-        crashes: List[Intersection] = []
         for i, intersection in enumerate(intersections):
             square_seen_already = seen_list[intersection.this_index]
             if not square_seen_already:
                 pattern_list[intersection.this_index] = f'{{{i}:s}}'
                 seen_list[intersection.this_index] = intersection
-            else:
-                one_crash = Intersection(intersection.other_clue, intersection.other_index,
-                                         square_seen_already.other_clue, square_seen_already.other_index)
-                crashes.append(one_crash)
 
         pattern_format = ''.join(pattern_list)
 
         def getter(known_clues: Dict[Clue, ClueValue]) -> Pattern[str]:
-            for (clue1, clue1_index, clue2, clue2_index) in crashes:
-                assert known_clues[clue1][clue1_index] == known_clues[clue2][clue2_index]
             args = (known_clues[x.other_clue][x.other_index] for x in intersections)
             regexp = pattern_format.format(*args)
             return re.compile(regexp)

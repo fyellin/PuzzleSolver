@@ -9,9 +9,9 @@ The first solver is needed just to generate a list of numbers.  It has two speci
 import functools
 import itertools
 import re
-from typing import Dict, Sequence, Set, Iterable, Any
+from typing import Sequence, Iterable, Callable, Dict, Pattern
 
-from solver import Clue, ClueValue, ConstraintSolver, EquationSolver, Location
+from solver import Clue, ClueValue, ConstraintSolver, EquationSolver, Intersection
 from solver import generators
 # 6  4s
 # 14 5s
@@ -49,7 +49,8 @@ CLUE_DATA = """
 27 7 (T – E – N)QQQQQ
 28 7 (S – A)NNNNN
 29 7 (TJ + E)(SHA + RE)(SHA + RE)
-30 7 (L – S)DDDDD"""
+30 7 (L – S)DDDDD
+"""
 
 
 def make_clue_list(info: str) -> Sequence[Clue]:
@@ -59,7 +60,8 @@ def make_clue_list(info: str) -> Sequence[Clue]:
             continue
         match = re.fullmatch(r'(\d+) (\d) (.*)', line)
         assert match
-        clue = Clue(match.group(1), True, (int(match.group(1)), 1), int(match.group(2)), expression=match.group(3))
+        # We don't care about the location.  We just care about the length
+        clue = Clue(match.group(1), True, (1, 1), int(match.group(2)), expression=match.group(3))
         clues.append(clue)
     return clues
 
@@ -90,7 +92,13 @@ def is_legal_value(clue_value: ClueValue) -> bool:
         return temp in squares_set
 
 
-class Magpie146Solver(EquationSolver):
+class OuterSolver(EquationSolver):
+    @staticmethod
+    def run() -> None:
+        clue_list = make_clue_list(CLUE_DATA)
+        solver = OuterSolver(clue_list)
+        solver.solve()
+
     def __init__(self, clues: Sequence[Clue]):
         super().__init__(clues, items=range(1, 27))
         for clue in clues:
@@ -100,21 +108,16 @@ class Magpie146Solver(EquationSolver):
             if clue1.length == clue2.length:
                 self.add_constraint((clue1, clue2), lambda x, y: int(x) < int(y))
 
+    def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
+            Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
+        pattern_string = f'.{{{clue.length}}}'   # e.g.  r'.{5}' if clue.length == 5.
+        pattern = re.compile(pattern_string)
+        return lambda _: pattern
+
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
-        super().show_solution(known_clues, known_letters)
+        super().show_letter_values(known_letters)
         answers = tuple(known_clues.values())
-        run2(answers)
-
-    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
-                  location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
-                  top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
-        pass
-
-
-def run() -> None:
-    clue_list = make_clue_list(CLUE_DATA)
-    solver = Magpie146Solver(clue_list)
-    solver.solve()
+        InnerSolver.run(answers)
 
 
 ACROSS = [(11, 5), (16, 5), (21, 4), (25, 5), (34, 7), (41, 5), (55, 6), (61, 6), (76, 5), (81, 7),
@@ -123,20 +126,22 @@ DOWN = [(11, 5), (12, 4), (13, 7), (15, 4), (16, 5), (17, 6), (19, 6), (20, 5), 
         (54, 6), (61, 5), (65, 5), (70, 5), (76, 4), (79, 4)]
 
 
-def run2(entries: Sequence[ClueValue]) -> None:
-    def generator(a_clue: Clue) -> Iterable[str]:
-        return (entry for entry in entries if len(entry) == a_clue.length)
+class InnerSolver(ConstraintSolver):
+    @staticmethod
+    def run(entries: Sequence[ClueValue]) -> None:
+        def generator(a_clue: Clue) -> Iterable[str]:
+            return (entry for entry in entries if len(entry) == a_clue.length)
 
-    clues = []
-    for suffix, is_across, clue_info in (('a', True, ACROSS), ('d', False, DOWN)):
-        for xy, length in clue_info:
-            q, r = divmod(xy - 11, 10)
-            clue = Clue(f'{xy}{suffix}', is_across, (q + 1, r + 1), length, generator=generator)
-            clues.append(clue)
-    solver = ConstraintSolver(clues)
-    solver.solve()
+        clues = []
+        for suffix, is_across, clue_info in (('a', True, ACROSS), ('d', False, DOWN)):
+            for xy, length in clue_info:
+                q, r = divmod(xy - 11, 10)
+                clue = Clue(f'{xy}{suffix}', is_across, (q + 1, r + 1), length, generator=generator)
+                clues.append(clue)
+        solver = InnerSolver(clues)
+        solver.solve()
 
 
 if __name__ == '__main__':
-    run()
+    OuterSolver.run()
 

@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Set, Any, Sequence, Pattern, cast, Callable, List
+from typing import Dict, Set, Any, Sequence, Pattern, Callable, List
 from os.path import commonprefix
 
 from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
@@ -83,14 +83,14 @@ class OuterSolver(EquationSolver):
     # that is either 1 or 2 less than clue.length.  The values of already known clues and intersections is irrelevant
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
             Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
-        pattern_list = ('.' * (clue.length - 2)) + ".?$"
-        pattern = re.compile(pattern_list)
+        pattern_string = f'.{{{clue.length - 2}}}.?'   # e.g.  r'.{3}.?' if clue.length == 5.
+        pattern = re.compile(pattern_string)
         return lambda _: pattern
 
     # Normally, this method is called to show the solution.  We want it to call the other solver with what we know
     # now are the values.
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
-        print(known_letters)
+        self.show_letter_values(known_letters)
         InnerSolver.run(self._clue_list, known_clues, known_letters)
 
 
@@ -108,9 +108,9 @@ class InnerSolver(ConstraintSolver):
         # For testing this class on its own, without needing OuterSolver
         locations = Clues.get_locations_from_grid(GRID)
         clue_list = Clues.create_from_text(ACROSS, DOWN, locations)
-        letter_values = cast(Dict[Letter, int],
-                             {'A': 11, 'R': 8, 'T': 9, 'E': 2, 'N': 4, 'L': 7, 'S': 3, 'H': 1, 'G': 6, 'D': 10, 'I': 5})
-        # get the values of the clues
+        solution = {'H': 1, 'E': 2, 'S': 3, 'N': 4,  'I': 5, 'G': 6, 'L': 7, 'R': 8, 'T': 9, 'D': 10, 'A': 11,}
+        letter_values = {Letter(letter): value for letter, value in solution.items()}
+        # Evaluate each of the clues
         clue_values = {clue: clue.evaluators[0](letter_values) for clue in clue_list}
         solver = InnerSolver(clue_list, clue_values, letter_values)
         solver.solve(debug=False)
@@ -148,8 +148,8 @@ class InnerSolver(ConstraintSolver):
         that we want.
         """
         shading = {}
-        across_inserted_locations = set()
-        down_inserted_locations = set()
+        across_inserted_locations: Set[Location] = set()
+        down_inserted_locations: Set[Location] = set()
         inserted_number: List[int] = []
         for clue in self._clue_list:
             original_clue_value = self.clue_values[clue]
@@ -158,8 +158,8 @@ class InnerSolver(ConstraintSolver):
             delta = len(current_clue_value) - len(original_clue_value)
             start = len(commonprefix((original_clue_value, current_clue_value)))
             if clue.name == '32a':
-                # Unfortunately, this clue ends with "111" and its ambiguous.  THe final digit is an extra part of
-                # 22d, so we have to use the earlier one.
+                # Unfortunately, this clue ends with "111" and it's ambiguous which 11 is extra.  The final digit is an
+                # extra part of 22d, so we have to use the earlier one.
                 start -= 1
             assert original_clue_value == current_clue_value[:start] + current_clue_value[start + delta:]
             inserted_number.append(int(current_clue_value[start:start + delta]))
@@ -181,11 +181,11 @@ class InnerSolver(ConstraintSolver):
                           left_bars, shading=shading, **more_args)
 
         # And just for fun, print the message
-        inverse_map = {value: letter for letter, value in self.letter_values.items()}
-        message = ''.join(inverse_map[i] for i in inserted_number)
+        value_to_letter_map = {value: letter for letter, value in self.letter_values.items()}
+        message = ''.join(value_to_letter_map[i] for i in inserted_number)
         print(message)
 
 
 if __name__ == '__main__':
-    # OuterSolver.run()
-    InnerSolver.test()
+    OuterSolver.run()
+    # InnerSolver.test()
