@@ -3,7 +3,7 @@ import re
 import typing
 from abc import ABC, abstractmethod
 from collections import Counter, OrderedDict
-from typing import FrozenSet, Sequence, Any, Dict, Set, Tuple, Mapping
+from typing import FrozenSet, Sequence, Any, Dict, Set, Tuple, Mapping, Optional
 
 from .clue import Clue
 from .clue import Location
@@ -150,4 +150,4 @@ class BaseSolver(ABC):
                   top_bars, left_bars, **more_args)
 
     @abstractmethod
-    def solve(self, *, show_time: bool = True, debug: bool = False) -> int: ...
+    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int: ...

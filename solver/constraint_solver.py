@@ -19,6 +19,7 @@ class ConstraintSolver(BaseSolver):
     _solution_count: int
     _known_clues: KnownClueDict
     _debug: bool
+    _max_debug_depth: int
     _constraints: Dict[Clue, List[Callable[..., bool]]]
     _all_intersections: Dict[Clue, Sequence[Tuple[Clue, Sequence[Intersection]]]]
 
@@ -45,11 +46,12 @@ class ConstraintSolver(BaseSolver):
         for clue in actual_clues:
             self._constraints[clue].append(check_relationship)
 
-    def solve(self, *, show_time: bool = True, debug: bool = False) -> int:
+    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int:
         self._step_count = 0
         self._solution_count = 0
         self._known_clues = {}
         self._debug = debug
+        self._max_debug_depth = -1 if not debug else (max_debug_depth or 1000)
         time1 = datetime.now()
         initial_unknown_clues = {clue: self.__get_initial_values_for_clue(clue)
                                  for clue in self._clue_list if clue.generator}
@@ -67,14 +69,14 @@ class ConstraintSolver(BaseSolver):
             if self.check_solution(self._known_clues):
                 self.show_solution(self._known_clues)
                 self._solution_count += 1
-                if self._debug:
+                if depth < self._debug:
                     print(f'{"***" * depth}***SOLVED***"')
 
             return
         # find the clue -> values with the smallest possible number of values and the greatest length
         clue, values = min(unknown_clues.items(), key=lambda x: (len(x[1]), -x[0].length, x[0].name))
         if not values:
-            if self._debug:
+            if depth < self._max_debug_depth:
                 print(f'{" | " * depth}{clue.name} XX')
             return
         constraints = self._constraints[clue]
@@ -84,7 +86,7 @@ class ConstraintSolver(BaseSolver):
             self._step_count += len(values)
             for i, value in enumerate(sorted(values)):
                 is_duplicate = not self._allow_duplicates and value in seen_values
-                if self._debug:
+                if depth < self._max_debug_depth:
                     print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: {value} --> '
                           f'{"dup" if is_duplicate else ""}')
                 if is_duplicate:
@@ -105,7 +107,7 @@ class ConstraintSolver(BaseSolver):
                         values2_size = len(values2)
                         for intersection in intersections:
                             values2 = [x for x in values2 if intersection.values_match(value, x)]
-                            if self._debug and len(values2) != values2_size:
+                            if depth < self._max_debug_depth and len(values2) != values2_size:
                                 print(f'{"   " * depth}   {clue2.name} {values2_size} -> {len(values2)} '
                                       f'[{intersection}]')
                                 values2_size = len(values2)
@@ -130,7 +132,7 @@ class ConstraintSolver(BaseSolver):
         clue_generator = cast(ClueValueGenerator, clue.generator)  # we know clue_generator isn't None
         string_values = [(str(x) if isinstance(x, int) else x) for x in clue_generator(clue)]
         result = frozenset([x for x in string_values if pattern.fullmatch(x)])
-        if self._debug:
+        if self._max_debug_depth > 0:
             if len(result) <= 20:
                 print(f'{clue.name}: ({", ".join(sorted(result))})')
             else:
@@ -184,7 +186,7 @@ class ConstraintSolver(BaseSolver):
                 start_value = unknown_clues[clue1]
                 end_value = unknown_clues[clue1] = frozenset(
                     x for x in start_value if clue_filter(x, cast(ClueValue, value2)))
-            if self._debug:
+            if len(self._known_clues) < self._max_debug_depth:
                 self.__debug_show_constraint(unknown_clue, name, start_value, end_value)
             return bool(end_value)
         elif unknown_values_count == 0:
@@ -215,7 +217,7 @@ class ConstraintSolver(BaseSolver):
 
             start_value = unknown_clues[unknown_clue]
             end_value = unknown_clues[unknown_clue] = frozenset(filter(clue_filter_caller, start_value))
-            if self._debug:
+            if len(self._known_clues) < self._max_debug_depth:
                 self.__debug_show_constraint(unknown_clue, name, start_value, end_value)
             return bool(end_value)
         elif unknown_values_count == 0:
@@ -224,6 +226,6 @@ class ConstraintSolver(BaseSolver):
 
     def __debug_show_constraint(self, clue: Clue, constraint_name: str, start_value: FrozenSet[ClueValue],
                                 end_value: FrozenSet[ClueValue]) -> None:
-        if self._debug and len(start_value) != len(end_value):
+        if len(start_value) != len(end_value):
             depth = len(self._known_clues) - 1
             print(f'{"   " * depth}   {clue.name} {len(start_value)} -> {len(end_value)} [{constraint_name}] ')

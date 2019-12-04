@@ -9,5 +9,6 @@ from .equation_solver import EquationSolver
 from .evaluator import Evaluator
 from .generators import ClueValueGenerator
 from .intersection import Intersection
+from .dancing_links import DancingLinks
 
 

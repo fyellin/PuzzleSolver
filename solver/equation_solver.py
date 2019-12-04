@@ -59,7 +59,7 @@ class EquationSolver(BaseSolver):
 
         self._all_constraints.append((actual_clues, check_relationship))
 
-    def solve(self, *, show_time: bool = True, debug: bool = False) -> int:
+    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int:
         self._step_count = 0
         self._solution_count = 0
         self._known_letters = {}
@@ -241,7 +241,8 @@ class EquationSolver(BaseSolver):
         self.plot_board(known_clues)
         self.show_letter_values(known_letters)
 
-    def show_letter_values(self, known_letters):
+    @staticmethod
+    def show_letter_values(known_letters: KnownLetterDict) -> None:
         max_length = max(len(str(i)) for i in known_letters.values())
         print()
         pairs = [(letter, value) for letter, value in known_letters.items()]

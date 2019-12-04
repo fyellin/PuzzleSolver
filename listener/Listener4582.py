@@ -83,7 +83,7 @@ class OuterSolver(EquationSolver):
     # that is either 1 or 2 less than clue.length.  The values of already known clues and intersections is irrelevant
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
             Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
-        pattern_string = f'.{{{clue.length - 2}}}.?'   # e.g.  r'.{3}.?' if clue.length == 5.
+        pattern_string = f'.{{{clue.length - 2},{clue.length - 1}}}'   # e.g.  r'.{3,4}' if clue.length == 5.
         pattern = re.compile(pattern_string)
         return lambda _: pattern
 
