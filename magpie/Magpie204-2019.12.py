@@ -2,6 +2,8 @@ import functools
 import itertools
 from typing import Sequence, List, Tuple, Union, Set, Iterable, Optional
 
+from matplotlib import pyplot as plt
+
 from solver import Clue, ClueValue, ConstraintSolver, generators, Intersection, \
     DancingLinks, Location, ClueValueGenerator
 from solver.equation_solver import KnownClueDict
@@ -57,8 +59,8 @@ GENERATOR_3d = make_generator(range(10, 1000))
 GENERATOR_4d = make_generator({x ** 2 + y ** 2 for x in range(1, 32) for y in range(x + 1, 32)})
 
 
-def create_clues(length_1a: int, length_4a: int, length_5a: int, length_2d: int, length_3d: int,
-                 location_5a: Location) -> Sequence[Clue]:
+def create_solver(length_1a: int, length_4a: int, length_5a: int, length_2d: int, length_3d: int,
+                  location_5a: Location, grid: Optional[str] = None) -> "Solver204":
     clues = [
         Clue('1a', True, (1, 1), length_1a, generator=GENERATOR_1a),
         Clue('4a', True, (2, 1), length_4a, generator=GENERATOR_4a),
@@ -67,33 +69,32 @@ def create_clues(length_1a: int, length_4a: int, length_5a: int, length_2d: int,
         Clue('3d', False, (1, 3), length_3d, generator=GENERATOR_3d),
         Clue('4d', False, (2, 1), 2, generator=GENERATOR_4d)
     ]
-    return clues
+    grid = grid or f'{length_1a}{length_4a}{length_5a}{length_2d}{length_3d}{location_5a[1]}'
+    return Solver204(grid, clues)
 
 
-def create_clue_list_for_grid(grid: int) -> Sequence[Clue]:
+def create_solver_for_grid(grid: int) -> "Solver204":
     length_1a, length_4a, length_5a, length_4d, length_2d, length_3d, location_5a = LENGTHS[grid - 1]
     assert length_4d == 2
-    return create_clues(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a)
+    return create_solver(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a, str(grid))
 
 
-def create_clue_list_for_zeros() -> Sequence[Tuple[str, Sequence[Clue]]]:
+def create_solvers_for_submission() -> Sequence["Solver204"]:
     result = []
     for length_1a, length_4a, length_5a, length_2d, length_3d in itertools.product((2, 3), repeat=5):
         for location_5a in ((3, 1), (3, 2)):
             if location_5a == (3, 2) and length_5a == 3:
                 continue
-            clues = create_clues(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a)
-            filled_3_3 = length_3d == 3 or length_5a == 3 or location_5a == (3, 2)
-            if filled_3_3:
-                grid = f'{length_1a}{length_4a}{length_5a}{length_2d}{length_3d}{location_5a[1]}'
-                result.append((grid, clues))
+            if length_3d == 3 or length_5a == 3 or location_5a == (3, 2):
+                solver = create_solver(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a)
+                result.append(solver)
     return result
 
 
-def create_clue_list_from_grid_encoding(grid: str) -> Sequence[Clue]:
+def create_solver_from_grid_encoding(grid: str) -> "Solver204":
     length_1a, length_4a, length_5a, length_2d, length_3d, loc = [int(x) for x in grid]
     location_5a = (3, loc)
-    return create_clues(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a)
+    return create_solver(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a)
 
 
 class Solver204(ConstraintSolver):
@@ -160,8 +161,7 @@ def run() -> None:
     all_constraints = {}
     all_values: Set[str] = set()
     for grid in "123456789":
-        clue_list = create_clue_list_for_grid(int(grid))
-        solver = Solver204(grid, clue_list)
+        solver = create_solver_for_grid(int(grid))
         solver.solve(debug=False)
         for values, grid_fill, missing in solver.get_answers():
             if missing != '0':
@@ -172,36 +172,49 @@ def run() -> None:
                 name = f"GRID-{grid}-{grid_fill}"
                 all_constraints[name] = constraints
 
-    for grid, clue_list in create_clue_list_for_zeros():
-        solver = Solver204(grid, clue_list)
+    for solver in create_solvers_for_submission():
         solver.solve(debug=False)
         for values, grid_fill, missing in solver.get_answers():
             assert missing == '0'
-            constraints = ['grid-X']
+            constraints = ['submission']
             constraints.extend(f"grid-{xgrid}-{v}" for xgrid, v in enumerate(grid_fill, start=1))
-            name = f"SOLUTION-{grid}-{grid_fill}"
+            name = f"SOLUTION-{solver.grid}-{grid_fill}"
             all_constraints[name] = constraints
 
-    for value in all_values:
-        name = f'??MISSING-{value}'
-        all_constraints[name] = [value]
-
-    dancing_links = DancingLinks(all_constraints, row_printer=my_row_printer)
-    dancing_links.solve(debug=False)
+    dancing_links = DancingLinks(all_constraints, row_printer=my_row_printer, optional_constraints=all_values)
+    dancing_links.solve(debug=0)
 
 
 def my_row_printer(constraint_names: Sequence[str]) -> None:
-    constraint_names = sorted(x for x in constraint_names if not x.startswith("??"))
-    solution = next(x for x in constraint_names if x.startswith('SOLUTION'))
-    print(constraint_names)
+    print(sorted(constraint_names))
 
-    _, grid, grid_fill = solution.split('-')
-    clue_list = create_clue_list_from_grid_encoding(grid)
-    solver = Solver204(grid, clue_list)
-    clue_solutions = solver.values_from_grid_fill(grid_fill)
-    solver.plot_board(clue_solutions)
+    figure, axes = plt.subplots(4, 3, figsize=(8, 11), dpi=100, gridspec_kw={'wspace': .05, 'hspace': .05})
 
+    for i in range(1, 11):
+        if i == 10:
+            constraint = next(x for x in constraint_names if x.startswith('SOLUTION'))
+            _, grid, grid_fill = constraint.split('-')
+            solver = create_solver_from_grid_encoding(grid)
+        else:
+            constraint = next(x for x in constraint_names if x.startswith(f'GRID-{i}'))
+            _, grid, grid_fill = constraint.split('-')
+            assert int(grid) == i
+            solver = create_solver_for_grid(i)
+        clue_solutions = solver.values_from_grid_fill(grid_fill)
+        if i != 10:
+            solver.plot_board(clue_solutions, axes=axes[divmod(i - 1, 3)])
+        else:
+            axes[3, 0].axis('off')
+            axes[3, 2].axis('off')
+            solver.plot_board(clue_solutions, axes=axes[3, 1])
+    # plt.show()
 
 
 if __name__ == '__main__':
     run()
+    if False:
+        t = ['GRID-1-278361450', 'GRID-2-657841903', 'GRID-3-749810253', 'GRID-4-384256091',
+             'GRID-5-351729406', 'GRID-6-398625107', 'GRID-7-287496105', 'GRID-8-842169703',
+             'GRID-9-974258630', 'SOLUTION-333321-926784351']
+        my_row_printer(t)
+
