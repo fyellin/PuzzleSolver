@@ -1,6 +1,6 @@
 import functools
 import itertools
-from typing import Sequence, List, Tuple, Union, Set, Iterable, Optional
+from typing import Sequence, List, Tuple, Set, Iterable, Optional
 
 from matplotlib import pyplot as plt
 
@@ -41,28 +41,12 @@ def make_generator(numbers: Iterable[int]) -> ClueValueGenerator:
     return generator
 
 
-def constraint_3d(a1: ClueValue, a4: ClueValue, a5: ClueValue, d2: ClueValue, d3: ClueValue, d4: ClueValue) -> bool:
-    @functools.lru_cache(None)
-    def sum_of_digits(n: ClueValue) -> int:
-        return sum(map(int, n))
-
-    values = list(map(sum_of_digits, (d3, a1, a4, a5, d2, d4)))
-    count = values.count(values[0])
-    return count == 2
-
-
 GENERATOR_1a = make_generator([prime1 * prime2 for prime1 in PRIMES for prime2 in PRIMES if prime1 <= prime2])
 GENERATOR_4a = make_generator([x * x for x in range(40)])
 GENERATOR_5a = make_generator(itertools.takewhile(lambda x: x < 1000, (i * (i + 1) // 2 for i in itertools.count(1))))
 GENERATOR_2d = make_generator(range(10, 1000, 5))
 GENERATOR_3d = make_generator(range(10, 1000))
 GENERATOR_4d = make_generator({x ** 2 + y ** 2 for x in range(1, 32) for y in range(x + 1, 32)})
-
-
-def create_solver_for_grid(grid: int) -> "Solver204":
-    length_1a, length_4a, length_5a, length_4d, length_2d, length_3d, location_5a = LENGTHS[grid - 1]
-    assert length_4d == 2
-    return Solver204.create(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a, str(grid))
 
 
 def create_all_grids() -> Sequence["Solver204"]:
@@ -76,15 +60,9 @@ def create_all_grids() -> Sequence["Solver204"]:
     return result
 
 
-def create_solver_from_grid_encoding(grid: str) -> "Solver204":
-    length_1a, length_4a, length_5a, length_2d, length_3d, loc = [int(x) for x in grid]
-    location_5a = (3, loc)
-    return Solver204.create(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a, grid)
-
-
 class Solver204(ConstraintSolver):
     grid: str
-    answers: List[Tuple[Tuple[str, ...], str, str]]
+    _answers: List[Tuple[Tuple[str, ...], str, str]]
 
     @staticmethod
     def create(length_1a: int, length_4a: int, length_5a: int, length_2d: int, length_3d: int,
@@ -100,31 +78,47 @@ class Solver204(ConstraintSolver):
         grid = grid or f'{length_1a}{length_4a}{length_5a}{length_2d}{length_3d}{location_5a[1]}'
         return Solver204(grid, clues)
 
-    def __init__(self, grid: Union[int, str], clue_list: Sequence[Clue]):
+    @staticmethod
+    def create_for_grid(grid: int) -> "Solver204":
+        length_1a, length_4a, length_5a, length_4d, length_2d, length_3d, location_5a = LENGTHS[grid - 1]
+        assert length_4d == 2
+        return Solver204.create(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a, str(grid))
+
+    def __init__(self, grid: str, clue_list: Sequence[Clue]):
         super().__init__(clue_list)
         a, b, c, d, e, f = self._clue_list
-        self.grid = str(grid)
+        self.grid = grid
         for x, y in itertools.combinations((a, b, c, d, e, f), 2):
             if Intersection.get_intersections(x, y):
-                self.add_constraint((x, y), Solver204.mutual_constraint_int)
+                self.add_constraint((x, y), self.mutual_constraint_intersects)
             else:
-                self.add_constraint((x, y), Solver204.mutual_constraint_xint)
-        self.add_constraint((a, b, c, d, e, f), constraint_3d)
+                self.add_constraint((x, y), self.mutual_constraint_no_intersect)
+        self.add_constraint((a, b, c, d, e, f), self.constraint_3d)
 
     @staticmethod
     @functools.lru_cache(None)
-    def mutual_constraint_int(clue1: ClueValue, clue2: ClueValue) -> bool:
+    def mutual_constraint_intersects(clue1: ClueValue, clue2: ClueValue) -> bool:
         temp = clue1 + clue2
         return len(set(temp)) == len(temp) - 1
 
     @staticmethod
     @functools.lru_cache(None)
-    def mutual_constraint_xint(clue1: ClueValue, clue2: ClueValue) -> bool:
+    def mutual_constraint_no_intersect(clue1: ClueValue, clue2: ClueValue) -> bool:
         temp = clue1 + clue2
         return len(set(temp)) == len(temp)
 
+    @staticmethod
+    def constraint_3d(a1: ClueValue, a4: ClueValue, a5: ClueValue, d2: ClueValue, d3: ClueValue, d4: ClueValue) -> bool:
+        @functools.lru_cache(None)
+        def sum_of_digits(n: ClueValue) -> int:
+            return sum(map(int, n))
+
+        values = list(map(sum_of_digits, (d3, a1, a4, a5, d2, d4)))
+        count = values.count(values[0])
+        return count == 2
+
     def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int:
-        self.answers = []
+        self._answers = []
         return super().solve(show_time=False, debug=debug, max_debug_depth=max_debug_depth)
 
     def get_allowed_regexp(self, location: Location) -> str:
@@ -139,74 +133,58 @@ class Solver204(ConstraintSolver):
                          for location, digit in zip(clue.locations, clue_value)}
         grid_fill = ''.join(location_dict[row, column] for row in range(1, 4) for column in range(1, 4))
         missing = next(x for x in "0123456789" if x not in grid_fill)
-        self.answers.append((values, grid_fill, missing))
+        self._answers.append((values, grid_fill, missing))
+
+    def values_to_known_clue_dict(self, values: Tuple[str, ...]) -> KnownClueDict:
+        return {clue: ClueValue(value) for clue, value in zip(self._clue_list, values)}
 
     def get_answers(self) -> List[Tuple[Tuple[str, ...], str, str]]:
-        return self.answers
+        return self._answers
 
-    def values_from_grid_fill(self, grid_fill: str) -> KnownClueDict:
-        def value_for_location(location: Location) -> str:
-            (row, column) = location
-            return grid_fill[row * 3 + column - 4]
-
-        def value_for_clue(clue: Clue) -> ClueValue:
-            letters = [value_for_location(location) for location in clue.locations]
-            return ClueValue(''.join(letters))
-
-        return {clue: value_for_clue(clue) for clue in self._clue_list}
+    def __repr__(self) -> str:
+        return f"<{self.grid}>"
 
 
 def run() -> None:
     all_constraints = {}
     all_values: Set[str] = set()
-    for grid in "123456789":
-        solver = create_solver_for_grid(int(grid))
+    for grid in range(1, 10):
+        solver = Solver204.create_for_grid(grid)
         solver.solve(debug=False)
         for values, grid_fill, missing in solver.get_answers():
             if missing != '0':
                 constraints = [f"grid-{grid}", f"missing-{missing}"]
-                constraints.extend(f"grid-{grid}-{v}" for v in grid_fill)
+                constraints.extend(f"grid-{grid}-has-{v}" for v in grid_fill)
                 constraints.extend(values)
                 all_values.update(values)
-                name = f"GRID-{grid}-{grid_fill}"
-                all_constraints[name] = constraints
+                all_constraints[(solver, values)] = constraints
 
     for solver in create_all_grids():
         solver.solve(debug=False)
         for values, grid_fill, missing in solver.get_answers():
             assert missing == '0'
             constraints = ['submission']
-            constraints.extend(f"grid-{xgrid}-{v}" for xgrid, v in enumerate(grid_fill, start=1))
-            name = f"SOLUTION-{solver.grid}-{grid_fill}"
-            all_constraints[name] = constraints
+            constraints.extend(f"grid-{xgrid}-has-{v}" for xgrid, v in enumerate(grid_fill, start=1))
+            all_constraints[(solver, values)] = constraints
 
     dancing_links = DancingLinks(all_constraints, row_printer=my_row_printer, optional_constraints=all_values)
-    dancing_links.solve(debug=0)
+    dancing_links.solve(debug=100)
 
 
-def my_row_printer(constraint_names: Sequence[str]) -> None:
-    print(sorted(constraint_names))
-
+def my_row_printer(constraint_names: Sequence[Tuple[Solver204, Tuple[str, ...]]]) -> None:
+    print(constraint_names)
     figure, axes = plt.subplots(4, 3, figsize=(8, 11), dpi=100, gridspec_kw={'wspace': .05, 'hspace': .05})
 
-    for i in range(1, 11):
-        if i == 10:
-            constraint = next(x for x in constraint_names if x.startswith('SOLUTION'))
-            _, grid, grid_fill = constraint.split('-')
-            solver = create_solver_from_grid_encoding(grid)
-        else:
-            constraint = next(x for x in constraint_names if x.startswith(f'GRID-{i}'))
-            _, grid, grid_fill = constraint.split('-')
-            assert int(grid) == i
-            solver = create_solver_for_grid(i)
-        clue_solutions = solver.values_from_grid_fill(grid_fill)
-        if i != 10:
-            solver.plot_board(clue_solutions, axes=axes[divmod(i - 1, 3)])
+    for solver, values in constraint_names:
+        clue_solutions = solver.values_to_known_clue_dict(values)
+        grid = int(solver.grid)
+        if 1 <= grid <= 9:
+            solver.plot_board(clue_solutions, axes=axes[divmod(grid - 1, 3)])
         else:
             axes[3, 0].axis('off')
             axes[3, 2].axis('off')
             solver.plot_board(clue_solutions, axes=axes[3, 1])
-    # plt.show()
+    plt.show()
 
 
 if __name__ == '__main__':
