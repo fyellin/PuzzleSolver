@@ -59,47 +59,46 @@ GENERATOR_3d = make_generator(range(10, 1000))
 GENERATOR_4d = make_generator({x ** 2 + y ** 2 for x in range(1, 32) for y in range(x + 1, 32)})
 
 
-def create_solver(length_1a: int, length_4a: int, length_5a: int, length_2d: int, length_3d: int,
-                  location_5a: Location, grid: Optional[str] = None) -> "Solver204":
-    clues = [
-        Clue('1a', True, (1, 1), length_1a, generator=GENERATOR_1a),
-        Clue('4a', True, (2, 1), length_4a, generator=GENERATOR_4a),
-        Clue('5a', True, location_5a, length_5a, generator=GENERATOR_5a),
-        Clue('2d', False, (1, 2), length_2d, generator=GENERATOR_2d),
-        Clue('3d', False, (1, 3), length_3d, generator=GENERATOR_3d),
-        Clue('4d', False, (2, 1), 2, generator=GENERATOR_4d)
-    ]
-    grid = grid or f'{length_1a}{length_4a}{length_5a}{length_2d}{length_3d}{location_5a[1]}'
-    return Solver204(grid, clues)
-
-
 def create_solver_for_grid(grid: int) -> "Solver204":
     length_1a, length_4a, length_5a, length_4d, length_2d, length_3d, location_5a = LENGTHS[grid - 1]
     assert length_4d == 2
-    return create_solver(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a, str(grid))
+    return Solver204.create(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a, str(grid))
 
 
-def create_solvers_for_submission() -> Sequence["Solver204"]:
-    result = []
-    for length_1a, length_4a, length_5a, length_2d, length_3d in itertools.product((2, 3), repeat=5):
-        for location_5a in ((3, 1), (3, 2)):
-            if location_5a == (3, 2) and length_5a == 3:
-                continue
-            if length_3d == 3 or length_5a == 3 or location_5a == (3, 2):
-                solver = create_solver(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a)
-                result.append(solver)
+def create_all_grids() -> Sequence["Solver204"]:
+    result = [
+        Solver204.create(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a)
+        for length_1a, length_4a, length_5a, length_2d, length_3d in itertools.product((2, 3), repeat=5)
+        for location_5a in ((3, 1), (3, 2))
+        if location_5a == (3, 1) or length_5a == 2  # length_5a can't be 3 if starting at (3, 2)
+        if length_3d == 3 or length_5a == 3 or location_5a == (3, 2)  # square (3, 3) must be filled
+    ]
     return result
 
 
 def create_solver_from_grid_encoding(grid: str) -> "Solver204":
     length_1a, length_4a, length_5a, length_2d, length_3d, loc = [int(x) for x in grid]
     location_5a = (3, loc)
-    return create_solver(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a)
+    return Solver204.create(length_1a, length_4a, length_5a, length_2d, length_3d, location_5a, grid)
 
 
 class Solver204(ConstraintSolver):
     grid: str
     answers: List[Tuple[Tuple[str, ...], str, str]]
+
+    @staticmethod
+    def create(length_1a: int, length_4a: int, length_5a: int, length_2d: int, length_3d: int,
+               location_5a: Location, grid: Optional[str] = None) -> "Solver204":
+        clues = [
+            Clue('1a', True, (1, 1), length_1a, generator=GENERATOR_1a),
+            Clue('4a', True, (2, 1), length_4a, generator=GENERATOR_4a),
+            Clue('5a', True, location_5a, length_5a, generator=GENERATOR_5a),
+            Clue('2d', False, (1, 2), length_2d, generator=GENERATOR_2d),
+            Clue('3d', False, (1, 3), length_3d, generator=GENERATOR_3d),
+            Clue('4d', False, (2, 1), 2, generator=GENERATOR_4d)
+        ]
+        grid = grid or f'{length_1a}{length_4a}{length_5a}{length_2d}{length_3d}{location_5a[1]}'
+        return Solver204(grid, clues)
 
     def __init__(self, grid: Union[int, str], clue_list: Sequence[Clue]):
         super().__init__(clue_list)
@@ -172,7 +171,7 @@ def run() -> None:
                 name = f"GRID-{grid}-{grid_fill}"
                 all_constraints[name] = constraints
 
-    for solver in create_solvers_for_submission():
+    for solver in create_all_grids():
         solver.solve(debug=False)
         for values, grid_fill, missing in solver.get_answers():
             assert missing == '0'
@@ -212,9 +211,3 @@ def my_row_printer(constraint_names: Sequence[str]) -> None:
 
 if __name__ == '__main__':
     run()
-    if False:
-        t = ['GRID-1-278361450', 'GRID-2-657841903', 'GRID-3-749810253', 'GRID-4-384256091',
-             'GRID-5-351729406', 'GRID-6-398625107', 'GRID-7-287496105', 'GRID-8-842169703',
-             'GRID-9-974258630', 'SOLUTION-333321-926784351']
-        my_row_printer(t)
-

@@ -3,17 +3,16 @@
 import collections
 import copy
 import sys
-from typing import Optional, NewType, Callable, Sequence, Dict, Any, cast, TextIO, Set, Iterator, List, Hashable, \
-    TypeVar, NamedTuple
+from operator import itemgetter
+from typing import Optional, Callable, Sequence, Dict, Any, TextIO, Set, Iterator, List, Hashable, \
+    TypeVar, NamedTuple, Generic, Mapping
 
-T = TypeVar('T')
-ConstraintName = Hashable
-Constraint = NewType('Constraint', str)
-RowPrinter = Callable[[Sequence[T]], None]
+ConstraintName = TypeVar('ConstraintName', bound=Hashable)
+Constraint = TypeVar('Constraint', bound=Hashable)
 
 
-class DancingLinks(object):
-    constraints: Dict[ConstraintName, Sequence[Constraint]]
+class DancingLinks(Generic[ConstraintName, Constraint]):
+    constraints: Mapping[ConstraintName, Sequence[Constraint]]
     optional_constraints: Set[Constraint]
     row_printer: Any
 
@@ -23,9 +22,9 @@ class DancingLinks(object):
     debug: int
     X: Dict[Constraint, Set[ConstraintName]]
 
-    def __init__(self, constraints: Dict[T, Any], *,
-                 row_printer: Optional[RowPrinter[T]] = None,
-                 optional_constraints: Optional[Set[Any]] = None):
+    def __init__(self, constraints: Mapping[ConstraintName, Sequence[Constraint]],
+                 *, row_printer: Optional[Callable[[Sequence[ConstraintName]], None]] = None,
+                 optional_constraints: Optional[Set[Constraint]] = None):
         """The entry to the Dancing Links code.  Y should be a dictionary.  Each key
         is the name of the row (something meaningful to the user).  The value should
         be a list/tuple of the constraints satisfied by this row.
@@ -33,13 +32,14 @@ class DancingLinks(object):
         The row names and constraint names s can be anything immutable and hashable.
         Typically they are strings, but feel free to use whatever works best.
         """
-        self.constraints = cast(Dict[ConstraintName, Sequence[Constraint]], constraints)
-        self.optional_constraints = cast(Set[Constraint], optional_constraints or set())
+        self.constraints = constraints
+        self.optional_constraints = optional_constraints or set()
         self.row_printer = row_printer or (lambda solution: print(sorted(solution)))
         if optional_constraints:
-            self.constraints = dict(self.constraints)
+            constraints = dict(self.constraints)
             for constraint in optional_constraints:
-                self.constraints[OptionalConstraint(constraint)] = [constraint]
+                constraints[OptionalConstraint(constraint)] = [constraint]
+            self.constraints = constraints
 
     def solve(self, output: TextIO = sys.stdout, debug: Optional[int] = None) -> None:
         # Create the cross reference giving the rows in which each constraint appears
@@ -83,7 +83,7 @@ class DancingLinks(object):
         current_count = 0
         old_depth = depth
 
-        min_count, min_constraint = min(constraints_and_length)
+        min_count, min_constraint = min(constraints_and_length, key=itemgetter(0))
         depth += (min_count != 1)
         if min_count == 0:
             if is_debugging:
@@ -143,10 +143,8 @@ class DancingLinks(object):
         return ' | ' * depth
 
 
-class OptionalConstraint(NamedTuple):
+class OptionalConstraint(NamedTuple, Generic[Constraint]):
     constraint: Constraint
 
     def __str__(self) -> str:
         return f"<? {self.constraint}>"
-
-
