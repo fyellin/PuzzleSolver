@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Sequence, Tuple, List
+from typing import Sequence, List
 
 from .clue import Clue
 from .clue_types import Location
@@ -17,13 +17,14 @@ class Clues:
                 if item == 'X']
 
     @classmethod
-    def create_from_text(cls, across: str, down: str, locations: Sequence[Tuple[int, int]]) -> Sequence[Clue]:
+    def create_from_text(cls, across: str, down: str, locations: Sequence[Location]) -> Sequence[Clue]:
         result: List[Clue] = []
         for lines, is_across, letter in ((across, True, 'a'), (down, False, 'd')):
             for line in lines.splitlines():
                 line = line.strip()
                 if not line:
                     continue
+                print(line)
                 match = re.fullmatch(r'(\d+) (.*) \((\d+)\)', line)
                 assert match
                 number = int(match.group(1))

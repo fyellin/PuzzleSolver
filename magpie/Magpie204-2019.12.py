@@ -55,7 +55,7 @@ def create_all_grids() -> Sequence["Solver204"]:
         for length_1a, length_4a, length_5a, length_2d, length_3d in itertools.product((2, 3), repeat=5)
         for location_5a in ((3, 1), (3, 2))
         if location_5a == (3, 1) or length_5a == 2  # length_5a can't be 3 if starting at (3, 2)
-        if length_3d == 3 or length_5a == 3 or location_5a == (3, 2)  # square (3, 3) must be filled
+        # if length_3d == 3 or length_5a == 3 or location_5a == (3, 2)  # square (3, 3) must be filled
     ]
     return result
 
@@ -86,14 +86,13 @@ class Solver204(ConstraintSolver):
 
     def __init__(self, grid: str, clue_list: Sequence[Clue]):
         super().__init__(clue_list)
-        a, b, c, d, e, f = self._clue_list
         self.grid = grid
-        for x, y in itertools.combinations((a, b, c, d, e, f), 2):
+        for x, y in itertools.combinations(self._clue_list, 2):
             if Intersection.get_intersections(x, y):
                 self.add_constraint((x, y), self.mutual_constraint_intersects)
             else:
                 self.add_constraint((x, y), self.mutual_constraint_no_intersect)
-        self.add_constraint((a, b, c, d, e, f), self.constraint_3d)
+        self.add_constraint(self._clue_list, self.constraint_3d)
 
     @staticmethod
     @functools.lru_cache(None)
@@ -131,6 +130,8 @@ class Solver204(ConstraintSolver):
         location_dict = {location: digit
                          for clue, clue_value in known_clues.items()
                          for location, digit in zip(clue.locations, clue_value)}
+        if (3, 3) not in location_dict:
+            location_dict[3, 3] = (set("123456789") - set(location_dict.values())).pop()
         grid_fill = ''.join(location_dict[row, column] for row in range(1, 4) for column in range(1, 4))
         missing = next(x for x in "0123456789" if x not in grid_fill)
         self._answers.append((values, grid_fill, missing))
@@ -168,7 +169,7 @@ def run() -> None:
             all_constraints[(solver, values)] = constraints
 
     dancing_links = DancingLinks(all_constraints, row_printer=my_row_printer, optional_constraints=all_values)
-    dancing_links.solve(debug=100)
+    dancing_links.solve()
 
 
 def my_row_printer(constraint_names: Sequence[Tuple[Solver204, Tuple[str, ...]]]) -> None:

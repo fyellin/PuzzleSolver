@@ -1,6 +1,6 @@
 import re
-from typing import Dict, Set, Any, Sequence, Pattern, Callable, List
 from os.path import commonprefix
+from typing import Dict, Set, Any, Sequence, Pattern, Callable, List
 
 from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
 from solver import EquationSolver
@@ -108,7 +108,7 @@ class InnerSolver(ConstraintSolver):
         # For testing this class on its own, without needing OuterSolver
         locations = Clues.get_locations_from_grid(GRID)
         clue_list = Clues.create_from_text(ACROSS, DOWN, locations)
-        solution = {'H': 1, 'E': 2, 'S': 3, 'N': 4,  'I': 5, 'G': 6, 'L': 7, 'R': 8, 'T': 9, 'D': 10, 'A': 11,}
+        solution = {'H': 1, 'E': 2, 'S': 3, 'N': 4,  'I': 5, 'G': 6, 'L': 7, 'R': 8, 'T': 9, 'D': 10, 'A': 11, }
         letter_values = {Letter(letter): value for letter, value in solution.items()}
         # Evaluate each of the clues
         clue_values = {clue: clue.evaluators[0](letter_values) for clue in clue_list}

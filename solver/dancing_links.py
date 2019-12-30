@@ -25,17 +25,18 @@ class DancingLinks(Generic[Row, Constraint]):
     def __init__(self, constraints: Mapping[Row, Sequence[Constraint]],
                  *, row_printer: Optional[Callable[[Sequence[Row]], None]] = None,
                  optional_constraints: Optional[Set[Constraint]] = None):
-        """The entry to the Dancing Links code.  Y should be a dictionary.  Each key
+        """The entry to the Dancing Links code.  constraints should be a dictionary.  Each key
         is the name of the row (something meaningful to the user).  The value should
         be a list/tuple of the row_to_constraints satisfied by this row.
 
-        The row names and constraint names s can be anything immutable and hashable.
+        The row names and constraint names can be anything immutable and hashable.
         Typically they are strings, but feel free to use whatever works best.
         """
         self.row_to_constraints = constraints
         self.optional_constraints = optional_constraints or set()
         self.row_printer = row_printer or (lambda solution: print(sorted(solution)))
         if optional_constraints:
+            # Make a copy of row_to_constraints, and then add in a dummy row corresponding to each constraint.
             constraints = dict(self.row_to_constraints)
             for constraint in optional_constraints:
                 constraints[OptionalConstraint(constraint)] = [constraint]
