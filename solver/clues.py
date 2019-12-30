@@ -24,7 +24,6 @@ class Clues:
                 line = line.strip()
                 if not line:
                     continue
-                print(line)
                 match = re.fullmatch(r'(\d+) (.*) \((\d+)\)', line)
                 assert match
                 number = int(match.group(1))
