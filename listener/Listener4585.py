@@ -1,0 +1,185 @@
+import re
+from os.path import commonprefix
+from typing import Dict, Set, Any, Sequence, Pattern, Callable, List
+
+from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
+from solver import EquationSolver
+from solver.equation_solver import KnownClueDict, KnownLetterDict
+
+GRID = """
+XX.XXXXXX.XX
+X.X.X....X..
+X....X..X...
+XX..XX.XX..X
+X..XX.XX..X.
+X..X....X...
+X.....X.....
+"""
+
+ACROSS = """
+ 1 AAA + AA (6)
+ 6 AARRR − GGI (6)
+ 11 NRT + A (4)
+ 13 GIIII + I (5)
+ 14 EEE + HHH + SSS (3)
+ 15 DLTT − GR (5)
+ 16 GHS (3)
+ 17 EEENN + L (4)
+ 18 DS(II − E) (4)
+ 20 TT(S + T) + T + L (4)
+ 23 AHNN + R (4)
+ 25 L(A + D + I) (4)
+ 27 I(D + H + R) (3)
+ 29 RRRR − RRR − RR − R (5)
+ 31 ENR (3)
+ 32 ATT (5)
+ 33 LLL + LL (4)
+ 34 DLNT + E (6)
+ 35 ADLST − EII (6)
+"""
+
+DOWN = """
+ 1 N(IL + T) (4)
+ 2 LN (3)
+ 3 LL(A + I + S) − R (4)
+ 4 AA + R (4)
+ 5 HH + NN (3)
+ 6 TTT − L (4)
+ 7 LR + E (3)
+ 8 D + T (3)
+ 9 AE(SD − H) (4)
+ 10 LS (3) 
+ 12 (EGHIR − S)(N + L + R) (5)
+ 14 DEGHST + A + R (5)
+ 19 I(GGI − A) (4)
+ 21 DDR + A (4)
+ 22 TT + E (4)
+ 23 EEE + HHH + III (4)
+ 24 EGHIN (4)
+ 25 SS + S (3)
+ 26 NN + N (3)
+ 27 HHH + III − SSS (3)
+ 28 DG − T (3)
+ 30 HHH + NNN + SSS (3)
+"""
+
+
+class OuterSolver(EquationSolver):
+    @staticmethod
+    def run():
+        grid = Clues.get_locations_from_grid(GRID)
+        clues = Clues.create_from_text(ACROSS, DOWN, grid)
+        solver = OuterSolver(clues)
+        solver.solve()
+
+    def __init__(self, clues: Sequence[Clue]):
+        super().__init__(clues, items=range(1, 12))
+
+    # We override that pattern so that the only thing it checks is whether the answer is the right length.  We are
+    # not concerned with intersections.  The actual clue answer must be either one or two less than the clue length.
+    def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
+            Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
+        length = clue.length
+        regexp = f'.{{{length - 2},{length - 1}}}'
+        pattern = re.compile(regexp)
+        return lambda _: pattern
+
+    def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
+        InnerSolver.run(self._clue_list, known_clues, known_letters)
+
+
+class InnerSolver(ConstraintSolver):
+    clue_values: KnownClueDict
+    letter_values: KnownLetterDict
+
+    @staticmethod
+    def run(clue_list: Sequence[Clue], clue_values: KnownClueDict, letter_values: KnownLetterDict) -> None:
+        solver = InnerSolver(clue_list, clue_values, letter_values)
+        solver.solve(debug=False)
+
+    @staticmethod
+    def test() -> None:
+        # For testing this class on its own, without needing OuterSolver
+        locations = Clues.get_locations_from_grid(GRID)
+        clue_list = Clues.create_from_text(ACROSS, DOWN, locations)
+        solution = {'H': 1, 'E': 2, 'S': 3, 'N': 4,  'I': 5, 'G': 6, 'L': 7, 'R': 8, 'T': 9, 'D': 10, 'A': 11, }
+        letter_values = {Letter(letter): value for letter, value in solution.items()}
+        # Evaluate each of the clues
+        clue_values = {clue: clue.evaluators[0](letter_values) for clue in clue_list}
+        solver = InnerSolver(clue_list, clue_values, letter_values)
+        solver.solve(debug=False)
+
+    def __init__(self, clue_list: Sequence[Clue], clue_values: KnownClueDict, letter_values: KnownLetterDict):
+        super().__init__(clue_list)
+        for clue in clue_list:
+            clue.generator = self.generator
+        self.clue_values = clue_values
+        self.letter_values = letter_values
+
+    def generator(self, clue: Clue) -> Sequence[str]:
+        """
+        Returns a list of all possible entry values for this clue.
+        """
+        value = self.clue_values[clue]  # The calculated value of this clue (as a string)
+        value_length = len(value)
+        expected_length = clue.length
+        assert 1 <= expected_length - value_length <= 2
+        if expected_length - value_length == 1:
+            return [f'{value[:i]}{j}{value[i:]}'
+                    for i, location in enumerate(clue.locations)
+                    if self.is_intersection(location)
+                    for j in range(1, 10)]
+        else:
+            return [f'{value[:i]}{j}{value[i:]}'
+                    for i, location in enumerate(clue.locations)
+                    for j in (10, 11)]
+
+    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
+                  location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
+                  top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
+        """
+        Once we've solved the puzzle, we've overridden this function so that we print the graph with the shading
+        that we want.
+        """
+        shading = {}
+        across_inserted_locations: Set[Location] = set()
+        down_inserted_locations: Set[Location] = set()
+        inserted_number: List[int] = []
+        for clue in self._clue_list:
+            original_clue_value = self.clue_values[clue]
+            # Sigh, we don't currently pass the
+            current_clue_value = ''.join(location_to_entry[location] for location in clue.locations)
+            delta = len(current_clue_value) - len(original_clue_value)
+            start = len(commonprefix((original_clue_value, current_clue_value)))
+            if clue.name == '32a':
+                # Unfortunately, this clue ends with "111" and it's ambiguous which 11 is extra.  The final digit is an
+                # extra part of 22d, so we have to use the earlier one.
+                start -= 1
+            assert original_clue_value == current_clue_value[:start] + current_clue_value[start + delta:]
+            inserted_number.append(int(current_clue_value[start:start + delta]))
+            locations = clue.locations[start:start + delta]
+            (across_inserted_locations if clue.is_across else down_inserted_locations).update(locations)
+            for location in locations:
+                shading[location] = 'lightblue' if clue.is_across else 'pink'
+        assert not across_inserted_locations.intersection(down_inserted_locations)
+
+        # First, draw the grid with the extra acrosses and downs appropriately shaded
+        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number, top_bars,
+                          left_bars, shading=shading, **more_args)
+
+        # Now, draw the grid with all 3's, 8's, and 9's highlighted in green
+        shading = {location: 'lightgreen'
+                   for location, entry in location_to_entry.items()
+                   if entry in '389'}
+        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number, top_bars,
+                          left_bars, shading=shading, **more_args)
+
+        # And just for fun, print the message
+        value_to_letter_map = {value: letter for letter, value in self.letter_values.items()}
+        message = ''.join(value_to_letter_map[i] for i in inserted_number)
+        print(message)
+
+
+if __name__ == '__main__':
+    OuterSolver.run()
+    # InnerSolver.test()
