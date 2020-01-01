@@ -126,7 +126,6 @@ class ConstraintSolver(BaseSolver):
         Generates all the possible values for the clue, but tosses out those that have a zero in a bad location,
         or otherwise don't find the expected pattern.
         """
-        # Generates all the possible values for the clue, but tosses out those that have a zero in a bad location.
         pattern_generator = Intersection.make_pattern_generator(clue, (), self)
         pattern = pattern_generator({})
         clue_generator = cast(ClueValueGenerator, clue.generator)  # we know clue_generator isn't None

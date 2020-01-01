@@ -128,7 +128,7 @@ class EquationSolver(BaseSolver):
             evaluator: ClueInfo(clue, evaluator, set(evaluator.vars), [], set())
             for clue in self._clue_list for evaluator in clue.evaluators
         }
-        constraints = [(callable, set(clues)) for clues, callable in self._all_constraints]
+        constraints = [(checker, set(clues)) for clues, checker in self._all_constraints]
 
         def grading_function(clue_info: ClueInfo) -> Sequence[float]:
             letters = frozenset(clue_info.unbound_letters)
@@ -166,9 +166,9 @@ class EquationSolver(BaseSolver):
             pattern = self.make_pattern_generator(clue, intersections)
             for _, clues in constraints:
                 clues.discard(clue)
-            # Pull out the constraints that we've now got solutions to all of its clues.
-            done_constraints = [callable for callable, clues in constraints if not clues]
-            constraints = [(callable, clues) for callable, clues in constraints if clues]
+            # Pull out the constraints for which we've now got solutions to all of its clues
+            done_constraints = [checker for checker, clues in constraints if not clues]
+            constraints = [(checker, clues) for checker, clues in constraints if clues]
             result.append(SolvingStep(clue, evaluator, tuple(sorted(unknown_letters)), pattern, done_constraints))
             for other_clue, _, other_unknown_letters, other_intersections, other_locations in not_yet_ordered.values():
                 # Update the remaining not_yet_ordered clues, indicating more known letters and updated intersections

@@ -88,7 +88,7 @@ class Magpie149Solver(BaseSolver):
             for clue in self.expressions for (_, evaluator_vars) in clue.evaluators
         }
 
-    def solve(self, *, show_time: bool = True, debug: bool = False) -> int:
+    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int:
         self.step_count = 0
         self.solution_count = 0
         self.debug = debug

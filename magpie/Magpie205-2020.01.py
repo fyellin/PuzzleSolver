@@ -141,7 +141,7 @@ class Solver205(ConstraintSolver):
                         size = 2 if i in pairs else 1
                         result.append(copy_value[:size])
                         copy_value = copy_value[size:]
-                    # don't let any of the pairs start with a 0.  Not allowed
+                    # We don't allow any of the two-digit entries to start with a zero.
                     if any(len(digits) == 2 and digits[0] == '0' for digits in result):
                         continue
                     assert len(copy_value) == 0
@@ -155,7 +155,6 @@ def run() -> None:
     solver = Solver205()
     solver.verify_is_180_symmetric()
     solver.solve()
-
 
 
 if __name__ == '__main__':
