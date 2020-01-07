@@ -131,7 +131,7 @@ class ConstraintRow (object):
     def missing_letters(self) -> Set[str]:
         return set(self.ALL_LETTERS).difference(list(self._letter_to_location.keys()))
 
-    def check_tail_and_fill_in_as_able(self, sorted_tail_length: int) -> Optional['ConstraintRow']:
+    def fill_in_tail(self, sorted_tail_length: int) -> Optional['ConstraintRow']:
         string = list(self._tuple)
         unused_letters = self.missing_letters()
 

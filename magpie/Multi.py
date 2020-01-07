@@ -56,4 +56,4 @@ class Timer:
 
 if __name__ == '__main__':
         with Timer():
-            PlayfairSolver.test()
+            PlayfairSolver.test(debug=True)

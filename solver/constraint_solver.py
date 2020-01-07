@@ -4,8 +4,6 @@ from datetime import datetime
 from heapq import nlargest, nsmallest
 from typing import Tuple, Dict, List, Sequence, cast, Callable, FrozenSet, Any, Union, Optional, Collection
 
-from mypy_extensions import VarArg
-
 from .base_solver import BaseSolver
 from .clue import Clue, ClueValueGenerator
 from .clue_types import ClueValue
@@ -194,7 +192,7 @@ class ConstraintSolver(BaseSolver):
 
     def __check_n_clue_constraint(self, clues: Tuple[Clue, ...],
                                   unknown_clues: Dict[Clue, FrozenSet[ClueValue]],
-                                  clue_filter: Callable[[VarArg(ClueValue)], bool],
+                                  clue_filter: Callable[..., bool],
                                   name: str) -> bool:
         """
         Used by constraints with more than two variables.
