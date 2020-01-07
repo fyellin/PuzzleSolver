@@ -66,7 +66,7 @@ DOWN = """
 
 class OuterSolver(EquationSolver):
     @staticmethod
-    def run():
+    def run() -> None:
         grid = Clues.get_locations_from_grid(GRID)
         clues = Clues.create_from_text(ACROSS, DOWN, grid)
         solver = OuterSolver(clues)
