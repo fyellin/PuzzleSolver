@@ -23,16 +23,16 @@ class PlayfairSolver(object):
         self.results = []
         # cipher_text = cipher_text.replace("M", ".").replace("W", ".")
         # plain_text = plain_text.replace("M", ".").replace("W", ".")
-        self.sortedTailLength = tail
+        self.tail_length = tail
         self.constraints_generator = ConstraintsGenerator(plain_text, cipher_text)
 
     def solve(self, *, debug: bool = False) -> Sequence[ConstraintRow]:
 
-        def filler(row: ConstraintRow) -> Optional[ConstraintRow]:
-            return row.fill_in_tail(self.sortedTailLength)
+        def fill_in_tail(row: ConstraintRow) -> Optional[ConstraintRow]:
+            return row.fill_in_tail(self.tail_length)
 
         constraints = self.constraints_generator.generate_all_constraints()
-        constraints = {name: list(filter(None, map(filler, constraint_rows)))
+        constraints = {name: list(filter(None, map(fill_in_tail, constraint_rows)))
                        for name, constraint_rows in constraints.items()}
         self.count = 0
         self.debug = debug
@@ -59,7 +59,7 @@ class PlayfairSolver(object):
 
         for i, current_row in enumerate(min_constraint):
             next_rows_so_far_direct = rows_so_far + current_row
-            next_rows_so_far = next_rows_so_far_direct.fill_in_tail(self.sortedTailLength)
+            next_rows_so_far = next_rows_so_far_direct.fill_in_tail(self.tail_length)
             if not next_rows_so_far:
                 if self.debug:
                     print("{}{}/{}✕ \"{}\" {} -> {}:".format(

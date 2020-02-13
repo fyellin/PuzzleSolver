@@ -65,13 +65,15 @@ def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
 
     # Fill in the values
     for (row, column), entry in location_to_entry.items():
-        axes.text(column + 1 / 2, row + 1 / 2, entry, fontsize=points_per_data/2, fontweight='bold',
+        axes.text(column + 1 / 2, row + 1 / 2, entry,
+                  fontsize=points_per_data/2, fontweight='bold', fontfamily="sans-serif",
                   verticalalignment='center', horizontalalignment='center',
                   rotation=rotation.get((row, column), 0))
 
     # Fill in the clue numbers
     for (row, column), clue_number in location_to_clue_number.items():
-        axes.text(column + 1 / 20, row + 1 / 20, str(clue_number), fontsize=points_per_data/4,
+        axes.text(column + 1 / 20, row + 1 / 20, str(clue_number),
+                  fontsize=points_per_data/4, fontfamily="sans-serif",
                   verticalalignment='top', horizontalalignment='left')
 
     if not _axes:

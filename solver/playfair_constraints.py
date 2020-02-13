@@ -81,7 +81,7 @@ class ConstraintsGenerator:
 class ConstraintRow (object):
     _locations: FrozenSet[Tuple[int, int]]
     _letter_to_location: Dict[str, Tuple[int, int]]
-    _tuple: Tuple[str, ...]
+    _flat: str
 
     def __init__(self, location_dict: Dict[str, Tuple[int, int]]):
         self._letter_to_location = location_dict
@@ -89,7 +89,7 @@ class ConstraintRow (object):
         array = ['.'] * 25
         for letter, (row, column) in location_dict.items():
             array[5 * row + column] = letter
-        self._tuple = tuple(array)
+        self._flat = ''.join(array)
 
     @staticmethod
     def empty() -> 'ConstraintRow':
@@ -132,7 +132,7 @@ class ConstraintRow (object):
         return set(self.ALL_LETTERS).difference(list(self._letter_to_location.keys()))
 
     def fill_in_tail(self, sorted_tail_length: int) -> Optional['ConstraintRow']:
-        string = list(self._tuple)
+        string = list(self._flat)
         unused_letters = self.missing_letters()
 
         # We start off by pretending that the spot just before the tail is filled with a character smaller than 'A'
@@ -166,17 +166,17 @@ class ConstraintRow (object):
         return ConstraintRow.from_string(string)
 
     def __hash__(self) -> int:
-        return hash(self._tuple)
+        return hash(self._flat)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, ConstraintRow):
             return NotImplemented
-        return self._tuple == other._tuple
+        return self._flat == other._flat
 
     def __ne__(self, other: Any) -> bool:
         if not isinstance(other, ConstraintRow):
             return NotImplemented
-        return self._tuple != other._tuple
+        return self._flat != other._flat
 
     def __add__(self, other: 'ConstraintRow') -> 'ConstraintRow':
         letter_to_location = {}
