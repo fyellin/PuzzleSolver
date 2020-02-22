@@ -86,7 +86,6 @@ class EquationSolver(BaseSolver):
         pattern = pattern_maker(self._known_clues)
         if self._debug:
             print(f'{" | " * current_index} {clue.name} letters={clue_letters} pattern="{pattern.pattern}"')
-
         try:
             for next_letter_values in self.get_letter_values(self._known_letters, clue_letters):
                 self._step_count += 1
@@ -99,6 +98,7 @@ class EquationSolver(BaseSolver):
                 else:
                     if not (clue_value and pattern.fullmatch(clue_value)):
                         continue
+                    self._known_clues.pop(clue, None)
                     if not self._allow_duplicates and clue_value in self._known_clues.values():
                         continue
                     self._known_clues[clue] = clue_value
