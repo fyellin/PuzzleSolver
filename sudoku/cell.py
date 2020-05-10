@@ -2,6 +2,7 @@ from enum import Enum, auto
 from typing import Sequence, Set, Optional, Iterable, Iterator, NamedTuple
 
 
+
 class House:
     class Type(Enum):
         ROW = auto()
@@ -17,8 +18,8 @@ class House:
     unknown_values: Set[int]
     unknown_cells: Set['Cell']
 
-    def __init__(self, type: 'House.Type', index: int) -> None:
-        self.house_type = type
+    def __init__(self, house_type: 'House.Type', index: int) -> None:
+        self.house_type = house_type
         self.index = index
         self.cells = []
         self.unknown_values = set(range(1, 10))
@@ -93,11 +94,13 @@ class Cell:
         assert False
 
     def strong_pair(self, house_type: House.Type, value: int) -> Optional['Cell']:
-        temp = [cell for cell in self.house_of_type(house_type).unknown_cells if cell != self and value in cell.possible_values]
+        temp = [cell for cell in self.house_of_type(house_type).unknown_cells
+                if cell != self and value in cell.possible_values]
         return temp[0] if len(temp) == 1 else None
 
     def weak_pair(self, house_type: House.Type, value: int) -> Sequence['Cell']:
-        temp = [cell for cell in self.house_of_type(house_type).unknown_cells if cell != self and value in cell.possible_values]
+        temp = [cell for cell in self.house_of_type(house_type).unknown_cells
+                if cell != self and value in cell.possible_values]
         return temp
 
     def is_neighbor(self, other: 'Cell') -> bool:
@@ -125,6 +128,24 @@ class Cell:
     def __lt__(self, other: 'Cell') -> bool:
         return (self.row.index, self.column.index) < (other.row.index, other.column.index)
 
+    NEGATIVE_DIGITS = "①②③④⑤⑥⑦⑧⑨"
+
+    @staticmethod
+    def remove_value_from_cells(cells: Iterable['Cell'], value: int):
+        temp = Cell.NEGATIVE_DIGITS
+        for cell in cells:
+            foo = ''.join((temp[i-1] if i == value else str(i)) for i in range(1, 10) if i in cell.possible_values)
+            cell.possible_values.remove(value)
+            print(f'  {cell} = {foo}')
+
+    @staticmethod
+    def remove_values_from_cells(cells: Iterable['Cell'], values: Set[int]):
+        temp = Cell.NEGATIVE_DIGITS
+        for cell in cells:
+            foo = ''.join((temp[i-1] if i in values else str(i)) for i in range(1, 10) if i in cell.possible_values)
+            cell.possible_values -= values
+            print(f'  {cell} = {foo}')
+
 
 class CellValue(NamedTuple):
     cell: Cell
@@ -136,4 +157,3 @@ class CellValue(NamedTuple):
     def to_string(self, truth: bool):
         char = '=' if truth else '≠'
         return f'{self.cell}{char}{self.value}'
-

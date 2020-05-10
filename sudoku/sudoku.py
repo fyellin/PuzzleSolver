@@ -29,12 +29,14 @@ class Sudoku:
                 return True
             if self.check_forced_cells() or self.check_pinned_cell() or self.check_intersection_removal():
                 continue
+            if self.check_tuples():
+                continue
             self.grid.print()
-            if self.check_tuples() or self.check_fish() or self.check_xy_sword() or self.check_tower():
+            if self.check_fish() or self.check_xy_sword() or self.check_tower():
                 continue
             if self.check_xy_chain(81):
                 continue
-            if self.check_colors():
+            if self.check_chain_colors():
                 continue
             chains = Chain.get_all_chains(self.grid.matrix.values(), True)
             if HardMedusa.run(chains):
@@ -105,7 +107,8 @@ class Sudoku:
                        for value in list(house.unknown_values))
                    for house in self.grid.houses)
 
-    def __check_intersection_removal(self, house: House, value: int) -> bool:
+    @staticmethod
+    def __check_intersection_removal(house: House, value: int) -> bool:
         """Checks for intersection removing of the specific value in the specific house"""
         value_cells = [cell for cell in house.unknown_cells if value in cell.possible_values]
         if len(value_cells) > 3:
@@ -127,7 +130,7 @@ class Sudoku:
         if len(target_value_cells) > len(value_cells):
             print(f'Value {value} in {target_house} must be in {house}')
             target_value_cells.difference_update(value_cells)
-            self.__remove_value_from_cells(target_value_cells, value)
+            Cell.remove_value_from_cells(target_value_cells, value)
             return True
         return False
 
@@ -168,13 +171,12 @@ class Sudoku:
         #     (2) The remaining k values must occur in those k cells, and all other digits can be deleted.
         # Both say the same thing.  How we word it depends on which is smaller, n or k.
         if len(values) * 2 <= len(house.unknown_values):
-            print(f'{house} has tuple {values}:')
+            print(f'{house} has tuple {sorted(values)} in squares {sorted(tuple_cells)}:')
         else:
             hidden_tuple = house.unknown_values - values
-            print(f'{house} has hidden tuple {hidden_tuple}:')
-        for cell in fixers:
-            cell.possible_values -= values
-            print(f'  {cell} ≠ {values} ∈ {cell.possible_value_string()}')
+            hidden_squares = house.unknown_cells.difference(tuple_cells)
+            print(f'{house} has hidden tuple {sorted(hidden_tuple)} in squares {sorted(hidden_squares)}:')
+        Cell.remove_values_from_cells(fixers, values)
         return True
 
     def check_fish(self) -> bool:
@@ -188,12 +190,14 @@ class Sudoku:
             empty_house_to_cell = {house: [cell for cell in house.unknown_cells if value in cell.possible_values]
                                    for house in empty_houses}
             # Look for a fish between any two House types on the specified value
+            # noinspection PyTypeChecker
             for this_house_type, that_house_type in itertools.permutations(House.Type, 2):
                 if self.__check_fish(value, empty_houses, empty_house_to_cell, this_house_type, that_house_type):
                     return True
         return False
 
-    def __check_fish(self, value: int,
+    @staticmethod
+    def __check_fish(value: int,
                      empty_houses: Sequence[House],
                      empty_house_to_cell: Mapping[House, Sequence[Cell]],
                      this_house_type: House.Type,
@@ -225,7 +229,7 @@ class Sudoku:
                     # There are some column cells that aren't in our rows.  The value can be deleted.
                     fixer_cells = column_cells - row_cells
                     print(f'Fish.  { tuple(sorted(columns))} must have {value} only on {tuple(sorted(rows)) }')
-                    self.__remove_value_from_cells(fixer_cells, value)
+                    Cell.remove_value_from_cells(fixer_cells, value)
                     return True
         return False
 
@@ -247,8 +251,8 @@ class Sudoku:
                    if len(cell.possible_values) == 2
                    for value in cell.possible_values)
 
-
-    def __check_xy_chain(self, init_cell: Cell, init_value: int, max_length: int):
+    @staticmethod
+    def __check_xy_chain(init_cell: Cell, init_value: int, max_length: int):
         todo = deque([(init_cell, init_value, 1)])
         links = {(init_cell, init_value): ((init_cell, init_value), 0)}
 
@@ -275,7 +279,7 @@ class Sudoku:
                               if init_value in cell.possible_values}
                     if fixers:
                         print(f'Found an XY chain {chain_to_string(next_cell, next_value)}')
-                        self.__remove_value_from_cells(fixers, init_value)
+                        Cell.remove_value_from_cells(fixers, init_value)
                         return True
             return False
 
@@ -290,18 +294,22 @@ class Sudoku:
 
         run_queue()
 
-
-    def check_colors(self) -> bool:
+    def check_chain_colors(self) -> bool:
+        """
+        Create strong chains for all the unsolved cells.  See if looking at any two items on the same chain
+        yields an insight or contradiction.
+        """
         chains = Chain.get_all_chains(self.grid.matrix.values(), True)
-        return any(self.check_pair_links(chain) for chain in chains)
+        return any(self.__check_chain_colors(chain) for chain in chains)
 
-    def check_pair_links(self, chain: Chain):
+    @staticmethod
+    def __check_chain_colors(chain: Chain):
+        """Pairwise look at each two elements on this chain and see if they lead to insight or a contradiction"""
         for ((cell1, value1), group1), ((cell2, value2), group2) in itertools.combinations(chain.items(), 2):
             if group1 == group2:
                 # Either both cell1=value1 and cell2=value2 are both true or are both false
                 if (cell1 == cell2 and value1 != value2) or (value1 == value2 and cell1.is_neighbor(cell2)):
-                    # We've reached a contradiction.  Both statements can't both be true.  Must be the other
-                    # group that is true.
+                    # Both statements can't both be true.  It must be the case that both are false.
                     chain.set_true(group1.other())
                     return True
             else:
@@ -311,7 +319,7 @@ class Sudoku:
                     fixers = [cell for cell in cell1.joint_neighbors(cell2) if value1 in cell.possible_values]
                     if fixers:
                         print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}.")
-                        self.__remove_value_from_cells(fixers, value1)
+                        Cell.remove_value_from_cells(fixers, value1)
                         return True
                 elif cell1 == cell2:
                     # Two different possible values for the cell.  If there are any others, they can be tossed
@@ -319,9 +327,7 @@ class Sudoku:
                     if len(cell1.possible_values) >= 3:
                         print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}")
                         delta = cell1.possible_values - {value1, value2}
-                        cell1.possible_values.clear()
-                        cell1.possible_values.update({value1, value2})
-                        print(f"  {cell1} ≠ {delta} ∈ {cell1.possible_value_string()}")
+                        Cell.remove_values_from_cells([cell1], delta)
                         return True
                 elif cell1.is_neighbor(cell2):
                     # Since cell1 and cell2 are neighbors, and either cell1=value1 or cell2=value2, in either case
@@ -330,18 +336,19 @@ class Sudoku:
                         print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}")
                         for value, cell in ((value1, cell2), (value2, cell1)):
                             if value in cell.possible_values:
-                                self.__remove_value_from_cells([cell], value)
+                                Cell.remove_value_from_cells([cell], value)
                         return True
         return False
 
     def check_tower(self) -> bool:
-        def strong_pair_iterator(cell: Cell, house_type: House.Type, value: int) -> Iterable[Cell]:
-            cell2 = cell.strong_pair(house_type, value)
-            if cell2:
-                yield cell2
+        def strong_pair_iterator(cell: Cell, house_type: House.Type, val: int) -> Iterable[Cell]:
+            paired_cell = cell.strong_pair(house_type, val)
+            if paired_cell:
+                yield paired_cell
 
         for cell1 in self.grid.matrix.values():
-            if cell1.is_known: continue
+            if cell1.is_known:
+                continue
             for value in cell1.possible_values:
                 for house_type1 in House.Type:
                     for cell2 in strong_pair_iterator(cell1, house_type1, value):
@@ -355,20 +362,17 @@ class Sudoku:
                                                   if value in cell.possible_values}
                                         if fixers:
                                             print(f'Tower on /{value}/ {cell1}={cell2}-{cell3}={cell4}')
-                                            self.__remove_value_from_cells(fixers, value)
+                                            Cell.remove_value_from_cells(fixers, value)
                                             return True
         return False
-
-    @staticmethod
-    def __remove_value_from_cells(cells: Iterable[Cell], value: int):
-        for cell in cells:
-            cell.possible_values.remove(value)
-            print(f'  {cell} ≠ {value} ∈ {cell.possible_value_string()}')
 
 
 def main() -> None:
     unsolved = []
     for i, puzzle in enumerate(PUZZLES):
+        print()
+        print('--------------------')
+        print()
         print(i, puzzle)
         try:
             result = Sudoku.solve(puzzle)

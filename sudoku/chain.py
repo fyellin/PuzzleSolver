@@ -70,20 +70,13 @@ class Chain:
         return chains
 
     def set_true(self, group: 'Chain.Group') -> None:
-        print(f"Setting value of {self} to  " + ("A" if group == Chain.Group.ONE else 'a'))
+        char = "A" if group == Chain.Group.ONE else 'a'
+        print(f"Setting value of {self} to {char}")
         for cell, value in group.pick_other_set(self):
-            cell.possible_values.discard(value)
-            print(f'  {cell} ≠ {value} ∈ {cell.possible_value_string()}')
+            Cell.remove_value_from_cells([cell], value)
         for cell, value in group.pick_set(self):
             cell.set_value_to(value)
             print(f'  {cell} := {value}')
-
-    def get_group(self, cell_value: CellValue) -> 'Chain.Group':
-        if cell_value in self.one:
-            return Chain.Group.ONE
-        if cell_value in self.two:
-            return Chain.Group.TWO
-        assert False
 
     def items(self) -> Iterator[Tuple[CellValue, 'Chain.Group']]:
         yield from ((cell, Chain.Group.ONE) for cell in self.one)
