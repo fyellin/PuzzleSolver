@@ -174,7 +174,7 @@ class Sudoku:
             print(f'{house} has hidden tuple {hidden_tuple}:')
         for cell in fixers:
             cell.possible_values -= values
-            print(f'  {cell} -= {values} ∈ {cell.possible_value_string()}')
+            print(f'  {cell} ≠ {values} ∈ {cell.possible_value_string()}')
         return True
 
     def check_fish(self) -> bool:
@@ -252,7 +252,7 @@ class Sudoku:
         todo = deque([(init_cell, init_value, 1)])
         links = {(init_cell, init_value): ((init_cell, init_value), 0)}
 
-        def run_queue():
+        def run_queue() -> bool:
             while todo:
                 cell, value, depth = todo.popleft()
                 next_value = (cell.possible_values - {value}).pop()
@@ -293,52 +293,45 @@ class Sudoku:
 
     def check_colors(self) -> bool:
         chains = Chain.get_all_chains(self.grid.matrix.values(), True)
-        for chain in chains:
-            if self.check_strong_chain_self(chain) or self.check_strong_chain_pair(chain):
-                return True
-        return False
+        return any(self.check_pair_links(chain) for chain in chains)
 
-    @staticmethod
-    def check_strong_chain_self(chain: Chain):
-        for group in Chain.Group:
-            values = group.pick_set(chain)
-            for (cell1, value1), (cell2, value2) in itertools.combinations(values, 2):
-                # Either both cell1=value1 and cell2=value2 are true or are both false
+    def check_pair_links(self, chain: Chain):
+        for ((cell1, value1), group1), ((cell2, value2), group2) in itertools.combinations(chain.items(), 2):
+            if group1 == group2:
+                # Either both cell1=value1 and cell2=value2 are both true or are both false
                 if (cell1 == cell2 and value1 != value2) or (value1 == value2 and cell1.is_neighbor(cell2)):
                     # We've reached a contradiction.  Both statements can't both be true.  Must be the other
                     # group that is true.
-                    chain.set_true(group.other())
+                    chain.set_true(group1.other())
                     return True
-
-    def check_strong_chain_pair(self, chain: Chain):
-        for (cell1, value1), (cell2, value2) in itertools.product(chain.one, chain.two):
-            # Precisely one of cell1 = value1 or cell2 = value2 is true
-            if value1 == value2:
-                # The two cells have the same value.  See if they both see an element in common
-                fixers = [cell for cell in cell1.joint_neighbors(cell2) if value1 in cell.possible_values]
-                if fixers:
-                    print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}.")
-                    self.__remove_value_from_cells(fixers, value1)
-                    return True
-            elif cell1 == cell2:
-                # Two different possible values for the cell.  If there are any others, they can be tossed
-                assert {value1, value2} <= cell1.possible_values
-                if len(cell1.possible_values) >= 3:
-                    print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}")
-                    cell1.possible_values.clear()
-                    cell1.possible_values.update({value1, value2})
-                    print(f"  {cell1} ∈ {cell1.possible_value_string()}")
-                    return True
-            elif cell1.is_neighbor(cell2):
-                # Either cell1=value1 or cell2=value2.  In either case, being neighbors means
-                # cell1 can't have value2 and cell2 can't have value1
-                # Each one can't have as its value what's in the other one.
-                if value2 in cell1.possible_values or value1 in cell2.possible_values:
-                    print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}")
-                    for value, cell in ((value1, cell2), (value2, cell1)):
-                        if value in cell.possible_values:
-                            self.__remove_value_from_cells([cell], value)
-                    return True
+            else:
+                # Precisely one of cell1 = value1 or cell2 = value2 is true
+                if value1 == value2:
+                    # The two cells have the same value.  See if they both see an element in common
+                    fixers = [cell for cell in cell1.joint_neighbors(cell2) if value1 in cell.possible_values]
+                    if fixers:
+                        print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}.")
+                        self.__remove_value_from_cells(fixers, value1)
+                        return True
+                elif cell1 == cell2:
+                    # Two different possible values for the cell.  If there are any others, they can be tossed
+                    assert {value1, value2} <= cell1.possible_values
+                    if len(cell1.possible_values) >= 3:
+                        print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}")
+                        delta = cell1.possible_values - {value1, value2}
+                        cell1.possible_values.clear()
+                        cell1.possible_values.update({value1, value2})
+                        print(f"  {cell1} ≠ {delta} ∈ {cell1.possible_value_string()}")
+                        return True
+                elif cell1.is_neighbor(cell2):
+                    # Since cell1 and cell2 are neighbors, and either cell1=value1 or cell2=value2, in either case
+                    # cell1 ≠ value2 and cell2 ≠ value1
+                    if value2 in cell1.possible_values or value1 in cell2.possible_values:
+                        print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}")
+                        for value, cell in ((value1, cell2), (value2, cell1)):
+                            if value in cell.possible_values:
+                                self.__remove_value_from_cells([cell], value)
+                        return True
         return False
 
     def check_tower(self) -> bool:
@@ -370,7 +363,7 @@ class Sudoku:
     def __remove_value_from_cells(cells: Iterable[Cell], value: int):
         for cell in cells:
             cell.possible_values.remove(value)
-            print(f'  {cell} -= {value} ∈ {cell.possible_value_string()}')
+            print(f'  {cell} ≠ {value} ∈ {cell.possible_value_string()}')
 
 
 def main() -> None:

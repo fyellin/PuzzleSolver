@@ -1,8 +1,8 @@
+from collections import deque
 from enum import Enum, auto
-from typing import Set, Iterable, Tuple
+from typing import Set, Iterable, Tuple, Iterator
 
 from cell import CellValue, Cell, House
-from collections import deque
 
 
 class Chain:
@@ -26,10 +26,6 @@ class Chain:
     def __init__(self) -> None:
         self.one = set()
         self.two = set()
-
-    @staticmethod
-    def empty() -> 'Chain':
-        return Chain()
 
     @staticmethod
     def create(start: CellValue, medusa: bool) -> 'Chain':
@@ -88,6 +84,10 @@ class Chain:
         if cell_value in self.two:
             return Chain.Group.TWO
         assert False
+
+    def items(self) -> Iterator[Tuple[CellValue, 'Chain.Group']]:
+        yield from ((cell, Chain.Group.ONE) for cell in self.one)
+        yield from ((cell, Chain.Group.TWO) for cell in self.two)
 
     def to_string(self, group: 'Chain.Group') -> str:
         items: Set[Tuple[CellValue, str]] = set()

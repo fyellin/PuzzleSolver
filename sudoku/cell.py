@@ -130,6 +130,10 @@ class CellValue(NamedTuple):
     cell: Cell
     value: int
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f'{self.cell}={self.value}'
+
+    def to_string(self, truth: bool):
+        char = '=' if truth else '≠'
+        return f'{self.cell}{char}{self.value}'
 
