@@ -55,7 +55,7 @@ class Cell:
         self.possible_values = set(range(1, 10))
         self.neighbors = set()  # Filled in later
 
-    def set_value_to(self, value: int) -> None:
+    def set_value_to(self, value: int, *, show: bool = False) -> str:
         for house in (self.row, self.column, self.box):
             house.set_value_to(self, value)
         for neighbor in self.neighbors:
@@ -64,6 +64,10 @@ class Cell:
         self.known_value = value
         self.possible_values.clear()
         self.possible_values.add(value)
+        output = f'{self} := {value}'  # Maybe use ⬅
+        if show:
+            print(f'  {output}')
+        return output
 
     @property
     def is_known(self) -> bool:

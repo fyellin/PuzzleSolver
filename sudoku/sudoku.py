@@ -3,10 +3,9 @@ from collections import deque
 from typing import Set, Sequence, Mapping, Iterable
 
 from cell import House, Cell
-from chain import Chain
+from chain import Chains
 from grid import Grid
 from hard_medusa import HardMedusa
-from puzzles import PUZZLES
 
 
 class Sudoku:
@@ -27,7 +26,7 @@ class Sudoku:
         while True:
             if self.is_solved():
                 return True
-            if self.check_forced_cells() or self.check_pinned_cell() or self.check_intersection_removal():
+            if self.check_naked_singles() or self.check_hidden_single() or self.check_intersection_removal():
                 continue
             if self.check_tuples():
                 continue
@@ -36,9 +35,9 @@ class Sudoku:
                 continue
             if self.check_xy_chain(81):
                 continue
-            if self.check_chain_colors():
+            chains = Chains.create(self.grid.matrix.values(), True)
+            if self.check_chain_colors(chains):
                 continue
-            chains = Chain.get_all_chains(self.grid.matrix.values(), True)
             if HardMedusa.run(chains):
                 continue
             return False
@@ -47,7 +46,7 @@ class Sudoku:
         """Returns true if every square has a known value"""
         return self.grid.is_solved()
 
-    def check_forced_cells(self) -> bool:
+    def check_naked_singles(self) -> bool:
         """
         Finds those squares which are forced because they only have one possible remaining value.
         Returns true if any changes are made to the grid
@@ -62,37 +61,49 @@ class Sudoku:
                 break
             found_forced_cell = True
             # Officially set the cell to its one possible value
-            for cell in forced_cells:
-                value = list(cell.possible_values)[0]
-                cell.set_value_to(value)
-            print("Forced " + '; '.join(f'{cell} := {cell.known_value}' for cell in forced_cells))
+            output = [cell.set_value_to(list(cell.possible_values)[0])
+                      for cell in forced_cells]
+            print("Forced " + '; '.join(output))
         return found_forced_cell
 
-    def check_pinned_cell(self) -> bool:
+    def check_hidden_single(self) -> bool:
         """
         Finds a house for which there is only one place that one or more digits can go.
         Returns true if it finds such a house.
-
-        Note that when we find such a house, we try out all the digits in that house, rather than stopping as
-        soon as we find the first one.  Hence we use sum() rather than any() to prevent short-circuiting the "or"
         """
-        return any(sum(self.__check_pinned_cell(house, value) for value in list(house.unknown_values))
-                   for house in self.grid.houses)
+        return any(self.__check_hidden_single2(house) for house in self.grid.houses)
 
     @staticmethod
-    def __check_pinned_cell(house: House, value: int) -> bool:
-        """
-        If there is only one possible location for the specific digit in the specific house, set it.
-        Returns true if we make a change.
-        """
-        possible_cells = [cell for cell in house.unknown_cells if value in cell.possible_values]
-        assert len(possible_cells) > 0
-        if len(possible_cells) == 1:
-            cell = possible_cells[0]
-            cell.set_value_to(value)
-            print(f'{house} pins {cell} := {value}')
-            return True
-        return False
+    def __check_hidden_single(house: House) -> bool:
+        # Make a sorted list of all (value, cells) not yet known
+        values = [(value, cell) for cell in house.unknown_cells for value in cell.possible_values]
+        values.sort()
+        result = False
+        for value, iter_cells in itertools.groupby(values, lambda x: x[0]):
+            cells = tuple(iter_cells)
+            if len(cells) == 1:
+                _, cell = cells[0]
+                output = cell.set_value_to(value)
+                print(f'{house} has hidden single {output}')
+                result = True
+        return result
+
+    @staticmethod
+    def __check_hidden_single2(house: House) -> bool:
+        # Make a sorted list of all (value, cells) not yet known
+        values = [(value, cell) for cell in house.unknown_cells for value in cell.possible_values]
+        values.sort()
+        result = False
+        for value, iter_cells in itertools.groupby(values, lambda x: x[0]):
+            _, cell = next(iter_cells)
+            try:
+                _ = next(iter_cells)
+            except StopIteration:
+                output = cell.set_value_to(value)
+                print(f'{house} has hidden single {output}')
+                result = True
+        return result
+
 
     def check_intersection_removal(self) -> bool:
         """
@@ -294,51 +305,13 @@ class Sudoku:
 
         run_queue()
 
-    def check_chain_colors(self) -> bool:
+    @staticmethod
+    def check_chain_colors(chains: Chains) -> bool:
         """
         Create strong chains for all the unsolved cells.  See if looking at any two items on the same chain
         yields an insight or contradiction.
         """
-        chains = Chain.get_all_chains(self.grid.matrix.values(), True)
-        return any(self.__check_chain_colors(chain) for chain in chains)
-
-    @staticmethod
-    def __check_chain_colors(chain: Chain):
-        """Pairwise look at each two elements on this chain and see if they lead to insight or a contradiction"""
-        for ((cell1, value1), group1), ((cell2, value2), group2) in itertools.combinations(chain.items(), 2):
-            if group1 == group2:
-                # Either both cell1=value1 and cell2=value2 are both true or are both false
-                if (cell1 == cell2 and value1 != value2) or (value1 == value2 and cell1.is_neighbor(cell2)):
-                    # Both statements can't both be true.  It must be the case that both are false.
-                    chain.set_true(group1.other())
-                    return True
-            else:
-                # Precisely one of cell1 = value1 or cell2 = value2 is true
-                if value1 == value2:
-                    # The two cells have the same value.  See if they both see an element in common
-                    fixers = [cell for cell in cell1.joint_neighbors(cell2) if value1 in cell.possible_values]
-                    if fixers:
-                        print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}.")
-                        Cell.remove_value_from_cells(fixers, value1)
-                        return True
-                elif cell1 == cell2:
-                    # Two different possible values for the cell.  If there are any others, they can be tossed
-                    assert {value1, value2} <= cell1.possible_values
-                    if len(cell1.possible_values) >= 3:
-                        print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}")
-                        delta = cell1.possible_values - {value1, value2}
-                        Cell.remove_values_from_cells([cell1], delta)
-                        return True
-                elif cell1.is_neighbor(cell2):
-                    # Since cell1 and cell2 are neighbors, and either cell1=value1 or cell2=value2, in either case
-                    # cell1 ≠ value2 and cell2 ≠ value1
-                    if value2 in cell1.possible_values or value1 in cell2.possible_values:
-                        print(f"From {chain}, either {cell1}={value1} or {cell2}={value2}")
-                        for value, cell in ((value1, cell2), (value2, cell1)):
-                            if value in cell.possible_values:
-                                Cell.remove_value_from_cells([cell], value)
-                        return True
-        return False
+        return any(chain.check_colors() for chain in chains.chains)
 
     def check_tower(self) -> bool:
         def strong_pair_iterator(cell: Cell, house_type: House.Type, val: int) -> Iterable[Cell]:
@@ -369,6 +342,17 @@ class Sudoku:
 
 def main() -> None:
     unsolved = []
+    PUZZLES = [
+        '..2......'
+        '...5.47..'
+        '94...7..6'
+        '.......7.'
+        '8.......5'
+        '.6.1.34..'
+        '..3.6....'
+        '.9....1..'
+        '...7..582'
+    ]
     for i, puzzle in enumerate(PUZZLES):
         print()
         print('--------------------')

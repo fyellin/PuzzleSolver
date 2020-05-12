@@ -2,7 +2,7 @@ from collections import deque
 from typing import Set, Sequence, Dict, Deque, Mapping, Any, Tuple, Optional, ClassVar, Union
 
 from cell import House, CellValue, Cell
-from chain import Chain
+from chain import Chain, Chains
 
 
 class Reason:
@@ -43,7 +43,7 @@ class Reason:
     @staticmethod
     def __print_explanations_internal(medusa: 'HardMedusa', initial_reasons: Set['Reason']) -> None:
         def print_cell_value(cv: CellValue) -> str:
-            chain, group = medusa.cell_value_to_chain[cv]
+            chain, group = medusa.chains_mapping[cv]
             truth = medusa.chain_to_true_group[chain] == group
             return cv.to_string(truth)
 
@@ -72,21 +72,19 @@ class Reason:
 
 
 class HardMedusa:
-    cell_value_to_chain: Mapping[CellValue, Tuple[Chain, Chain.Group]]
+    chains_mapping: Mapping[CellValue, Tuple[Chain, Chain.Group]]
     true_values: Set[CellValue]
     false_values: Set[CellValue]
     chain_to_true_group: Dict[Chain, Chain.Group]
-    todo: Deque[CellValue]
-    contradiction: bool
-
     cell_value_to_reason: Dict[CellValue, Reason]
 
+    todo: Deque[CellValue]
+
     @staticmethod
-    def run(chains: Sequence[Chain]) -> bool:
-        cell_value_to_chain = {cell_value: (chain, group) for chain in chains for cell_value, group in chain.items()}
-        for chain in chains:
-            medusa1 = HardMedusa(cell_value_to_chain)
-            medusa2 = HardMedusa(cell_value_to_chain)
+    def run(chains: Chains) -> bool:
+        for chain in chains.chains:
+            medusa1 = HardMedusa(chains.mapping)
+            medusa2 = HardMedusa(chains.mapping)
             contradiction1 = medusa1.__find_contradictions(chain, Chain.Group.ONE)
             contradiction2 = medusa2.__find_contradictions(chain, Chain.Group.TWO)
             assert not(contradiction1 and contradiction2)
@@ -113,13 +111,12 @@ class HardMedusa:
                     for (cell, value) in joint_falses:
                         Cell.remove_value_from_cells({cell}, value)
                     for (cell, value) in joint_trues:
-                        cell.set_value_to(value)
-                        print(f'  {cell} := {value}')
+                        cell.set_value_to(value, show=True)
                     return True
         return False
 
     def __init__(self, cell_value_to_chain: Mapping[CellValue, Tuple[Chain, Chain.Group]]):
-        self.cell_value_to_chain = cell_value_to_chain
+        self.chains_mapping = cell_value_to_chain
 
     def __find_contradictions(self, chain: Chain, group: Chain.Group) -> Optional[Reason]:
         self.true_values = set()
@@ -203,7 +200,7 @@ class HardMedusa:
         reason = Reason(self, premises, cell_values, cause)
         for cell_value in cell_values:
             # Find which chain and which Group of that chain we belong to.
-            chain, group = self.cell_value_to_chain[cell_value]
+            chain, group = self.chains_mapping[cell_value]
             # Which clue group is being set to True, us or the other group.
             true_group = group if truthhood else group.other()
             if chain in self.chain_to_true_group:
