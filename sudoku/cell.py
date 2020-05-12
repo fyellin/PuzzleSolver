@@ -1,6 +1,7 @@
 from enum import Enum, auto
 from typing import Sequence, Set, Optional, Iterable, Iterator, NamedTuple
 
+from color import Color
 
 
 class House:
@@ -132,21 +133,21 @@ class Cell:
     def __lt__(self, other: 'Cell') -> bool:
         return (self.row.index, self.column.index) < (other.row.index, other.column.index)
 
-    NEGATIVE_DIGITS = "①②③④⑤⑥⑦⑧⑨"
+    @staticmethod
+    def __deleted(i: int):
+        return f'{Color.lightgrey}{Color.strikethrough}{i}{Color.reset}'
 
     @staticmethod
     def remove_value_from_cells(cells: Iterable['Cell'], value: int):
-        temp = Cell.NEGATIVE_DIGITS
         for cell in cells:
-            foo = ''.join((temp[i-1] if i == value else str(i)) for i in range(1, 10) if i in cell.possible_values)
+            foo = ''.join((Cell.__deleted(i) if i == value else str(i)) for i in sorted(cell.possible_values))
             cell.possible_values.remove(value)
             print(f'  {cell} = {foo}')
 
     @staticmethod
     def remove_values_from_cells(cells: Iterable['Cell'], values: Set[int]):
-        temp = Cell.NEGATIVE_DIGITS
         for cell in cells:
-            foo = ''.join((temp[i-1] if i in values else str(i)) for i in range(1, 10) if i in cell.possible_values)
+            foo = ''.join((Cell.__deleted(i) if i in values else str(i)) for i in sorted(cell.possible_values))
             cell.possible_values -= values
             print(f'  {cell} = {foo}')
 

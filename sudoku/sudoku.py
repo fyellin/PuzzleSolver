@@ -6,6 +6,7 @@ from cell import House, Cell
 from chain import Chains
 from grid import Grid
 from hard_medusa import HardMedusa
+from puzzles import PUZZLES
 
 
 class Sudoku:
@@ -31,7 +32,7 @@ class Sudoku:
             if self.check_tuples():
                 continue
             self.grid.print()
-            if self.check_fish() or self.check_xy_sword() or self.check_tower():
+            if self.check_fish() or self.check_xy_sword() or self.check_xyz_sword() or self.check_tower():
                 continue
             if self.check_xy_chain(81):
                 continue
@@ -305,6 +306,22 @@ class Sudoku:
 
         run_queue()
 
+    def check_xyz_sword(self):
+        for triple in self.grid.matrix.values():
+            if len(triple.possible_values) == 3:
+                possibilities = [cell for cell in triple.neighbors
+                                 if len(cell.possible_values) == 2 and cell.possible_values <= triple.possible_values]
+                for pair1, pair2  in itertools.combinations(possibilities, 2):
+                    if pair1.possible_values != pair2.possible_values:
+                        common = pair1.possible_values.intersection(pair2.possible_values)
+                        fixers = [cell for cell in pair1.joint_neighbors(pair2)
+                                  if cell.is_neighbor(triple) and common in cell.possible_values]
+                        if fixers:
+                            print(
+                                f'Found an XYZ chain {pair1}={pair1.possible_values}, {triple}={triple.possible_values},'
+                                f'{pair2}={pair2.possible_values}')
+                            Cell.remove_value_from_cells(common, fixers)
+
     @staticmethod
     def check_chain_colors(chains: Chains) -> bool:
         """
@@ -342,7 +359,7 @@ class Sudoku:
 
 def main() -> None:
     unsolved = []
-    PUZZLES = [
+    PUZZLES2 = [
         '..2......'
         '...5.47..'
         '94...7..6'

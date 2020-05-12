@@ -4,15 +4,18 @@ from enum import Enum, auto
 from typing import Set, Iterable, Tuple, Iterator, Sequence, Mapping, Dict, NamedTuple, FrozenSet, List
 
 from cell import CellValue, Cell, House
+from color import Color
 
 
 class Chain:
     one: FrozenSet[CellValue]
     two: FrozenSet[CellValue]
+    is_medusa: bool
 
-    def __init__(self, one: Iterable[CellValue], two: Iterable[CellValue]):
+    def __init__(self, one: Iterable[CellValue], two: Iterable[CellValue], is_medusa: bool):
         self.one = frozenset(one)
         self.two = frozenset(two)
+        self.is_medusa = is_medusa
 
     class Group (Enum):
         ONE = auto()
@@ -26,6 +29,12 @@ class Chain:
 
         def other(self) -> 'Chain.Group':
             return Chain.Group.ONE if self == Chain.Group.TWO else Chain.Group.TWO
+
+        def color(self) -> str:
+            return Color.blue if self == Chain.Group.ONE else Color.red
+
+        def marker(self) -> str:
+            return self.color() + "■" + Color.reset
 
     @staticmethod
     def create(start: CellValue, medusa: bool) -> 'Chain':
@@ -51,15 +60,17 @@ class Chain:
                 if next_cell_value not in seen:
                     seen.add(next_cell_value)
                     todo.append((next_cell_value, depth + 1))
-        return Chain(one, two)
+        return Chain(one, two, medusa)
 
     def check_colors(self) -> bool:
         """Pairwise look at each two elements on this chain and see if they lead to insight or a contradiction"""
-        for ((cell1, value1), group1), ((cell2, value2), group2) in itertools.combinations(self.items(), 2):
+        for (cell_value1, group1), (cell_value2, group2) in itertools.combinations(self.items(), 2):
+            (cell1, value1), (cell2, value2) = cell_value1, cell_value2
             if group1 == group2:
                 # Either both cell1=value1 and cell2=value2 are both true or are both false
                 if (cell1 == cell2 and value1 != value2) or (value1 == value2 and cell1.is_neighbor(cell2)):
                     # Both statements can't both be true.  It must be the case that both are false.
+                    print(f"Setting value of {self} to {group1.color()}■{Color.reset} yields contradiction")
                     self.set_true(group1.other())
                     return True
             else:
@@ -68,14 +79,16 @@ class Chain:
                     # The two cells have the same value.  See if they both see an element in common
                     fixers = [cell for cell in cell1.joint_neighbors(cell2) if value1 in cell.possible_values]
                     if fixers:
-                        print(f"From {self}, either {cell1}={value1} or {cell2}={value2}.")
+                        print(f"From {self.__sub_chain_string(cell_value1, cell_value2)}, "
+                              f"either {cell1} or {cell2} is {value2}.")
                         Cell.remove_value_from_cells(fixers, value1)
                         return True
                 elif cell1 == cell2:
                     # Two different possible values for the cell.  If there are any others, they can be tossed
                     assert {value1, value2} <= cell1.possible_values
                     if len(cell1.possible_values) >= 3:
-                        print(f"From {self}, either {cell1}={value1} or {cell2}={value2}")
+                        print(f"From {self.__sub_chain_string(cell_value1, cell_value2)}, "
+                              f"{cell1} is either ={value1} or {value2}")
                         delta = cell1.possible_values - {value1, value2}
                         Cell.remove_values_from_cells([cell1], delta)
                         return True
@@ -83,17 +96,48 @@ class Chain:
                     # Since cell1 and cell2 are neighbors, and either cell1=value1 or cell2=value2, in either case
                     # cell1 ≠ value2 and cell2 ≠ value1
                     if value2 in cell1.possible_values or value1 in cell2.possible_values:
-                        print(f"From {self}, either {cell1}={value1} or {cell2}={value2}")
+                        print(f"From {self.__sub_chain_string(cell_value1, cell_value2)}, "
+                              f"{cell1}≠{value2} and {cell2}≠{value1}")
                         for value, cell in ((value1, cell2), (value2, cell1)):
                             if value in cell.possible_values:
                                 Cell.remove_value_from_cells([cell], value)
                         return True
         return False
 
+    def __sub_chain_string(self, start: CellValue, end: CellValue) -> str:
+        todo = deque([(end)])
+        seen = {end: end}
+        while todo:
+            cell_value= todo.popleft()
+            if cell_value == start:
+                break
+            (this_cell, this_value) = cell_value
+            for house_type in House.Type:
+                next_cell = this_cell.strong_pair(house_type, this_value)
+                if next_cell is None:
+                    continue
+                next_cell_value = CellValue(next_cell, this_value)
+                if next_cell_value not in seen:
+                    seen[next_cell_value] = cell_value
+                    todo.append(next_cell_value)
+            if self.is_medusa and len(this_cell.possible_values) == 2:
+                next_value = (this_cell.possible_values - {this_value}).pop()
+                next_cell_value = CellValue(this_cell, next_value)
+                if next_cell_value not in seen:
+                    seen[next_cell_value] = cell_value
+                    todo.append(next_cell_value)
+        cell_value = start
+        group = Chain.Group.ONE
+        items = []
+        while True:
+            items.append(f'{group.color()}{cell_value.cell}={cell_value.value}{Color.reset}')
+            if cell_value == end:
+                break
+            cell_value = seen[cell_value]
+            group = group.other()
+        return '<' + ' ⟺ '.join(items) + '>'
 
     def set_true(self, group: 'Chain.Group') -> None:
-        char = "⬆" if group == Chain.Group.ONE else '⬇'
-        print(f"Setting value of {self} to {char}")
         for cell, value in group.pick_other_set(self):
             Cell.remove_value_from_cells([cell], value)
         for cell, value in group.pick_set(self):
@@ -110,10 +154,8 @@ class Chain:
         return ', '.join(f'{cell}{symbol}{value}' for (cell, value), symbol in sorted(items))
 
     def __repr__(self) -> str:
-        items: Set[Tuple[CellValue, str]] = set()
-        items.update((cv, '⬆') for cv in self.one)
-        items.update((cv, '⬇') for cv in self.two)
-        joined = ', '.join(f'{cell}={value}({symbol})' for (cell, value), symbol in sorted(items))
+        joined = ', '.join(f'{group.color()}{cell}={value}{Color.reset}'
+                           for (cell, value), group in sorted(self.items()))
         return '<' + joined + '>'
 
     def __len__(self) -> int:

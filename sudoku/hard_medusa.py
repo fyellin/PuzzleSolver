@@ -88,12 +88,14 @@ class HardMedusa:
             contradiction1 = medusa1.__find_contradictions(chain, Chain.Group.ONE)
             contradiction2 = medusa2.__find_contradictions(chain, Chain.Group.TWO)
             assert not(contradiction1 and contradiction2)
-            if contradiction1:
-                # Group.ONE leads to a contradiction
-                contradiction1.print_explanation(medusa1)
-                chain.set_true(Chain.Group.TWO)
+            if contradiction1 or contradiction2:
+                contradiction, group, medusa = (contradiction1, Chain.Group.ONE, medusa1) if contradiction1 is not None else (contradiction2, Chain.Group.TWO, medusa2)
+                print(f"Setting strong chain {chain} to {group.marker()} yields contradiction")
+                contradiction.print_explanation(medusa)
+                chain.set_true(group.other())
                 return True
             elif contradiction2:
+                print(f"Setting strong chain {chain} to {Chain.Group.TWO.marker()} yields contradiction")
                 # Group.TWO leads to a contradiction
                 contradiction2.print_explanation(medusa2)
                 chain.set_true(Chain.Group.ONE)
@@ -103,10 +105,11 @@ class HardMedusa:
                 joint_falses = medusa1.false_values.intersection(medusa2.false_values)
                 all_values = joint_trues.union(joint_falses)
                 if joint_trues or joint_falses:
-                    print(f'Strong chain {chain.to_string(Chain.Group.ONE)} and converse yield same result')
-                    print(f'True. . . ')
+                    print(f"Setting value of {chain} to either {Chain.Group.ONE.marker()} "
+                          f"or {Chain.Group.TWO.marker()} yields common results")
+                    print(f'{Chain.Group.ONE.marker()}. . . ')
                     Reason.print_explanations(medusa1, all_values)
-                    print(f'False. . . .')
+                    print(f'{Chain.Group.TWO.marker()}. . . ')
                     Reason.print_explanations(medusa2, all_values)
                     for (cell, value) in joint_falses:
                         Cell.remove_value_from_cells({cell}, value)
