@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Sequence
+from typing import Dict, Tuple, Sequence, Iterable
 
 from cell import Cell, House
 
@@ -34,14 +34,24 @@ class Grid:
         self.matrix = all_cells
         self.houses = all_houses
 
+    def reset(self) -> None:
+        for house in self.houses:
+            house.reset()
+        for cell in self.cells:
+            cell.reset()
+
     def is_solved(self) -> bool:
-        return all(cell.is_known for cell in self.matrix.values())
+        return all(cell.is_known for cell in self.cells)
+
+    @property
+    def cells(self) -> Iterable[Cell]:
+        return self.matrix.values()
 
     def print(self, marks: bool = True) -> None:
         import sys
         out = sys.stdout
         matrix = self.matrix
-        max_length = max(len(cell.possible_values) for cell in matrix.values())
+        max_length = max(len(cell.possible_values) for cell in self.cells)
         is_solved = max_length == 1
         max_length = 1 if is_solved or not marks else max(max_length, 3)
         for row in range(1, 10):

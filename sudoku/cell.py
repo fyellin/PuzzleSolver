@@ -26,6 +26,10 @@ class House:
         self.unknown_values = set(range(1, 10))
         self.unknown_cells = set()
 
+    def reset(self) -> None:
+        self.unknown_values = set(range(1, 10))
+        self.unknown_cells = set(self.cells)
+
     def __str__(self) -> str:
         return self.house_type.name.title() + " " + str(self.index)
 
@@ -55,6 +59,10 @@ class Cell:
         self.known_value = None
         self.possible_values = set(range(1, 10))
         self.neighbors = set()  # Filled in later
+
+    def reset(self) -> None:
+        self.known_value = None
+        self.possible_values = set(range(1, 10))
 
     def set_value_to(self, value: int, *, show: bool = False) -> str:
         for house in (self.row, self.column, self.box):

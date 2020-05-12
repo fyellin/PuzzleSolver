@@ -3,6 +3,7 @@ from typing import Set, Sequence, Dict, Deque, Mapping, Any, Tuple, Optional, Cl
 
 from cell import House, CellValue, Cell
 from chain import Chain, Chains
+from color import Color
 
 
 class Reason:
@@ -35,17 +36,21 @@ class Reason:
     @staticmethod
     def print_explanations(medusa: 'HardMedusa', cell_values: Set[CellValue]) -> None:
         reasons = {medusa.cell_value_to_reason[cell_value] for cell_value in cell_values}
-        Reason.__print_explanations_internal(medusa, reasons)
+        Reason.__print_explanations_internal(medusa, reasons, cell_values)
 
     def print_explanation(self, medusa: 'HardMedusa'):
-        Reason.__print_explanations_internal(medusa, {self})
+        Reason.__print_explanations_internal(medusa, {self}, set(self.premises))
 
     @staticmethod
-    def __print_explanations_internal(medusa: 'HardMedusa', initial_reasons: Set['Reason']) -> None:
+    def __print_explanations_internal(medusa: 'HardMedusa', initial_reasons: Set['Reason'], highlighted: Set[CellValue]) -> None:
         def print_cell_value(cv: CellValue) -> str:
             chain, group = medusa.chains_mapping[cv]
             truth = medusa.chain_to_true_group[chain] == group
-            return cv.to_string(truth)
+            string = cv.to_string(truth)
+            if cv in highlighted:
+                return Color.bold + string + Color.reset
+            else:
+                return string
 
         all_reasons = {x for reason in initial_reasons for x in reason.all_reasons}
         sorted_reasons = sorted(all_reasons, key=lambda x: x.id)
@@ -90,31 +95,27 @@ class HardMedusa:
             assert not(contradiction1 and contradiction2)
             if contradiction1 or contradiction2:
                 contradiction, group, medusa = (contradiction1, Chain.Group.ONE, medusa1) if contradiction1 is not None else (contradiction2, Chain.Group.TWO, medusa2)
+                assert contradiction is not None
                 print(f"Setting strong chain {chain} to {group.marker()} yields contradiction")
                 contradiction.print_explanation(medusa)
                 chain.set_true(group.other())
                 return True
-            elif contradiction2:
-                print(f"Setting strong chain {chain} to {Chain.Group.TWO.marker()} yields contradiction")
-                # Group.TWO leads to a contradiction
-                contradiction2.print_explanation(medusa2)
-                chain.set_true(Chain.Group.ONE)
-                return True
             else:
                 joint_trues = medusa1.true_values.intersection(medusa2.true_values)
                 joint_falses = medusa1.false_values.intersection(medusa2.false_values)
-                all_values = joint_trues.union(joint_falses)
                 if joint_trues or joint_falses:
                     print(f"Setting value of {chain} to either {Chain.Group.ONE.marker()} "
                           f"or {Chain.Group.TWO.marker()} yields common results")
-                    print(f'{Chain.Group.ONE.marker()}. . . ')
-                    Reason.print_explanations(medusa1, all_values)
-                    print(f'{Chain.Group.TWO.marker()}. . . ')
-                    Reason.print_explanations(medusa2, all_values)
-                    for (cell, value) in joint_falses:
-                        Cell.remove_value_from_cells({cell}, value)
+                    all_values = list(joint_trues)
                     for (cell, value) in joint_trues:
                         cell.set_value_to(value, show=True)
+                    for (cell, value) in joint_falses:
+                        if value in cell.possible_values:  # It may have already been removed by a true
+                            Cell.remove_value_from_cells({cell}, value)
+                            all_values.append((cell, value))
+                    for group, medusa in ((Chain.Group.ONE, medusa1), (Chain.Group.TWO, medusa2)):
+                        Reason.print_explanations(medusa, all_values)
+                    print(f'{Chain.Group.TWO.marker()}. . . ')
                     return True
         return False
 
@@ -223,7 +224,7 @@ class HardMedusa:
         self.todo.extend(all_values)
         if not reason:
             assert cell_value is None
-            reason = Reason(self, (), all_values, 'BASIS')
+            reason = Reason(self, (), all_values, group.marker())
             self.cell_value_to_reason.update((cv, reason) for cv in all_values)
         else:
             assert cell_value is not None

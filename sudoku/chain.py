@@ -34,7 +34,7 @@ class Chain:
             return Color.blue if self == Chain.Group.ONE else Color.red
 
         def marker(self) -> str:
-            return self.color() + "■" + Color.reset
+            return f'{self.color()}■{Color.reset}'
 
     @staticmethod
     def create(start: CellValue, medusa: bool) -> 'Chain':
@@ -67,10 +67,10 @@ class Chain:
         for (cell_value1, group1), (cell_value2, group2) in itertools.combinations(self.items(), 2):
             (cell1, value1), (cell2, value2) = cell_value1, cell_value2
             if group1 == group2:
-                # Either both cell1=value1 and cell2=value2 are both true or are both false
+                # Either cell1=value1 and cell2=value2 are both true or are both false
                 if (cell1 == cell2 and value1 != value2) or (value1 == value2 and cell1.is_neighbor(cell2)):
-                    # Both statements can't both be true.  It must be the case that both are false.
-                    print(f"Setting value of {self} to {group1.color()}■{Color.reset} yields contradiction")
+                    # If both are true, it leads to a contradiction.  Both must be false.
+                    print(f"Setting value of {self} to {group1.marker()} yields contradiction")
                     self.set_true(group1.other())
                     return True
             else:
@@ -105,6 +105,7 @@ class Chain:
         return False
 
     def __sub_chain_string(self, start: CellValue, end: CellValue) -> str:
+        """Given two cell-values in this chain, print out the piece of the chain from "start" to "end" """
         todo = deque([(end)])
         seen = {end: end}
         while todo:
@@ -138,12 +139,16 @@ class Chain:
         return '<' + ' ⟺ '.join(items) + '>'
 
     def set_true(self, group: 'Chain.Group') -> None:
-        for cell, value in group.pick_other_set(self):
-            Cell.remove_value_from_cells([cell], value)
+        """Make all cells that belong to the specified group be true, and the others be false."""
         for cell, value in group.pick_set(self):
             cell.set_value_to(value, show=True)
+        for cell, value in group.pick_other_set(self):
+            # It's possible the set_value above has made removing the value from the cell unnecessary.
+            if value in cell.possible_values:
+                Cell.remove_value_from_cells([cell], value)
 
     def items(self) -> Iterator[Tuple[CellValue, 'Chain.Group']]:
+        """An enumeration of (cell_value, group) for all the cell values in this chain"""
         yield from ((cell, Chain.Group.ONE) for cell in self.one)
         yield from ((cell, Chain.Group.TWO) for cell in self.two)
 

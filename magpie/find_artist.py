@@ -1,4 +1,5 @@
-import math
+import itertools
+import unicodedata
 
 from matplotlib import pyplot as plt
 
@@ -57,16 +58,27 @@ def open_me():
             for line in urlopen(url).readlines():
                 temp = line.decode("utf-8")
                 if temp.startswith("<li>"):
-                    file.write(temp)
+                    file.write(remove_accents(temp))
 
 
+def remove_accents(text):
+    text = unicodedata.normalize('NFD', text)
+    text = text.encode('ascii', 'ignore')
+    text = text.decode("utf-8")
+    return str(text)
+
+info = None
 
 
 def search_me(letters):
-    with open("/tmp/foo", "r") as file:
-        info = file.read()
-    for i in range(0, 5):
-        search = letters[i].upper() + letters[i+2:i+8:2]
+    global info
+    if info is None:
+        with open("/tmp/foo", "r") as file:
+            info = file.read()
+
+    for pick in itertools.permutations(letters, 6):
+        search = ''.join(pick)
+        search = search[0].upper() + search[1:]
         index = 0
         try:
             while True:
@@ -86,6 +98,7 @@ def do_search(search: str, file: str):
             temp1 = file.rfind("\n", 0, index)
             temp2 = file.find("\n", index)
             print(search, file[temp1 + 1: temp2])
+            index = temp2 + 1
     except ValueError:
         pass
 

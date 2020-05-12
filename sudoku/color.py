@@ -2,6 +2,8 @@ class Color:
     reverse='\033[07m'
     reset = '\033[0m'
     strikethrough = '\033[09m'
+    bold = '\033[1m'
+    underline = '\033[4m'
 
     black = '\033[30m'
     red = '\033[31m'

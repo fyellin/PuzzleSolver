@@ -15,13 +15,13 @@ class Sudoku:
     def __init__(self) -> None:
         self.grid = Grid()
 
-    @staticmethod
-    def solve(puzzle: str) -> bool:
-        sudoku = Sudoku()
+    def solve(self, puzzle: str) -> bool:
+        grid = self.grid
+        grid.reset()
         for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), puzzle):
             if '1' <= letter <= '9':
-                sudoku.grid.matrix[row, column].set_value_to(int(letter))
-        return sudoku.run_solver()
+                grid.matrix[row, column].set_value_to(int(letter))
+        return self.run_solver()
 
     def run_solver(self) -> bool:
         while True:
@@ -36,7 +36,7 @@ class Sudoku:
                 continue
             if self.check_xy_chain(81):
                 continue
-            chains = Chains.create(self.grid.matrix.values(), True)
+            chains = Chains.create(self.grid.cells, True)
             if self.check_chain_colors(chains):
                 continue
             if HardMedusa.run(chains):
@@ -52,11 +52,10 @@ class Sudoku:
         Finds those squares which are forced because they only have one possible remaining value.
         Returns true if any changes are made to the grid
         """
-        matrix = self.grid.matrix
         found_forced_cell = False
         while True:
             # Cells that only have one possible value
-            forced_cells = {cell for cell in matrix.values()
+            forced_cells = {cell for cell in self.grid.cells
                             if not cell.is_known and len(cell.possible_values) == 1}
             if not forced_cells:
                 break
@@ -72,7 +71,7 @@ class Sudoku:
         Finds a house for which there is only one place that one or more digits can go.
         Returns true if it finds such a house.
         """
-        return any(self.__check_hidden_single2(house) for house in self.grid.houses)
+        return any(self.__check_hidden_single(house) for house in self.grid.houses)
 
     @staticmethod
     def __check_hidden_single(house: House) -> bool:
@@ -88,23 +87,6 @@ class Sudoku:
                 print(f'{house} has hidden single {output}')
                 result = True
         return result
-
-    @staticmethod
-    def __check_hidden_single2(house: House) -> bool:
-        # Make a sorted list of all (value, cells) not yet known
-        values = [(value, cell) for cell in house.unknown_cells for value in cell.possible_values]
-        values.sort()
-        result = False
-        for value, iter_cells in itertools.groupby(values, lambda x: x[0]):
-            _, cell = next(iter_cells)
-            try:
-                _ = next(iter_cells)
-            except StopIteration:
-                output = cell.set_value_to(value)
-                print(f'{house} has hidden single {output}')
-                result = True
-        return result
-
 
     def check_intersection_removal(self) -> bool:
         """
@@ -259,7 +241,7 @@ class Sudoku:
         cell visible to both of them can't contain A.
         """
         return any(self.__check_xy_chain(cell, value, max_length)
-                   for cell in self.grid.matrix.values()
+                   for cell in self.grid.cells
                    if len(cell.possible_values) == 2
                    for value in cell.possible_values)
 
@@ -306,21 +288,24 @@ class Sudoku:
 
         run_queue()
 
-    def check_xyz_sword(self):
-        for triple in self.grid.matrix.values():
+    def check_xyz_sword(self) -> bool:
+        for triple in self.grid.cells:
             if len(triple.possible_values) == 3:
                 possibilities = [cell for cell in triple.neighbors
                                  if len(cell.possible_values) == 2 and cell.possible_values <= triple.possible_values]
-                for pair1, pair2  in itertools.combinations(possibilities, 2):
+                for pair1, pair2 in itertools.combinations(possibilities, 2):
                     if pair1.possible_values != pair2.possible_values:
-                        common = pair1.possible_values.intersection(pair2.possible_values)
+                        common = pair1.possible_values.intersection(pair2.possible_values).pop()
                         fixers = [cell for cell in pair1.joint_neighbors(pair2)
                                   if cell.is_neighbor(triple) and common in cell.possible_values]
                         if fixers:
                             print(
-                                f'Found an XYZ chain {pair1}={pair1.possible_values}, {triple}={triple.possible_values},'
-                                f'{pair2}={pair2.possible_values}')
-                            Cell.remove_value_from_cells(common, fixers)
+                                f'Found XYZ sword {pair1}={pair1.possible_value_string()}, '
+                                f'{pair2}={pair2.possible_value_string()}, '
+                                f'{triple}={triple.possible_value_string()}')
+                            Cell.remove_value_from_cells(fixers, common)
+                            return True
+        return False
 
     @staticmethod
     def check_chain_colors(chains: Chains) -> bool:
@@ -336,7 +321,7 @@ class Sudoku:
             if paired_cell:
                 yield paired_cell
 
-        for cell1 in self.grid.matrix.values():
+        for cell1 in self.grid.cells:
             if cell1.is_known:
                 continue
             for value in cell1.possible_values:
@@ -359,24 +344,14 @@ class Sudoku:
 
 def main() -> None:
     unsolved = []
-    PUZZLES2 = [
-        '..2......'
-        '...5.47..'
-        '94...7..6'
-        '.......7.'
-        '8.......5'
-        '.6.1.34..'
-        '..3.6....'
-        '.9....1..'
-        '...7..582'
-    ]
+    sudoku = Sudoku()
     for i, puzzle in enumerate(PUZZLES):
         print()
         print('--------------------')
         print()
         print(i, puzzle)
         try:
-            result = Sudoku.solve(puzzle)
+            result = sudoku.solve(puzzle)
         except Exception:
             print(puzzle)
             raise
