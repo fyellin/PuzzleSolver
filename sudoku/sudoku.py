@@ -6,7 +6,6 @@ from cell import House, Cell
 from chain import Chains
 from grid import Grid
 from hard_medusa import HardMedusa
-from puzzles import PUZZLES
 
 
 class Sudoku:
@@ -345,7 +344,20 @@ class Sudoku:
 def main() -> None:
     unsolved = []
     sudoku = Sudoku()
+    PUZZLEX = [
+        "84.5.6.73"
+        "6..7.8..2"
+        "........."
+        "31.....24"
+        "........."
+        "28.....65"
+        "........."
+        "1..8.3..7"
+        "75.4.1.86"
+    ]
+    PUZZLES = [PUZZLEX[0][0:40] + str(i) + PUZZLEX[0][41:] for i in range(8, 10)]
     for i, puzzle in enumerate(PUZZLES):
+        assert len(puzzle) == 81
         print()
         print('--------------------')
         print()
