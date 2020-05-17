@@ -1,5 +1,6 @@
 import itertools
 from collections import deque
+from operator import attrgetter
 from typing import Set, Sequence, Mapping, Iterable
 
 from cell import House, Cell, CellValue
@@ -27,7 +28,7 @@ class Sudoku:
         while True:
             if self.is_solved():
                 return True
-            if self.check_naked_singles() or self.check_hidden_single():
+            if self.check_naked_singles() or self.check_hidden_singles():
                 continue
             if self.check_intersection_removal():
                 continue
@@ -65,55 +66,61 @@ class Sudoku:
             # Officially set the cell to its one possible value
             output = [cell.set_value_to(list(cell.possible_values)[0])
                       for cell in forced_cells]
-            print("Forced " + '; '.join(output))
+            print("Forced: " + '; '.join(output))
         return found_forced_cell
 
-    def check_hidden_single(self) -> bool:
+    def check_hidden_singles(self) -> bool:
         """
         Finds a house for which there is only one place that one or more digits can go.
         Returns true if it finds such a house.
         """
-        return any(self.__check_hidden_single(house) for house in self.grid.houses)
+        return any(self.__check_hidden_singles(house) for house in self.grid.houses)
 
     @staticmethod
-    def __check_hidden_single(house: House) -> bool:
-        # Make a sorted list of all (value, cells) not yet known
-        cell_values = [CellValue(cell, value) for cell in house.unknown_cells for value in cell.possible_values]
-        cell_values.sort(key=lambda cv: cv.value)
+    def __check_hidden_singles(house: House) -> bool:
+        # Make a sorted list of all cell/value combinations not yet known
+        all_unknown_cell_values = [CellValue(cell, value)
+                                   for cell in house.unknown_cells
+                                   for value in cell.possible_values]
+        all_unknown_cell_values.sort(key=attrgetter("value"))
         result = False
-        for value, iter_cells in itertools.groupby(cell_values, lambda cv: cv.value):
-            cvs = tuple(iter_cells)
-            if len(cvs) == 1:
-                cell = cvs[0].cell
+        for value, iter in itertools.groupby(all_unknown_cell_values, attrgetter("value")):
+            cell_values = tuple(iter)
+            if len(cell_values) == 1:
+                cell = cell_values[0].cell
                 cell.set_value_to(value)
-                print(f'{house} value={value} has a hidden single {cell}')
+                print(f'Hidden Single: {house} = {value} must be {cell}')
                 result = True
         return result
 
     def check_intersection_removal(self) -> bool:
         """
+        Original explanation:
         If the only possible places to place a digit in a particular house are all also within another house, then
         all other occurrences of that digit in the latter house can be deleted.
-        Returns true if we make a change.
 
-        When we find such a digit in a house, we also check all other digits in that house.  Hence the use of
-        sum() rather than any() to prevent short-circuiting the "or"
+        New explanation:
+        If the only possible places to place a digit in a particular house are all neighbors of a cell outside the
+        house, then that outside cell cannot contain the digit (or it would eliminate all the possibilities.)  This
+        is more general than the original explanation, and allows this to work with knight- and king-sudoku, too.
+
+        Returns true if we make a change.
         """
-        return any(sum(self.__check_intersection_removal(house, value)
-                       for value in list(house.unknown_values))
-                   for house in self.grid.houses)
+        return any(self.__check_intersection_removal(house, value)
+                   for house in self.grid.houses
+                   for value in house.unknown_values)
 
     @staticmethod
     def __check_intersection_removal(house: House, value: int) -> bool:
         """Checks for intersection removing of the specific value in the specific house"""
-        house_candidates = [cell for cell in house.unknown_cells if value in cell.possible_values]
-        assert len(house_candidates) > 1
-        cell0, *other_candidates = house_candidates
+        candidates = [cell for cell in house.unknown_cells if value in cell.possible_values]
+        assert len(candidates) > 1
+        cell0, *other_candidates = candidates
         # Find all cells that both have the specified value, and are neighbors of all the candidates.
         fixers = {cell for cell in cell0.neighbors if value in cell.possible_values}
         fixers.intersection_update(*(cell.neighbors for cell in other_candidates))
         if fixers:
-            print(f'One of {sorted(house_candidates)} in house {house} must be {value}')
+            print(f'Intersection Removal: {house} = {value} must be one of {sorted(candidates)}')
             Cell.remove_value_from_cells(fixers, value)
             return True
         return False

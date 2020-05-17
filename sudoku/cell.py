@@ -31,7 +31,7 @@ class House:
         self.unknown_cells = set(self.cells)
 
     def __repr__(self) -> str:
-        return self.house_type.name.title() + " " + str(self.index)
+        return self.house_type.name.title()[:3] + " " + str(self.index)
 
     def set_value_to(self, cell: 'Cell', value: int) -> None:
         self.unknown_cells.remove(cell)

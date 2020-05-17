@@ -1,5 +1,5 @@
 import itertools
-from typing import Tuple, Sequence
+from typing import Tuple, Sequence, Callable
 
 from matplotlib import pyplot as plt
 
@@ -7,6 +7,13 @@ from solver import DancingLinks
 
 
 class Sudoku:
+    king: bool
+    knight: bool
+
+    def __init__(self, *, king: bool = False, knight: bool = False):
+        self.king = king
+        self.knight = knight
+
     def solve(self, puzzle: str):
         constraints = {}
         optional_constraints = set()
@@ -18,9 +25,16 @@ class Sudoku:
             for value in values:
                 box = row - (row - 1) % 3 + (column - 1) // 3
                 info = [f"Value{row}{column}", f"Row{row}={value}", f"Col{column}={value}", f"Box{box}={value}"]
-                for kr, kc in self.knights_move(row, column):
-                    (min_row, min_column), (max_row, max_column) = sorted([(row, column) , (kr, kc)])
-                    info.append(f'K{min_row}:{min_column}||{max_row}:{max_column}={value}')
+                if self.knight:
+                    for kr, kc in self.knights_move(row, column):
+                        (min_row, min_column), (max_row, max_column) = sorted([(row, column), (kr, kc)])
+                        info.append(f'N{min_row}:{min_column}||{max_row}:{max_column}={value}')
+                if self.king:
+                    for kr, kc in self.kings_move(row, column):
+                        (min_row, min_column), (max_row, max_column) = sorted([(row, column), (kr, kc)])
+                        info.append(f'K{min_row}:{min_column}||{max_row}:{max_column}={value}')
+
+
                 optional_constraints.update(info[4:])
                 constraints[(row, column, value)] = info
         links = DancingLinks(constraints, optional_constraints=optional_constraints,
@@ -29,20 +43,20 @@ class Sudoku:
 
 
     @staticmethod
-    def knights_move(row, column):
+    def knights_move(row: int, column: int) -> Sequence[Tuple[int, int]]:
         return [((row + dr), (column + dc))
                 for dx, dy in itertools.product((1, -1), (2, -2))
                 for dr, dc in ((dx, dy), (dy, dx))
                 if 1 <= row + dr <= 9 and 1 <= column + dc <= 9]
 
     @staticmethod
-    def kings_move(row, column):
+    def kings_move(row: int, column: int) -> Sequence[Tuple[int, int]]:
         return [((row + dr), (column + dc))
                 for dr, dc in itertools.product((-1, 1), repeat=2)
                 if 1 <= row + dr <= 9 and 1 <= column + dc <= 9]
 
     @staticmethod
-    def get_grid_printer(initial_puzzle_grid):
+    def get_grid_printer(initial_puzzle_grid) -> Callable[[Sequence[Tuple[int, int, int]]], None]:
         def draw_grid(results: Sequence[Tuple[int, int, int]]) -> None:
             figure, axes = plt.subplots(1, 1, figsize=(4, 4), dpi=100)
 
@@ -81,7 +95,7 @@ def main() -> None:
         "...7.4.1."
         "7.......5"
     ]
-    Sudoku().solve(puzzles[0])
+    Sudoku(knight=True).solve(puzzles[0])
 
 
 if __name__ == '__main__':

@@ -17,7 +17,7 @@ class DancingLinks(Generic[Row, Constraint]):
     row_printer: Any
 
     count: int
-    max_depth: int
+    max_debugging_depth: int
     output: TextIO
     debug: int
     constraint_to_rows: Dict[Constraint, Set[Row]]
@@ -49,7 +49,7 @@ class DancingLinks(Generic[Row, Constraint]):
         runner.output = output
         runner.count = 0
         runner.debug = debug is not None
-        runner.max_depth = debug if debug is not None else -1
+        runner.max_debugging_depth = debug if debug is not None else -1
 
         if runner.debug:
             output.write(f"There are {len(runner.row_to_constraints)} rows and {len(constraint_to_rows)} constraints\n")
@@ -75,7 +75,7 @@ class DancingLinks(Generic[Row, Constraint]):
         """
         # Note that "depth" is meaningful only when debugging.
         self.count += 1
-        is_debugging = depth < self.max_depth
+        is_debugging = depth < self.max_debugging_depth
 
         try:
             min_count, _, min_constraint = min((len(rows), random.random(), constraint)
@@ -83,7 +83,7 @@ class DancingLinks(Generic[Row, Constraint]):
                                                if constraint not in self.optional_constraints)
         except ValueError:
             if is_debugging:
-                self.output.write(f"{self._indent(depth)}✓ SOLUTION\n")
+                self.output.write(f"{self.__indent(depth)}✓ SOLUTION\n")
             yield []
             return
 
@@ -92,7 +92,7 @@ class DancingLinks(Generic[Row, Constraint]):
         depth += (min_count != 1)
         if min_count == 0:
             if is_debugging:
-                self.output.write(f"{self._indent(depth)}✕ {min_constraint}\n")
+                self.output.write(f"{self.__indent(depth)}✕ {min_constraint}\n")
             return
 
         # Look at each possible row that can resolve the min_constraint.
@@ -117,7 +117,7 @@ class DancingLinks(Generic[Row, Constraint]):
 
     def __solve_constraints_iterative(self) -> int:
         # Note that "depth" is meaningful only when debugging.
-        stack: List[Tuple[Callable[[Any, ...], None], Sequence[Any]]] = []
+        stack: List[Tuple[Callable[..., None], Sequence[Any]]] = []
         solution_count = 0
 
         def run() -> int:
@@ -130,7 +130,7 @@ class DancingLinks(Generic[Row, Constraint]):
         def find_minimum_constraint(depth: int) -> None:
             nonlocal solution_count
             self.count += 1
-            is_debugging = depth < self.max_depth
+            is_debugging = depth < self.max_debugging_depth
 
             try:
                 count, _, constraint = min((len(rows), random.random(), constraint)
@@ -138,7 +138,7 @@ class DancingLinks(Generic[Row, Constraint]):
                                            if constraint not in self.optional_constraints)
             except ValueError:
                 if is_debugging:
-                    self.output.write(f"{self._indent(depth)}✓ SOLUTION\n")
+                    self.output.write(f"{self.__indent(depth)}✓ SOLUTION\n")
                 solution = [args[1] for (func, args) in stack if func == row_cleanup]
                 solution_count += 1
                 self.row_printer(solution)
@@ -149,7 +149,7 @@ class DancingLinks(Generic[Row, Constraint]):
             else:
                 # Don't do anything, except maybe print a debugging message
                 if is_debugging:
-                    self.output.write(f"{self._indent(depth)}✕ {constraint}\n")
+                    self.output.write(f"{self.__indent(depth)}✕ {constraint}\n")
 
         def look_at_constraint(constraint: Constraint, depth: int):
             # Look at each possible row that can resolve the constraint.
@@ -163,7 +163,7 @@ class DancingLinks(Generic[Row, Constraint]):
         def look_at_row(constraint: Constraint, row: Row, index: int, count: int, depth: int) -> None:
             cols = [self.__cover_constraint(row_constraint)
                     for row_constraint in self.row_to_constraints[row] if row_constraint != constraint]
-            if depth < self.max_depth:
+            if depth < self.max_debugging_depth:
                 self.__print_debug_info(constraint, row, index, count, depth)
 
             # Remember we are adding things in reverse order.  Recurse on the smaller subproblem, and then cleanup
@@ -200,7 +200,7 @@ class DancingLinks(Generic[Row, Constraint]):
         self.constraint_to_rows[constraint] = rows
 
     def __print_debug_info(self, min_constraint: Constraint, row: Row, index: int, count: int, depth: int) -> None:
-        indent = self._indent(depth)
+        indent = self.__indent(depth)
         live_rows = {x for rows in self.constraint_to_rows.values() for x in rows}
         if count == 1:
             self.output.write(f"{indent}• {min_constraint}: Row {row} ({len(live_rows)} rows)\n")
@@ -208,5 +208,5 @@ class DancingLinks(Generic[Row, Constraint]):
             self.output.write(f"{indent}{index}/{count} {min_constraint}: Row {row} ({len(live_rows)} rows)\n")
 
     @staticmethod
-    def _indent(depth: int) -> str:
+    def __indent(depth: int) -> str:
         return ' | ' * depth

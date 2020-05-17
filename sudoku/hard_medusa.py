@@ -106,13 +106,15 @@ class HardMedusa:
                 if joint_trues or joint_falses:
                     print(f"Setting value of {chain} to either {Chain.Group.ONE.marker()} "
                           f"or {Chain.Group.TWO.marker()} yields common results")
-                    all_values = list(joint_trues)
-                    for (cell, value) in joint_trues:
+                    all_values = set(joint_trues)
+                    for cell_value in joint_trues:
+                        cell, value = cell_value
                         cell.set_value_to(value, show=True)
-                    for (cell, value) in joint_falses:
+                    for cell_value in joint_falses:
+                        cell, value = cell_value
                         if value in cell.possible_values:  # It may have already been removed by a true
                             Cell.remove_value_from_cells({cell}, value)
-                            all_values.append((cell, value))
+                            all_values.add(cell_value)
                     for group, medusa in ((Chain.Group.ONE, medusa1), (Chain.Group.TWO, medusa2)):
                         Reason.print_explanations(medusa, all_values)
                     print(f'{Chain.Group.TWO.marker()}. . . ')
