@@ -2,17 +2,18 @@ import itertools
 from collections import deque
 from typing import Set, Sequence, Mapping, Iterable
 
-from cell import House, Cell
+from cell import House, Cell, CellValue
 from chain import Chains
 from grid import Grid
 from hard_medusa import HardMedusa
+from puzzles import PUZZLES
 
 
 class Sudoku:
     grid: Grid
 
-    def __init__(self) -> None:
-        self.grid = Grid()
+    def __init__(self, **args: bool) -> None:
+        self.grid = Grid(**args)
 
     def solve(self, puzzle: str) -> bool:
         grid = self.grid
@@ -26,7 +27,9 @@ class Sudoku:
         while True:
             if self.is_solved():
                 return True
-            if self.check_naked_singles() or self.check_hidden_single() or self.check_intersection_removal():
+            if self.check_naked_singles() or self.check_hidden_single():
+                continue
+            if self.check_intersection_removal():
                 continue
             if self.check_tuples():
                 continue
@@ -75,15 +78,15 @@ class Sudoku:
     @staticmethod
     def __check_hidden_single(house: House) -> bool:
         # Make a sorted list of all (value, cells) not yet known
-        values = [(value, cell) for cell in house.unknown_cells for value in cell.possible_values]
-        values.sort()
+        cell_values = [CellValue(cell, value) for cell in house.unknown_cells for value in cell.possible_values]
+        cell_values.sort(key=lambda cv: cv.value)
         result = False
-        for value, iter_cells in itertools.groupby(values, lambda x: x[0]):
-            cells = tuple(iter_cells)
-            if len(cells) == 1:
-                _, cell = cells[0]
-                output = cell.set_value_to(value)
-                print(f'{house} has hidden single {output}')
+        for value, iter_cells in itertools.groupby(cell_values, lambda cv: cv.value):
+            cvs = tuple(iter_cells)
+            if len(cvs) == 1:
+                cell = cvs[0].cell
+                cell.set_value_to(value)
+                print(f'{house} value={value} has a hidden single {cell}')
                 result = True
         return result
 
@@ -103,27 +106,15 @@ class Sudoku:
     @staticmethod
     def __check_intersection_removal(house: House, value: int) -> bool:
         """Checks for intersection removing of the specific value in the specific house"""
-        value_cells = [cell for cell in house.unknown_cells if value in cell.possible_values]
-        if len(value_cells) > 3:
-            return False
-        assert len(value_cells) > 1
-        # Pick one of the cells at random, and use its three houses.
-        cell0 = value_cells[0]
-        for target_house in (cell0.row, cell0.column, cell0.box):
-            # If all of the cells are also in a different house, we can use that one.
-            if target_house != house and all(cell in target_house.unknown_cells for cell in value_cells):
-                break
-        else:
-            # No match was found.
-            return False
-
-        # Find all cells in the target house that still have this as a possible value
-        target_value_cells = {cell for cell in target_house.unknown_cells if value in cell.possible_values}
-        assert set(value_cells) <= target_value_cells
-        if len(target_value_cells) > len(value_cells):
-            print(f'Value {value} in {target_house} must be in {house}')
-            target_value_cells.difference_update(value_cells)
-            Cell.remove_value_from_cells(target_value_cells, value)
+        house_candidates = [cell for cell in house.unknown_cells if value in cell.possible_values]
+        assert len(house_candidates) > 1
+        cell0, *other_candidates = house_candidates
+        # Find all cells that both have the specified value, and are neighbors of all the candidates.
+        fixers = {cell for cell in cell0.neighbors if value in cell.possible_values}
+        fixers.intersection_update(*(cell.neighbors for cell in other_candidates))
+        if fixers:
+            print(f'One of {sorted(house_candidates)} in house {house} must be {value}')
+            Cell.remove_value_from_cells(fixers, value)
             return True
         return False
 
@@ -343,20 +334,31 @@ class Sudoku:
 
 def main() -> None:
     unsolved = []
-    sudoku = Sudoku()
-    PUZZLEX = [
-        "84.5.6.73"
-        "6..7.8..2"
-        "........."
-        "31.....24"
-        "........."
-        "28.....65"
-        "........."
-        "1..8.3..7"
-        "75.4.1.86"
+    sudoku = Sudoku(knight=True)
+    # PUZZLEX = [
+    #     "84.5.6.73"
+    #     "6..7.8..2"
+    #     "........."
+    #     "31.....24"
+    #     "........."
+    #     "28.....65"
+    #     "........."
+    #     "1..8.3..7"
+    #     "75.4.1.86"
+    # ]
+    # PUZZLES = [PUZZLEX[0][0:40] + str(i) + PUZZLEX[0][41:] for i in range(8, 10)]
+    PUZZLES2 = [
+        '4........'
+        '.........'
+        '..8...7..'
+        '.1.......'
+        '.........'
+        '.6...2.3.'
+        '..2...9..'
+        '...7.4.1.'
+        '7.......5'
     ]
-    PUZZLES = [PUZZLEX[0][0:40] + str(i) + PUZZLEX[0][41:] for i in range(8, 10)]
-    for i, puzzle in enumerate(PUZZLES):
+    for i, puzzle in enumerate(PUZZLES2 or PUZZLES):
         assert len(puzzle) == 81
         print()
         print('--------------------')

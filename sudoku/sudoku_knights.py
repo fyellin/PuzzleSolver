@@ -30,12 +30,16 @@ class Sudoku:
 
     @staticmethod
     def knights_move(row, column):
-        info = []
-        for dx, dy in itertools.product((1, -1), (2, -2)):
-            for dr, dc in ((dx, dy), (dy, dx)):
-                if 1 <= row + dr <= 9 and 1 <= column + dc <= 9:
-                    info.append((row + dr, column + dc))
-        return info
+        return [((row + dr), (column + dc))
+                for dx, dy in itertools.product((1, -1), (2, -2))
+                for dr, dc in ((dx, dy), (dy, dx))
+                if 1 <= row + dr <= 9 and 1 <= column + dc <= 9]
+
+    @staticmethod
+    def kings_move(row, column):
+        return [((row + dr), (column + dc))
+                for dr, dc in itertools.product((-1, 1), repeat=2)
+                if 1 <= row + dr <= 9 and 1 <= column + dc <= 9]
 
     @staticmethod
     def get_grid_printer(initial_puzzle_grid):
@@ -54,11 +58,10 @@ class Sudoku:
                 axes.plot([x, x], [1, 10], linewidth=width, color='black')
                 axes.plot([1, 10], [x, x], linewidth=width, color='black')
 
+            given = dict(fontsize=13, color='black', weight='heavy')
+            found = dict(fontsize=12, color='blue', weight='normal')
             for row, column, value in results:
-                if (row, column) in initial_puzzle_grid:
-                    args = dict(fontsize=12, color='black', weight='bold')
-                else:
-                    args = dict(fontsize=12, color='blue')
+                args = given if (row, column) in initial_puzzle_grid else found
                 axes.text(column + .5, row + .5, str(value),
                           verticalalignment='center', horizontalalignment='center', **args)
             plt.show()

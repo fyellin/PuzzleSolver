@@ -7,7 +7,7 @@ class Grid:
     matrix: Dict[Tuple[int, int], Cell]
     houses: Sequence[House]
 
-    def __init__(self) -> None:
+    def __init__(self, **args: bool) -> None:
         row_houses = [House(House.Type.ROW, index) for index in range(1, 10)]
         column_houses = [House(House.Type.COLUMN, index) for index in range(1, 10)]
         box_houses = [House(House.Type.BOX, index) for index in range(1, 10)]
@@ -29,7 +29,7 @@ class Grid:
             house.cells = tuple(sorted(house.unknown_cells))
 
         for cell in all_cells.values():
-            cell.initialize_neighbors(all_cells.values())
+            cell.initialize_neighbors(all_cells.values(), **args)
 
         self.matrix = all_cells
         self.houses = all_houses

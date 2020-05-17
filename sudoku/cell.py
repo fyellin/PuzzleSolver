@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import Sequence, Set, Optional, Iterable, Iterator, NamedTuple
+from typing import Sequence, Set, Optional, Iterable, Iterator, NamedTuple, Mapping, Tuple
 
 from color import Color
 
@@ -30,11 +30,8 @@ class House:
         self.unknown_values = set(range(1, 10))
         self.unknown_cells = set(self.cells)
 
-    def __str__(self) -> str:
-        return self.house_type.name.title() + " " + str(self.index)
-
     def __repr__(self) -> str:
-        return str(self)
+        return self.house_type.name.title() + " " + str(self.index)
 
     def set_value_to(self, cell: 'Cell', value: int) -> None:
         self.unknown_cells.remove(cell)
@@ -45,17 +42,15 @@ class House:
 
 
 class Cell:
-    row: House
-    column: House
-    box: House
+    houses: Mapping[House.Type, House]
+    index: Tuple[int, int]
     known_value: Optional[int]
     possible_values: Set[int]
     neighbors: Set['Cell']
 
     def __init__(self, row: House, column: House, box: House) -> None:
-        self.row = row
-        self.column = column
-        self.box = box
+        self.houses = {House.Type.ROW: row, House.Type.COLUMN: column, House.Type.BOX: box}
+        self.index = (row.index, column.index)
         self.known_value = None
         self.possible_values = set(range(1, 10))
         self.neighbors = set()  # Filled in later
@@ -65,7 +60,7 @@ class Cell:
         self.possible_values = set(range(1, 10))
 
     def set_value_to(self, value: int, *, show: bool = False) -> str:
-        for house in (self.row, self.column, self.box):
+        for house in self.houses.values():
             house.set_value_to(self, value)
         for neighbor in self.neighbors:
             neighbor.possible_values.discard(value)
@@ -82,29 +77,17 @@ class Cell:
     def is_known(self) -> bool:
         return self.known_value is not None
 
-    def initialize_neighbors(self, all_cells: Iterable['Cell']) -> None:
-        neighbors = {cell for cell in all_cells
-                     if cell != self
-                     if self.row == cell.row or self.column == cell.column or self.box == cell.box}
-        self.neighbors = neighbors
-
-    def get_common_house(self, other: 'Cell') -> House:
-        if self.row == other.row:
-            return self.row
-        if self.column == other.column:
-            return self.column
-        if self.box == other.box:
-            return self.box
-        assert False
+    def initialize_neighbors(self, all_cells: Iterable['Cell'], *,
+                             knight: bool = False, king: bool = False) -> None:
+        self.neighbors = {cell for cell in all_cells
+                          if cell != self
+                          if any(self.houses[type] == cell.houses[type] for type in House.Type)
+                             or (knight and self.__is_knights_move(cell))
+                             or (king and self.__is_kings_move(cell))
+                          }
 
     def house_of_type(self, house_type: House.Type) -> House:
-        if house_type == House.Type.BOX:
-            return self.box
-        if house_type == House.Type.COLUMN:
-            return self.column
-        if house_type == House.Type.ROW:
-            return self.row
-        assert False
+        return self.houses[house_type]
 
     def strong_pair(self, house_type: House.Type, value: int) -> Optional['Cell']:
         temp = [cell for cell in self.house_of_type(house_type).unknown_cells
@@ -122,12 +105,9 @@ class Cell:
     def joint_neighbors(self, other: 'Cell') -> Iterator['Cell']:
         return (cell for cell in self.neighbors if other.is_neighbor(cell))
 
-
-    def __str__(self) -> str:
-        return f"r{self.row.index}c{self.column.index}"
-
     def __repr__(self) -> str:
-        return str(self)
+        row, column = self.index
+        return f"r{row}c{column}"
 
     def possible_value_string(self) -> str:
         return ''.join(str(i) for i in sorted(self.possible_values))
@@ -136,10 +116,20 @@ class Cell:
         return id(self)
 
     def __eq__(self, other) -> bool:
-        return isinstance(other, Cell) and self.row.index == other.row.index and self.column.index == other.column.index
+        return self is other
 
     def __lt__(self, other: 'Cell') -> bool:
-        return (self.row.index, self.column.index) < (other.row.index, other.column.index)
+        return (self.index) < (other.index)
+
+    def __is_knights_move(self, other: 'Cell'):
+        row1, column1 = self.index
+        row2, column2 = other.index
+        return {abs(row1 - row2), abs(column1 - column2)} == {1, 2}
+
+    def __is_kings_move(self, other: 'Cell'):
+        row1, column1 = self.index
+        row2, column2 = other.index
+        return max(abs(row1 - row2), abs(column1 - column2)) == 1
 
     @staticmethod
     def __deleted(i: int):

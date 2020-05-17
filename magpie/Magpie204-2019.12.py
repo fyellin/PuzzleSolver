@@ -169,7 +169,7 @@ def run() -> None:
             all_constraints[(solver, values)] = constraints
 
     dancing_links = DancingLinks(all_constraints, row_printer=my_row_printer, optional_constraints=all_values)
-    dancing_links.solve()
+    dancing_links.solve(recursive=True)
 
 
 def my_row_printer(constraint_names: Sequence[Tuple[Solver204, Tuple[str, ...]]]) -> None:
