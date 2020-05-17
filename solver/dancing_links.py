@@ -5,7 +5,7 @@ import copy
 import random
 import sys
 from typing import Optional, Callable, Sequence, Dict, Any, TextIO, Set, Iterator, List, Hashable, \
-    TypeVar, NamedTuple, Generic, Mapping, Tuple
+    TypeVar, Generic, Mapping, Tuple
 
 Row = TypeVar('Row', bound=Hashable)
 Constraint = TypeVar('Constraint', bound=Hashable)
@@ -35,12 +35,6 @@ class DancingLinks(Generic[Row, Constraint]):
         self.row_to_constraints = constraints
         self.optional_constraints = optional_constraints or set()
         self.row_printer = row_printer or (lambda solution: print(sorted(solution)))
-        if optional_constraints:
-            # Make a copy of row_to_constraints, and then add in a dummy row corresponding to each constraint.
-            constraints = dict(self.row_to_constraints)
-            for constraint in optional_constraints:
-                constraints[OptionalConstraint(constraint)] = [constraint]
-            self.row_to_constraints = constraints
 
     def solve(self, output: TextIO = sys.stdout, debug: Optional[int] = None,
               recursive: Optional[bool] = False) -> None:
@@ -83,10 +77,11 @@ class DancingLinks(Generic[Row, Constraint]):
         self.count += 1
         is_debugging = depth < self.max_depth
 
-        constraints_and_length = [(len(value), (name in self.optional_constraints) + random.random(), name)
-                                  for name, value in self.constraint_to_rows.items()]
-
-        if not constraints_and_length:
+        try:
+            min_count, _, min_constraint = min((len(rows), random.random(), constraint)
+                                       for constraint, rows in self.constraint_to_rows.items()
+                                       if constraint not in self.optional_constraints)
+        except ValueError:
             if is_debugging:
                 self.output.write(f"{self._indent(depth)}✓ SOLUTION\n")
             yield []
@@ -94,7 +89,6 @@ class DancingLinks(Generic[Row, Constraint]):
 
         old_depth = depth
 
-        min_count, _, min_constraint = min(constraints_and_length)
         depth += (min_count != 1)
         if min_count == 0:
             if is_debugging:
@@ -109,11 +103,10 @@ class DancingLinks(Generic[Row, Constraint]):
                     for row_constraint in self.row_to_constraints[row] if row_constraint != min_constraint]
 
             if is_debugging:
-                self._print_debug_info(row, min_constraint, index, min_count, old_depth)
+                self._print_debug_info(min_constraint, row, index, min_count, old_depth)
 
             for solution in self._solve_constraints_recursive(depth):
-                if not isinstance(row, OptionalConstraint):
-                    solution.append(row)
+                solution.append(row)
                 yield solution
 
             for row_constraint in reversed(self.row_to_constraints[row]):
@@ -122,7 +115,7 @@ class DancingLinks(Generic[Row, Constraint]):
 
         self._uncover_constraint(min_constraint, min_constraint_rows)
 
-    def _solve_constraints_iterative(self) -> Sequence[List[Row]]:
+    def _solve_constraints_iterative(self) -> int:
         # Note that "depth" is meaningful only when debugging.
         stack: List[Tuple[Callable[[Any, ...], None], Sequence[Any]]] = []
         solution_count = 0
@@ -138,32 +131,31 @@ class DancingLinks(Generic[Row, Constraint]):
             nonlocal solution_count
             self.count += 1
             is_debugging = depth < self.max_depth
-            constraints_and_length = [(len(value), (name in self.optional_constraints) + random.random(), name)
-                                      for name, value in self.constraint_to_rows.items()]
 
-            if not constraints_and_length:
+            try:
+                count, _, constraint = min((len(rows), random.random(), constraint)
+                                            for constraint, rows in self.constraint_to_rows.items()
+                                            if constraint not in self.optional_constraints)
+            except ValueError:
                 if is_debugging:
                     self.output.write(f"{self._indent(depth)}✓ SOLUTION\n")
                 solution = [args[1] for (func, args) in stack
-                            if func == row_cleanup
-                            if not isinstance(args[1], OptionalConstraint)]
+                            if func == row_cleanup]
                 solution_count += 1
                 self.row_printer(solution)
                 return
 
-            count, _, constraint = min(constraints_and_length)
             if count == 0:
                 if is_debugging:
                     self.output.write(f"{self._indent(depth)}✕ {constraint}\n")
                 return
 
-            stack.append((look_at_constraint, (constraint, count, depth)))
+            stack.append((look_at_constraint, (constraint, depth)))
 
-        def look_at_constraint(constraint: Constraint, count: int, depth: int):
+        def look_at_constraint(constraint: Constraint, depth: int):
             # Look at each possible row that can resolve the constraint.
-            if count == 2 and depth == 0:
-                print("\n===========================\n")
             rows = self._cover_constraint(constraint)
+            count = len(rows)
 
             stack.append((constraint_cleanup, (constraint, rows)))
             entries = [(look_at_row, (constraint, row, index, count, depth)) for index, row in enumerate(rows, start=1)]
@@ -173,9 +165,9 @@ class DancingLinks(Generic[Row, Constraint]):
             cols = [self._cover_constraint(row_constraint)
                     for row_constraint in self.row_to_constraints[row] if row_constraint != constraint]
             if depth < self.max_depth:
-                self._print_debug_info(row, constraint, index, count, depth)
+                self._print_debug_info(constraint, row, index, count, depth)
 
-            # Remember we are adding things in reverse order.  Recurse on the smaller subproblem, andn then cleanup
+            # Remember we are adding things in reverse order.  Recurse on the smaller subproblem, and then cleanup
             # what we just did above.
             stack.append((row_cleanup, (constraint, row, cols)))
             stack.append((find_minimum_constraint, (depth + (count > 1),)))
@@ -208,24 +200,14 @@ class DancingLinks(Generic[Row, Constraint]):
                     self.constraint_to_rows[row_constraint].add(row)
         self.constraint_to_rows[constraint] = rows
 
-    def _print_debug_info(self, row: Row, min_constraint: Constraint, index: int, count: int, depth: int) -> None:
+    def _print_debug_info(self, min_constraint: Constraint, row: Row, index: int, count: int, depth: int) -> None:
         indent = self._indent(depth)
         live_rows = {x for rows in self.constraint_to_rows.values() for x in rows}
         if count == 1:
-            if not isinstance(row, OptionalConstraint):
-                self.output.write(f"{indent}• {min_constraint}: "
-                                  f"Row {row} ({len(live_rows)} rows)\n")
+            self.output.write(f"{indent}• {min_constraint}: Row {row} ({len(live_rows)} rows)\n")
         else:
-            self.output.write(f"{indent}{index}/{count} {min_constraint}: "
-                              f"Row {row} ({len(live_rows)} rows)\n")
+            self.output.write(f"{indent}{index}/{count} {min_constraint}: Row {row} ({len(live_rows)} rows)\n")
 
     @staticmethod
     def _indent(depth: int) -> str:
         return ' | ' * depth
-
-
-class OptionalConstraint(NamedTuple, Generic[Row]):
-    constraint: Constraint
-
-    def __repr__(self) -> str:
-        return f"<? {self.constraint}>"

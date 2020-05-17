@@ -25,7 +25,7 @@ class Sudoku:
                 constraints[(row, column, value)] = info
         links = DancingLinks(constraints, optional_constraints=optional_constraints,
                              row_printer=self.get_grid_printer(initial_puzzle_grid))
-        links.solve(debug=1000)
+        links.solve(debug=1000, recursive=False)
 
 
     @staticmethod
