@@ -9,10 +9,12 @@ from solver import DancingLinks
 class Sudoku:
     king: bool
     knight: bool
+    adjacent: bool
 
-    def __init__(self, *, king: bool = False, knight: bool = False):
+    def __init__(self, *, king: bool = False, knight: bool = False, adjacent: bool = False) -> None:
         self.king = king
         self.knight = knight
+        self.adjacent = adjacent
 
     def solve(self, puzzle: str):
         constraints = {}
@@ -33,8 +35,10 @@ class Sudoku:
                     for kr, kc in self.kings_move(row, column):
                         (min_row, min_column), (max_row, max_column) = sorted([(row, column), (kr, kc)])
                         info.append(f'K{min_row}:{min_column}||{max_row}:{max_column}={value}')
-
-
+                if self.adjacent:
+                    for kr, kc in self.adjacent_move(row, column):
+                        info.append(f'A{row}:{column}||{kr}:{kc}={value}{value+1}')
+                        info.append(f'A{kr}:{kc}||{row}:{column}={value-1}{value}')
                 optional_constraints.update(info[4:])
                 constraints[(row, column, value)] = info
         links = DancingLinks(constraints, optional_constraints=optional_constraints,
@@ -53,6 +57,13 @@ class Sudoku:
     def kings_move(row: int, column: int) -> Sequence[Tuple[int, int]]:
         return [((row + dr), (column + dc))
                 for dr, dc in itertools.product((-1, 1), repeat=2)
+                if 1 <= row + dr <= 9 and 1 <= column + dc <= 9]
+
+    @staticmethod
+    def adjacent_move(row: int, column: int) -> Sequence[Tuple[int, int]]:
+        return [((row + dr), (column + dc))
+                for dx in (-1, 1)
+                for dr, dc in ((dx, 0), (0, dx))
                 if 1 <= row + dr <= 9 and 1 <= column + dc <= 9]
 
     @staticmethod
@@ -95,7 +106,17 @@ def main() -> None:
         "...7.4.1."
         "7.......5"
     ]
-    Sudoku(knight=True).solve(puzzles[0])
+    puzzles = [
+        '.........'
+        '.........'
+        '....4....'
+        '..3......'
+        '.........'
+        '.........'
+        '.........'
+        '.........'
+        ]
+    Sudoku(knight=True, king=True, adjacent=True).solve(puzzles[0])
 
 
 if __name__ == '__main__':

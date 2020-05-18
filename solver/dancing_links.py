@@ -52,7 +52,11 @@ class DancingLinks(Generic[Row, Constraint]):
         runner.max_debugging_depth = debug if debug is not None else -1
 
         if runner.debug:
-            output.write(f"There are {len(runner.row_to_constraints)} rows and {len(constraint_to_rows)} constraints\n")
+            optional_count = len(self.optional_constraints)
+            required_count = len(constraint_to_rows) - optional_count
+            output.write(f"There are {len(runner.row_to_constraints)} rows; "
+                         f"{required_count} required constraints; "
+                         f"{optional_count} optional constraints\n")
 
         if recursive:
             recursion_depth = len(constraint_to_rows) + 100
