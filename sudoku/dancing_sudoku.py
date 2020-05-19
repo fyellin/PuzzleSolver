@@ -1,5 +1,6 @@
+import datetime
 import itertools
-from typing import Tuple, Sequence, Callable
+from typing import Tuple, Sequence, Callable, Dict, List
 
 from matplotlib import pyplot as plt
 
@@ -17,34 +18,69 @@ class Sudoku:
         self.adjacent = adjacent
 
     def solve(self, puzzle: str):
-        constraints = {}
-        optional_constraints = set()
         initial_puzzle_grid = {(row, column): int(letter)
                                for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), puzzle)
                                if '1' <= letter <= '9'}
+        constraints = self.__get_default_constraints()
+        optional_constraints = set()
+        for (row, column), value in initial_puzzle_grid.items():
+            constraints[row, column, value].append(f'Required{row}{column}={value}')
+
         for row, column in itertools.product(range(1, 10), repeat=2):
-            values = [initial_puzzle_grid[row, column]] if (row, column) in initial_puzzle_grid else range(1, 10)
-            for value in values:
-                box = row - (row - 1) % 3 + (column - 1) // 3
-                info = [f"Value{row}{column}", f"Row{row}={value}", f"Col{column}={value}", f"Box{box}={value}"]
+            if self.knight or self.king:
+                neighbors = set()
                 if self.knight:
-                    for kr, kc in self.knights_move(row, column):
-                        (min_row, min_column), (max_row, max_column) = sorted([(row, column), (kr, kc)])
-                        info.append(f'N{min_row}:{min_column}||{max_row}:{max_column}={value}')
+                    neighbors.update(self.knights_move(row, column))
                 if self.king:
-                    for kr, kc in self.kings_move(row, column):
-                        (min_row, min_column), (max_row, max_column) = sorted([(row, column), (kr, kc)])
-                        info.append(f'K{min_row}:{min_column}||{max_row}:{max_column}={value}')
-                if self.adjacent:
-                    for kr, kc in self.adjacent_move(row, column):
-                        info.append(f'A{row}:{column}||{kr}:{kc}={value}{value+1}')
-                        info.append(f'A{kr}:{kc}||{row}:{column}={value-1}{value}')
-                optional_constraints.update(info[4:])
-                constraints[(row, column, value)] = info
+                    neighbors.update(self.kings_move(row, column))
+                for neighbor_row, neighbor_column in neighbors:
+                    if (row, column) < (neighbor_row, neighbor_column):
+                        for value in range(1, 10):
+                            constraint = f'r{row}c{column}={value};r{neighbor_row}c{neighbor_column}={value}'
+                            optional_constraints.add(constraint)
+                            constraints[row, column, value].append(constraint)
+                            constraints[neighbor_row, neighbor_column, value].append(constraint)
+            if self.adjacent:
+                for neighbor_row, neighbor_column in self.adjacent_move(row, column):
+                    for value in range(1, 9):  # Note, we don't need to use value=9.
+                        constraint = f'r{row}c{column}={value};r{neighbor_row}c{neighbor_column}={value+1}'
+                        optional_constraints.add(constraint)
+                        constraints[row, column, value].append(constraint)
+                        constraints[neighbor_row, neighbor_column, value + 1].append(constraint)
+
         links = DancingLinks(constraints, optional_constraints=optional_constraints,
-                             row_printer=self.get_grid_printer(initial_puzzle_grid))
+                             row_printer=self.get_grid_printer(initial_puzzle_grid)
+                             )
         links.solve(debug=1000, recursive=False)
 
+    def solve_junk(self) -> None:
+        row_triples = [str(x) for x in (0, 423, 273, 137, 625, 216, 815, 162, 742, 324)]
+        col_triples = [str(x) for x in (0, 342, 164, 423, 432, 143, 423, 432, 285, 543)]
+        optional_constraints = set()
+
+        constraints = self.__get_default_constraints()
+        constraints[3, 8, 7].append("Required387")
+
+        for a in range(1, 10):
+            for b, c in itertools.combinations(range(1, 10), 2):
+                for index1, index2 in itertools.combinations(range(3), 2):
+                    row1, row2, col1, col2 = a, a, b, c
+                    digit1, digit2 = int(row_triples[row1][index1]), int(row_triples[row2][index2])
+                    constraint = f'r{row1}c{col1}:r{row2}c{col2}:{digit1}<{digit2}'
+                    optional_constraints.add(constraint)
+                    constraints[row1, col1, digit2].append(constraint)
+                    constraints[row1, col2, digit1].append(constraint)
+
+                    col1, col2, row1, row2 = a, a, b, c
+                    digit1, digit2 = int(col_triples[col1][index1]), int(col_triples[col2][index2])
+                    constraint = f'r{row1}c{col1}:r{row2}c{col2}:{digit1}<{digit2}'
+                    optional_constraints.add(constraint)
+                    constraints[row1, col1, digit2].append(constraint)
+                    constraints[row2, col2, digit1].append(constraint)
+
+        links = DancingLinks(constraints, optional_constraints=optional_constraints,
+                             row_printer=self.get_grid_printer({}))
+        links.solve(debug=1000, recursive=False)
 
     @staticmethod
     def knights_move(row: int, column: int) -> Sequence[Tuple[int, int]]:
@@ -93,30 +129,35 @@ class Sudoku:
 
         return draw_grid
 
+    def __get_default_constraints(self) -> Dict[Tuple[int, int, int], List[str]]:
+        def box(row: int, column: int) -> int:
+            return row - (row - 1) % 3 + (column - 1) // 3
+
+        return {(row, column, value):
+                [f"Value{row}{column}", f"Row{row}={value}", f"Col{column}={value}",
+                     f"Box{box(row, column)}={value}"]
+                for row, value, column in itertools.product(range(1, 10), repeat=3)
+               }
+
+
+
 
 def main() -> None:
     puzzles = [
-        "4........"
-        "........." 
-        "..8...7.."
-        ".1......."
-        "........."
-        ".6...2.3."
-        "..2...9.."
-        "...7.4.1."
-        "7.......5"
-    ]
-    puzzles = [
         '.........'
         '.........'
-        '....4....'
-        '..3......'
         '.........'
+        '.........'
+        '..1......'
+        '......2..'
         '.........'
         '.........'
         '.........'
         ]
+    start = datetime.datetime.now()
     Sudoku(knight=True, king=True, adjacent=True).solve(puzzles[0])
+    end = datetime.datetime.now()
+    print(end - start)
 
 
 if __name__ == '__main__':

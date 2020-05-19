@@ -134,15 +134,15 @@ class DancingLinks(Generic[Row, Constraint]):
         def find_minimum_constraint(depth: int) -> None:
             nonlocal solution_count
             self.count += 1
-            is_debugging = depth < self.max_debugging_depth
-
             try:
                 count, _, constraint = min((len(rows), random.random(), constraint)
                                            for constraint, rows in self.constraint_to_rows.items()
                                            if constraint not in self.optional_constraints)
             except ValueError:
-                if is_debugging:
+                # There is nothing left but optional constraints.  We have a solution!
+                if depth < self.max_debugging_depth:
                     self.output.write(f"{self.__indent(depth)}✓ SOLUTION\n")
+                # row_cleanup on the stack indicates that we are currently working on that item
                 solution = [args[1] for (func, args) in stack if func == row_cleanup]
                 solution_count += 1
                 self.row_printer(solution)
@@ -151,8 +151,8 @@ class DancingLinks(Generic[Row, Constraint]):
             if count > 0:
                 stack.append((look_at_constraint, (constraint, depth)))
             else:
-                # Don't do anything, except maybe print a debugging message
-                if is_debugging:
+                # No rows satisfy this constraint.  Dead end.
+                if depth < self.max_debugging_depth:
                     self.output.write(f"{self.__indent(depth)}✕ {constraint}\n")
 
         def look_at_constraint(constraint: Constraint, depth: int):
@@ -207,9 +207,10 @@ class DancingLinks(Generic[Row, Constraint]):
         indent = self.__indent(depth)
         live_rows = {x for rows in self.constraint_to_rows.values() for x in rows}
         if count == 1:
-            self.output.write(f"{indent}• {min_constraint}: Row {row} ({len(live_rows)} rows)\n")
+            self.output.write(f"{indent}• ")
         else:
-            self.output.write(f"{indent}{index}/{count} {min_constraint}: Row {row} ({len(live_rows)} rows)\n")
+            self.output.write(f"{indent}{index}/{count} ")
+        self.output.write(f"{min_constraint}: Row {row} ({len(live_rows)} rows)\n")
 
     @staticmethod
     def __indent(depth: int) -> str:
