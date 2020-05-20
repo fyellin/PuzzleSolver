@@ -33,6 +33,8 @@ class Sudoku:
                     neighbors.update(self.knights_move(row, column))
                 if self.king:
                     neighbors.update(self.kings_move(row, column))
+                # For each "neighbor", we add an optional constraint so that either this cell can have a value or the
+                # neighbor can have the value.  This ensures that at most one of them will have the specified value
                 for neighbor_row, neighbor_column in neighbors:
                     if (row, column) < (neighbor_row, neighbor_column):
                         for value in range(1, 10):
@@ -41,6 +43,8 @@ class Sudoku:
                             constraints[row, column, value].append(constraint)
                             constraints[neighbor_row, neighbor_column, value].append(constraint)
             if self.adjacent:
+                # For each cell next me me, create an optional constraint such that if I have a specific value,
+                # the neighbor cannot also have that value.
                 for neighbor_row, neighbor_column in self.adjacent_move(row, column):
                     for value in range(1, 9):  # Note, we don't need to use value=9.
                         constraint = f'r{row}c{column}={value};r{neighbor_row}c{neighbor_column}={value+1}'
