@@ -44,6 +44,15 @@ def cube(clue: Clue) -> Iterator[int]:
     return map(lambda x: x * x * x, range(lower, upper))
 
 
+def nth_power(n: int) -> Callable[[Clue], Iterable[int]]:
+    def result(clue: Clue) -> Iterator[int]:
+        min_value, max_value = get_min_max(clue)
+        lower = int(math.ceil(min_value ** (1 / n)))
+        upper = int(math.ceil(max_value ** (1 / n)))
+        return map(lambda x: x ** n, range(lower, upper))
+    return result
+
+
 def prime(clue: Clue) -> Iterator[int]:
     """Returns primes"""
     return (p for p, is_prime in _prime_not_prime(clue) if is_prime)

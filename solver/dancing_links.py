@@ -155,7 +155,7 @@ class DancingLinks(Generic[Row, Constraint]):
                 if depth < self.max_debugging_depth:
                     self.output.write(f"{self.__indent(depth)}✕ {constraint}\n")
 
-        def look_at_constraint(constraint: Constraint, depth: int):
+        def look_at_constraint(constraint: Constraint, depth: int) -> None:
             # Look at each possible row that can resolve the constraint.
             rows = self.__cover_constraint(constraint)
             count = len(rows)
@@ -165,20 +165,20 @@ class DancingLinks(Generic[Row, Constraint]):
             stack.extend(reversed(entries))
 
         def look_at_row(constraint: Constraint, row: Row, index: int, count: int, depth: int) -> None:
-            cols = [self.__cover_constraint(row_constraint)
-                    for row_constraint in self.row_to_constraints[row] if row_constraint != constraint]
+            cleanups = [(row_constraint, self.__cover_constraint(row_constraint))
+                        for row_constraint in self.row_to_constraints[row]
+                        if row_constraint != constraint]
             if depth < self.max_debugging_depth:
                 self.__print_debug_info(constraint, row, index, count, depth)
 
             # Remember we are adding things in reverse order.  Recurse on the smaller subproblem, and then cleanup
             # what we just did above.
-            stack.append((row_cleanup, (constraint, row, cols)))
+            stack.append((row_cleanup, (cleanups, row)))
             stack.append((find_minimum_constraint, (depth + (count > 1),)))
 
-        def row_cleanup(constraint: Constraint, row: Row, cols: List[Set[Row]]) -> None:
-            for row_constraint in reversed(self.row_to_constraints[row]):
-                if row_constraint != constraint:
-                    self.__uncover_constraint(row_constraint, cols.pop())
+        def row_cleanup(cleanups: List[Tuple[Constraint, Set[Row]]], _row: Row, ) -> None:
+            for constraint, rows in reversed(cleanups):
+                self.__uncover_constraint(constraint, rows)
 
         def constraint_cleanup(constraint: Constraint, rows: Set[Row]) -> None:
             self.__uncover_constraint(constraint, rows)

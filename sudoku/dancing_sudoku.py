@@ -1,4 +1,3 @@
-import datetime
 import itertools
 from typing import Tuple, Sequence, Callable, Dict, List
 
@@ -57,33 +56,31 @@ class Sudoku:
                              )
         links.solve(debug=1000, recursive=False)
 
-    def solve_junk(self) -> None:
+    def solve_junk(self, puzzle: str) -> None:
         row_triples = [str(x) for x in (0, 423, 273, 137, 625, 216, 815, 162, 742, 324)]
         col_triples = [str(x) for x in (0, 342, 164, 423, 432, 143, 423, 432, 285, 543)]
         optional_constraints = set()
-
         constraints = self.__get_default_constraints()
-        constraints[3, 8, 7].append("Required387")
+
+        initial_puzzle_grid = {(row, column): int(letter)
+                               for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), puzzle)
+                               if '1' <= letter <= '9'}
+        for (row, column), value in initial_puzzle_grid.items():
+            constraints[row, column, value].append(f'Required{row}{column}={value}')
 
         for a in range(1, 10):
             for b, c in itertools.combinations(range(1, 10), 2):
                 for index1, index2 in itertools.combinations(range(3), 2):
-                    row1, row2, col1, col2 = a, a, b, c
-                    digit1, digit2 = int(row_triples[row1][index1]), int(row_triples[row2][index2])
-                    constraint = f'r{row1}c{col1}:r{row2}c{col2}:{digit1}<{digit2}'
-                    optional_constraints.add(constraint)
-                    constraints[row1, col1, digit2].append(constraint)
-                    constraints[row1, col2, digit1].append(constraint)
-
-                    col1, col2, row1, row2 = a, a, b, c
-                    digit1, digit2 = int(col_triples[col1][index1]), int(col_triples[col2][index2])
-                    constraint = f'r{row1}c{col1}:r{row2}c{col2}:{digit1}<{digit2}'
-                    optional_constraints.add(constraint)
-                    constraints[row1, col1, digit2].append(constraint)
-                    constraints[row2, col2, digit1].append(constraint)
+                    for row1, row2, col1, col2, digit1, digit2 in (
+                            (a, a, b, c, int(row_triples[a][index1]), int(row_triples[a][index2])),
+                            (b, c, a, a, int(col_triples[a][index1]), int(col_triples[a][index2]))):
+                        constraint = f'r{row1}c{col1}={digit2}:r{row2}c{col2}={digit1}'
+                        optional_constraints.add(constraint)
+                        constraints[row1, col1, digit2].append(constraint)
+                        constraints[row2, col2, digit1].append(constraint)
 
         links = DancingLinks(constraints, optional_constraints=optional_constraints,
-                             row_printer=self.get_grid_printer({}))
+                             row_printer=self.get_grid_printer(initial_puzzle_grid))
         links.solve(debug=1000, recursive=False)
 
     @staticmethod
@@ -138,31 +135,38 @@ class Sudoku:
             return row - (row - 1) % 3 + (column - 1) // 3
 
         return {(row, column, value):
-                [f"Value{row}{column}", f"Row{row}={value}", f"Col{column}={value}",
-                     f"Box{box(row, column)}={value}"]
+                    [f"V{row}{column}", f"R{row}={value}", f"C{column}={value}", f"B{box(row, column)}={value}"]
                 for row, value, column in itertools.product(range(1, 10), repeat=3)
-               }
-
-
+                }
 
 
 def main() -> None:
-    puzzles = [
-        '.........'
-        '.........'
-        '.........'
-        '.........'
-        '..1......'
-        '......2..'
-        '.........'
-        '.........'
-        '.........'
+    if False:
+        puzzles = [
+            '.........'
+            '.........'
+            '.........'
+            '.........'
+            '..1......'
+            '......2..'
+            '.........'
+            '.........'
+            '.........'
         ]
-    start = datetime.datetime.now()
-    Sudoku(knight=True, king=True, adjacent=True).solve(puzzles[0])
-    end = datetime.datetime.now()
-    print(end - start)
-
+        Sudoku(knight=True, king=True, adjacent=True).solve(puzzles[0])
+    else:
+        puzzle = [
+            '896427531'
+            '.........'
+            '1..... 72'
+            '3.......5'
+            '4.......6'
+            '2.......4'
+            '.........'
+            '.........'
+            '.........'
+        ][0]
+        Sudoku().solve_junk(puzzle)
 
 if __name__ == '__main__':
     main()

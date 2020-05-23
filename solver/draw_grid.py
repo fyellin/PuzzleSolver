@@ -28,36 +28,28 @@ def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
     axes.axis('equal')
     axes.axis('off')
 
-    # Draw the bold outline
-    axes.plot([1, max_column, max_column, 1, 1], [1, 1, max_row, max_row, 1], linewidth=5, color='black')
-
-    # Draw the interior grid
-    for row in range(2, max_row):
-        # horizontal lines
-        axes.plot([1, max_column], [row, row], 'black')
-    for column in range(2, max_column):
-        # vertical lines
-        axes.plot([column, column], [1, max_row], 'black')
-
-    # Fill in the black squares
+    # Fill in the shaded squares
     for row, column in itertools.product(range(1, max_row), range(1, max_column)):
         if (row, column) in shading:
             color = shading[row, column]
             axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor=color, linewidth=0))
-        elif (row, column) not in clued_locations:
-            axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor='black', linewidth=0))
+        # elif (row, column) not in clued_locations:
+        #     axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor='black', linewidth=0))
 
-    # Draw thick bars to left or top, as necessary
-    for row, column in left_bars:
-        axes.plot([column, column], [row, row + 1], 'black', linewidth=5)
-    for row, column in top_bars:
-        axes.plot([column, column + 1], [row, row], 'black', linewidth=5)
+    for row, column in itertools.product(range(1, max_row + 1), range(1, max_column + 1)):
+        this_exists = (row, column) in location_to_entry
+        left_exists = (row, column - 1) in location_to_entry
+        above_exists = (row - 1, column) in location_to_entry
+        if this_exists or left_exists:
+            width = 5 if this_exists != left_exists or (row, column) in left_bars else None
+            axes.plot([column, column], [row, row + 1], 'black', linewidth=width)
+        if this_exists or above_exists:
+            width = 5 if this_exists != above_exists or (row, column) in top_bars else None
+            axes.plot([column, column + 1], [row, row], 'black', linewidth=width)
 
-    # Draw thick bars to left or top, as necessary
-    for row, column in left_bars:
-        axes.plot([column, column], [row, row + 1], 'black', linewidth=5)
-    for row, column in top_bars:
-        axes.plot([column, column + 1], [row, row], 'black', linewidth=5)
+        if (row, column) in shading:
+            color = shading[row, column]
+            axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor=color, linewidth=0))
 
     scaled_box = Bbox.unit().transformed(axes.transData - axes.figure.dpi_scale_trans)
     inches_per_data = min(abs(scaled_box.width), abs(scaled_box.height))
@@ -70,11 +62,22 @@ def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
                   verticalalignment='center', horizontalalignment='center',
                   rotation=rotation.get((row, column), 0))
 
+
     # Fill in the clue numbers
     for (row, column), clue_number in location_to_clue_number.items():
-        axes.text(column + 1 / 20, row + 1 / 20, str(clue_number),
+        text = str(clue_number)
+        split_text = text.split(', ', 1)
+        if len(split_text) == 2:
+            text, remainder = split_text
+        else:
+            remainder = None
+        axes.text(column + 1 / 20, row + 1 / 20, text,
                   fontsize=points_per_data/4, fontfamily="sans-serif",
                   verticalalignment='top', horizontalalignment='left')
+        if remainder:
+            axes.text(column + 19 / 20, row + 1 / 20, remainder,
+                      fontsize=points_per_data / 4, fontfamily="sans-serif",
+                      verticalalignment='top', horizontalalignment='right')
 
     if not _axes:
         plt.show()

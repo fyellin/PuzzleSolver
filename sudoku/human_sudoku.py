@@ -7,7 +7,6 @@ from cell import House, Cell, CellValue
 from chain import Chains
 from grid import Grid
 from hard_medusa import HardMedusa
-from puzzles import PUZZLES
 
 
 class Sudoku:
@@ -84,8 +83,8 @@ class Sudoku:
                                    for value in cell.possible_values]
         all_unknown_cell_values.sort(key=attrgetter("value"))
         result = False
-        for value, iter in itertools.groupby(all_unknown_cell_values, attrgetter("value")):
-            cell_values = tuple(iter)
+        for value, iterator in itertools.groupby(all_unknown_cell_values, attrgetter("value")):
+            cell_values = tuple(iterator)
             if len(cell_values) == 1:
                 cell = cell_values[0].cell
                 cell.set_value_to(value)
@@ -342,30 +341,18 @@ class Sudoku:
 def main() -> None:
     unsolved = []
     sudoku = Sudoku(knight=True)
-    # PUZZLEX = [
-    #     "84.5.6.73"
-    #     "6..7.8..2"
-    #     "........."
-    #     "31.....24"
-    #     "........."
-    #     "28.....65"
-    #     "........."
-    #     "1..8.3..7"
-    #     "75.4.1.86"
-    # ]
-    # PUZZLES = [PUZZLEX[0][0:40] + str(i) + PUZZLEX[0][41:] for i in range(8, 10)]
-    PUZZLES2 = [
-        '4........'
+    PUZZLES = [
+        '.....5...'
+        '1......7.'
+        '........2'
+        '6.4..7...'
+        '...8...6.'
         '.........'
-        '..8...7..'
-        '.1.......'
+        '...2.....'
+        '...39....'
         '.........'
-        '.6...2.3.'
-        '..2...9..'
-        '...7.4.1.'
-        '7.......5'
     ]
-    for i, puzzle in enumerate(PUZZLES2 or PUZZLES):
+    for i, puzzle in enumerate(PUZZLES):
         assert len(puzzle) == 81
         print()
         print('--------------------')
@@ -386,3 +373,5 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+
+
