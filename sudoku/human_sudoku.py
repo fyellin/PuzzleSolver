@@ -1,7 +1,9 @@
 import itertools
 from collections import deque
 from operator import attrgetter
-from typing import Set, Sequence, Mapping, Iterable
+from typing import Set, Sequence, Mapping, Iterable, Tuple
+
+import matplotlib.pyplot as plt
 
 from cell import House, Cell, CellValue
 from chain import Chains
@@ -24,9 +26,12 @@ class Sudoku:
         return self.run_solver()
 
     def run_solver(self) -> bool:
+        # magic_squares = [(row, column) for row in (2, 5, 8) for column in (2, 5, 8)]
         while True:
             if self.is_solved():
                 return True
+            # if self.check_magic_square(magic_squares):
+            #     continue
             if self.check_naked_singles() or self.check_hidden_singles():
                 continue
             if self.check_intersection_removal():
@@ -337,20 +342,67 @@ class Sudoku:
                                             return True
         return False
 
+    def check_magic_square(self, squares: Sequence[Tuple[int, int]]) -> bool:
+        assert len(squares) == 9
+        cells = [self.grid.matrix[location] for location in squares]
+        if not cells[4].is_known:
+            print(f'Initial magic square')
+            cells[4].set_value_to(5, show=True)
+            Cell.remove_values_from_cells((cells[0], cells[2], cells[6], cells[8]), {1, 3, 5, 7, 9})
+            Cell.remove_values_from_cells((cells[1], cells[3], cells[5], cells[7]), {2, 4, 5, 6, 8})
+            return True
+
+        for temp in ((0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)):
+            row = [cells[i] for i in temp]
+            legal_triples = [triple for triple in itertools.product(*(x.possible_values for x in row))
+                             if sum(triple) == 15]
+            actual_possible_values = [{triple[i] for triple in legal_triples} for i in range(3)]
+            expected_possible_values = [cell.possible_values for cell in row]
+            if actual_possible_values != expected_possible_values:
+                print(f'{" + ".join(map(str, row))} = 15')
+                for cell, expected, actual in zip(row, expected_possible_values, actual_possible_values):
+                    assert actual <= expected
+                    if len(actual) < len(expected):
+                        Cell.remove_values_from_cells([cell], expected - actual)
+                return True
+        return False
+
+    def draw_grid(self) -> None:
+        figure, axes = plt.subplots(1, 1, figsize=(4, 4), dpi=100)
+
+        # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
+        axes.axis([1, 10, 10, 1])
+        axes.axis('equal')
+        axes.axis('off')
+        figure.tight_layout()
+
+        # Draw the bold outline
+        for x in range(1, 11):
+            width = 3 if x in (1, 4, 7, 10) else 1
+            axes.plot([x, x], [1, 10], linewidth=width, color='black')
+            axes.plot([1, 10], [x, x], linewidth=width, color='black')
+
+        given = dict(fontsize=13, color='black', weight='heavy')
+        found = dict(fontsize=12, color='blue', weight='normal')
+        for cell in self.grid.cells:
+            row, column = cell.index
+            axes.text(column + .5, row + .5, cell.known_value,
+                      verticalalignment='center', horizontalalignment='center', **found)
+        plt.show()
 
 def main() -> None:
     unsolved = []
-    sudoku = Sudoku(knight=True)
+    sudoku = Sudoku(knight=True, king=True)
     PUZZLES = [
-        '.....5...'
-        '1......7.'
-        '........2'
-        '6.4..7...'
-        '...8...6.'
+        '.........'
+        '.........'
+        '.........'
+        '.........'
+        '...1.....'
         '.........'
         '...2.....'
-        '...39....'
         '.........'
+        '...4.....'
     ]
     for i, puzzle in enumerate(PUZZLES):
         assert len(puzzle) == 81
@@ -360,6 +412,7 @@ def main() -> None:
         print(i, puzzle)
         try:
             result = sudoku.solve(puzzle)
+            sudoku.draw_grid()
         except Exception:
             print(puzzle)
             raise
@@ -368,6 +421,7 @@ def main() -> None:
             unsolved.append(puzzle)
     for puzzle in unsolved:
         print(puzzle)
+        sudoku.draw_grid()
     print(f"Failed to solve {len(unsolved)} puzzles")
 
 
