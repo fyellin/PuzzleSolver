@@ -1,4 +1,5 @@
 import itertools
+from collections import deque
 from typing import Tuple, Sequence, Callable, Dict, List
 
 from matplotlib import pyplot as plt
@@ -10,11 +11,16 @@ class Sudoku:
     king: bool
     knight: bool
     adjacent: bool
+    thermometers: Sequence[Sequence[Tuple[int, int]]]
 
-    def __init__(self, *, king: bool = False, knight: bool = False, adjacent: bool = False) -> None:
+    def __init__(self, *, king: bool = False, knight: bool = False, adjacent: bool = False,
+                 magic: bool = False,
+                 thermometers: Sequence[Sequence[Tuple[int, int]]] = ()) -> None:
         self.king = king
         self.knight = knight
         self.adjacent = adjacent
+        self.thermometers = thermometers
+        self.magic = magic
 
     def solve(self, puzzle: str):
         initial_puzzle_grid = {(row, column): int(letter)
@@ -23,7 +29,7 @@ class Sudoku:
         constraints = self.__get_default_constraints()
         optional_constraints = set()
         for (row, column), value in initial_puzzle_grid.items():
-            constraints[row, column, value].append(f'Required{row}{column}={value}')
+            constraints[row, column, value].append(f'Given r{row}c{column}={value}')
 
         for row, column in itertools.product(range(1, 10), repeat=2):
             if self.knight or self.king:
@@ -50,6 +56,49 @@ class Sudoku:
                         optional_constraints.add(constraint)
                         constraints[row, column, value].append(constraint)
                         constraints[neighbor_row, neighbor_column, value + 1].append(constraint)
+
+        if self.thermometers:
+            # for thermometer in self.thermometers:
+            #     for i, (row, column) in enumerate(thermometer, start=1):
+            #         constraint = f'r{row}r{column}  Thermometer'
+            #         for value in range(i, 10 + i - len(thermometer)):
+            #             constraints[row, column, value].append(constraint)
+            #     for i, ((row1, column1), (row2, column2)) in enumerate(zip(thermometer, thermometer[1:]), start=1):
+            #         for value1 in range(i, 10 + i - len(thermometer)):
+            #             for value2 in range(i + 1, 10 + (i + 1) - len(thermometer)):
+            #                 if value2 > value1:
+            #                     break
+            #                 constraint = f'r{row1}c{column1}={value1} < r{row2}c{column2}={value2}'
+            #                 optional_constraints.add(constraint)
+            #                 constraints[row1, column1, value1].append(constraint)
+            #                 constraints[row2, column2, value2].append(constraint)
+
+            for i, thermometer in enumerate(self.thermometers, start=1):
+                constraint = f'Thermometer #{i}'
+                for values in itertools.combinations(range(1, 10), len(thermometer)):
+                    triples = tuple((row, column, value) for (row, column), value in zip(thermometer, values))
+                    constraints[triples] = [x for triple in triples for x in constraints[triple]]
+                    constraints[triples].append(constraint)
+                for row, column in thermometer:
+                    for value in range(1, 10):
+                        del constraints[row, column, value]
+
+        if self.magic:
+            constraints[5, 5, 5].append(f'Given r5c5=5')
+            constraint = "Magic Square"
+            squares = ((4, 4), (4, 5), (4, 6), (5, 6), (6, 6), (6, 5), (6, 4), (5, 4))
+            values = deque((2, 9, 4, 3, 8, 1, 6, 7))
+            for _ in range(2):
+                for _ in range(4):
+                    triples = tuple((row, column, value) for (row, column), value in zip(squares, values))
+                    name = ''.join(str(x) for x in values)
+                    constraints[name] = [x for triple in triples for x in constraints[triple]]
+                    constraints[name].append(constraint)
+                    values.rotate(2)
+                values.reverse()
+
+            for row, column, value in itertools.product((4, 5, 6), (4, 5, 6), range(1, 10)):
+                del constraints[row, column, value]
 
         links = DancingLinks(constraints, optional_constraints=optional_constraints,
                              row_printer=self.get_grid_printer(initial_puzzle_grid)
@@ -141,32 +190,29 @@ class Sudoku:
 
 
 def main() -> None:
-    if False:
-        puzzles = [
-            '.........'
-            '.........'
-            '.........'
-            '.........'
-            '..1......'
-            '......2..'
-            '.........'
-            '.........'
-            '.........'
-        ]
-        Sudoku(knight=True, king=True, adjacent=True).solve(puzzles[0])
-    else:
-        puzzle = [
-            '896427531'
-            '.........'
-            '1..... 72'
-            '3.......5'
-            '4.......6'
-            '2.......4'
-            '.........'
-            '.........'
-            '.........'
-        ][0]
-        Sudoku().solve_junk(puzzle)
+    sudoku = Sudoku(thermometers=(
+        [(x, 1) for x in range(4, 0, -1)],
+        [(x, 1) for x in range(8, 4, -1)],
+
+        [(x, 2) for x in range(4, 0, -1)],
+        [(x, 2) for x in range(7, 10)],
+
+        ((1, 4), (2, 4), (2, 3)),
+        [(7,3), (7, 4)],
+
+        [(x, 5) for x in range(4, 0, -1)],
+        [(x, 5) for x in range(6, 10)],
+
+        [(4, 7), (4, 6)],
+        [(7, 6), (8, 6), (8, 7)],
+
+        [(x, 8) for x in range(3, 0, -1)],
+        [(x, 8) for x in range(6, 10)],
+
+        [(x, 9) for x in range(2, 6)],
+        [(x, 9) for x in range(6, 10)],
+    ))
+    sudoku.solve('.' * 8)
 
 if __name__ == '__main__':
     main()

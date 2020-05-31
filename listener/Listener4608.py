@@ -17,12 +17,14 @@ def generate_L(clue: Clue) -> Iterator[int]:
 
 
 def generate_T(clue: Clue) -> Iterator[int]:
+    """Divisible by digit sum"""
     for number in generators.allvalues(clue):
         if number % digit_sum(number) == 0:
             yield number
 
 
 def generate_a(clue: Clue) -> Iterator[int]:
+    """Contains a zero"""
     for number in generators.allvalues(clue):
         if '0' in str(number):
             yield number
@@ -37,6 +39,7 @@ def generate_k(clue: Clue) -> Iterator[int]:
 
 
 def generate_l(clue: Clue) -> Iterator[int]:
+    "1000 less than a triangular number"
     triangulars = (i * (i + 1) // 2 for i in itertools.count(1))
     min_value, max_value = generators.get_min_max(clue)
     min_value += 1000
@@ -49,11 +52,13 @@ def generate_l(clue: Clue) -> Iterator[int]:
 
 
 def generate_q(clue: Clue) -> Iterator[str]:
+    """Digits in increasing order"""
     for digits in itertools.combinations("123456789", clue.length):
         yield ''.join(digits)
 
 
 def generate_r(clue: Clue) -> Iterator[str]:
+    """Digits in decreasing order"""
     for digits in itertools.combinations("9876543210", clue.length):
         yield ''.join(digits)
 
@@ -182,7 +187,7 @@ class Listener4608(ConstraintSolver):
         self.my_constraint("prt", lambda p, r, t: 2 * t == p + r)
         self.my_constraint("sS", lambda s, S: s == 9 * S)
         self.my_constraint("tQvV", lambda t, Q, v, V: t == Q * v + V)
-        self.my_constraint("u*", lambda u, pi: u > pi)
+        self.my_constraint("u*", lambda u, star: u > star)
         self.my_constraint("vH", lambda v, H: is_factor(v, H))
         self.my_constraint("zc", lambda z, c: is_factor(digit_product(c), z))
 

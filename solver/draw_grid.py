@@ -22,6 +22,7 @@ def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
 
     shading = cast(Dict[Location, str], more_args.get('shading', {}))
     rotation = cast(Dict[Location, int], more_args.get('rotations', {}))
+    circles = cast(Set[Location], more_args.get('circles', {}))
 
     # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
     axes.axis([1, max_column, max_row, 1])
@@ -37,9 +38,9 @@ def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
         #     axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor='black', linewidth=0))
 
     for row, column in itertools.product(range(1, max_row + 1), range(1, max_column + 1)):
-        this_exists = (row, column) in location_to_entry
-        left_exists = (row, column - 1) in location_to_entry
-        above_exists = (row - 1, column) in location_to_entry
+        this_exists = (row, column) in clued_locations
+        left_exists = (row, column - 1) in clued_locations
+        above_exists = (row - 1, column) in clued_locations
         if this_exists or left_exists:
             width = 5 if this_exists != left_exists or (row, column) in left_bars else None
             axes.plot([column, column], [row, row + 1], 'black', linewidth=width)
@@ -50,6 +51,10 @@ def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
         if (row, column) in shading:
             color = shading[row, column]
             axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor=color, linewidth=0))
+
+    for row, column in circles:
+        circle = plt.Circle((column + .5, row + .5), radius=.4, linewidth=2, fill=False, facecolor='black')
+        axes.add_patch(circle)
 
     scaled_box = Bbox.unit().transformed(axes.transData - axes.figure.dpi_scale_trans)
     inches_per_data = min(abs(scaled_box.width), abs(scaled_box.height))

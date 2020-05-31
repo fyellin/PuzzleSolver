@@ -23,15 +23,16 @@ class Sudoku:
         for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), puzzle):
             if '1' <= letter <= '9':
                 grid.matrix[row, column].set_value_to(int(letter))
+
         return self.run_solver()
 
     def run_solver(self) -> bool:
-        # magic_squares = [(row, column) for row in (2, 5, 8) for column in (2, 5, 8)]
+        magic_squares = [(row, column) for row in (4, 5, 6) for column in (4, 5, 6)]
         while True:
             if self.is_solved():
                 return True
-            # if self.check_magic_square(magic_squares):
-            #     continue
+            if self.check_magic_square(magic_squares):
+                 continue
             if self.check_naked_singles() or self.check_hidden_singles():
                 continue
             if self.check_intersection_removal():
@@ -391,24 +392,19 @@ class Sudoku:
         plt.show()
 
 def main() -> None:
-    unsolved = []
-    sudoku = Sudoku(knight=True, king=True)
+    sudoku = Sudoku(knight=True)
     PUZZLES = [
+        '.......9.'
+        '.......1.'
+        '..5...2..'
+        '.....4...'
         '.........'
+        '...6.....'
+        '..8......'
+        '49.......'
         '.........'
-        '.........'
-        '.........'
-        '...1.....'
-        '.........'
-        '...2.....'
-        '.........'
-        '...4.....'
     ]
     for i, puzzle in enumerate(PUZZLES):
-        assert len(puzzle) == 81
-        print()
-        print('--------------------')
-        print()
         print(i, puzzle)
         try:
             result = sudoku.solve(puzzle)
@@ -416,13 +412,6 @@ def main() -> None:
         except Exception:
             print(puzzle)
             raise
-
-        if not result:
-            unsolved.append(puzzle)
-    for puzzle in unsolved:
-        print(puzzle)
-        sudoku.draw_grid()
-    print(f"Failed to solve {len(unsolved)} puzzles")
 
 
 if __name__ == '__main__':

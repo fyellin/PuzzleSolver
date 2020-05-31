@@ -134,9 +134,11 @@ class InnerSolver(ConstraintSolver):
                     for i, location in enumerate(clue.locations)
                     for j in (10, 11)]
 
-    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
+    def draw_grid(self, max_row: int, max_column: int,
+                  clued_locations: Set[Location],
                   location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
-                  top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
+                  top_bars: Set[Location], left_bars: Set[Location],
+                  **more_args: Any) -> None:
         """
         Once we've solved the puzzle, we've overridden this function so that we print the graph with the shading
         that we want.

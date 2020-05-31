@@ -44,7 +44,6 @@ class Solver208(ConstraintSolver):
     def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
                   location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
                   top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
-        location_to_clue_number.clear()
         specials = self.__get_specials()
         shaded: Set[Location] = set()
         for clue in self._clue_list:
