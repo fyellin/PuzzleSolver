@@ -134,15 +134,13 @@ class InnerSolver(ConstraintSolver):
                     for i, location in enumerate(clue.locations)
                     for j in (10, 11)]
 
-    def draw_grid(self, max_row: int, max_column: int,
-                  clued_locations: Set[Location],
-                  location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
-                  top_bars: Set[Location], left_bars: Set[Location],
-                  **more_args: Any) -> None:
+    def draw_grid(self, **args) -> None:
         """
         Once we've solved the puzzle, we've overridden this function so that we print the graph with the shading
         that we want.
         """
+        location_to_entry: Dict[Location, str] = args['location_to_entry']
+
         shading = {}
         across_inserted_locations: Set[Location] = set()
         down_inserted_locations: Set[Location] = set()
@@ -166,15 +164,13 @@ class InnerSolver(ConstraintSolver):
         assert not across_inserted_locations.intersection(down_inserted_locations)
 
         # First, draw the grid with the extra acrosses and downs appropriately shaded
-        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number, top_bars,
-                          left_bars, shading=shading, **more_args)
+        super().draw_grid(shading=shading, **args)
 
         # Now, draw the grid with all 3's, 8's, and 9's highlighted in green
         shading = {location: 'lightgreen'
                    for location, entry in location_to_entry.items()
                    if entry in '389'}
-        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number, top_bars,
-                          left_bars, shading=shading, **more_args)
+        super().draw_grid(shading=shading, **args)
 
         # And just for fun, print the message
         value_to_letter_map = {value: letter for letter, value in self.letter_values.items()}

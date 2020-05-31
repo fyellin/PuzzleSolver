@@ -69,18 +69,17 @@ class MySolver (EquationSolver):
         for clue in self._clue_list:
             print(clue.name, known_clues[clue])
 
-    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
-                  location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
-                  top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
+    def draw_grid(self, **args: Any) -> None:
         # The only thick bars we want are between each of the sections.
-        left_bars.clear()
-        top_bars = {(row, column) for row in (5, 9, 13) for column in (1, 2, 3, 4)}
-        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
-                          top_bars, left_bars, **more_args)
+        args['left_bars'] = set()
+        args['top_bars'] = {(row, column) for row in (5, 9, 13) for column in (1, 2, 3, 4)}
+        super().draw_grid(**args)
         # Now draw the grid using the secret word.
+
+        location_to_entry: Dict[Location, str] = args['location_to_entry']
         location_to_entry = {location: 'DEPILATORS'[int(value)] for (location, value) in location_to_entry.items()}
-        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
-                          top_bars, left_bars, **more_args)
+        args['location_to_entry'] = location_to_entry
+        super().draw_grid(**args)
 
     @staticmethod
     def get_clue_values() -> List[int]:

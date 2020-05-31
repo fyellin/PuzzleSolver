@@ -1,7 +1,7 @@
 import itertools
 from typing import Sequence, List, Set, Iterator, Callable, Union, Dict, Any
 
-from solver import Clue, ConstraintSolver, ClueValue, Location
+from solver import Clue, ConstraintSolver, ClueValue, Location, ClueValueGenerator
 from solver import generators
 from solver.constraint_solver import KnownClueDict
 
@@ -32,7 +32,7 @@ class Solver210(ConstraintSolver):
 
     @staticmethod
     def run() -> None:
-        exclusions = set()
+        exclusions: Set[int] = set()
         solver1 = Solver210('a', exclusions)
         solver1.solve()
         exclusions.update(int(x) for x in solver1.solutions[0].values())
@@ -48,7 +48,7 @@ class Solver210(ConstraintSolver):
         print([(clue.name, value) for clue, value in solver3.solutions[0].items()])
 
     @staticmethod
-    def foobar():
+    def foobar() -> None:
         solver = Solver210('abcd', set())
         answers = [
             ('14dA', '37'), ('9aA', '47'), ('13aA', '23'), ('9dA', '425'), ('10aA', '245'), ('16aA', '957'),
@@ -75,7 +75,7 @@ class Solver210(ConstraintSolver):
         self.add_constraints(which)
         self.solutions = []
 
-    def add_constraints(self, which) -> None:
+    def add_constraints(self, which: str) -> None:
         self.add_my_constraint(which, ("7a", "4d"), lambda a7, d4: is_square(int(a7) + int(d4)))
         self.add_my_constraint(which, ("9a", "14d"), lambda a9, d14: is_triangular(abs(int(a9) - int(d14))))
         self.add_my_constraint(which, ("10a", "9d"), lambda a10, d9: sorted(a10) == sorted(d9))
@@ -89,7 +89,7 @@ class Solver210(ConstraintSolver):
         self.add_my_constraint(which, ("11d", "3d"), lambda d11, d3: is_fibonacci(abs(int(d3) - int(d11))))
 
 
-    def add_my_constraint(self, which: str, vars: Sequence[str], predicate: Callable[..., bool]):
+    def add_my_constraint(self, which: str, vars: Sequence[str], predicate: Callable[..., bool]) -> None:
         if 'a' in which:
             vars_for_a = [var + "A" for var in vars]
             self.add_constraint(vars_for_a, predicate)
@@ -135,10 +135,10 @@ class Solver210(ConstraintSolver):
         for (number, is_across, (row, column), length, values) in temp:
             generator = generators.known(*values) if values else generators.allvalues
 
-            def parity_generator(generator, parity):
-                def new_generator(clue: Clue) -> Iterator[int]:
+            def parity_generator(generator:ClueValueGenerator, parity: int) -> ClueValueGenerator:
+                def new_generator(clue: Clue) -> Iterator[Union[int, str]]:
                     for x in generator(clue):
-                        if x % 2 == parity and x not in exclusions:
+                        if int(x) % 2 == parity and int(x) not in exclusions:
                             yield x
                 return new_generator
 
@@ -161,16 +161,14 @@ class Solver210(ConstraintSolver):
         self.solutions.append(known_clues.copy())
         super().show_solution(known_clues)
 
-    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
-                  location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
-                  top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
+    def draw_grid(self, **args: Any) -> None:
+        location_to_entry: Dict[Location, str] = args['location_to_entry']
         location_to_entry[3,3] = 'A'
         location_to_entry[3,9] = 'B'
         location_to_entry[9,3] = 'C'
         location_to_entry[9,9] = 'D'  #c9b9db
         shading = {(row, column) : '#c9b9db' for row in (3, 9) for column in (3, 9)}
-        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number, top_bars,
-                          left_bars, shading=shading, **more_args)
+        super().draw_grid(shading=shading, **args)
 
 
 if __name__ == '__main__':

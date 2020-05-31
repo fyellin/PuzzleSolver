@@ -8,21 +8,21 @@ from matplotlib.transforms import Bbox
 from .clue_types import Location
 
 
-def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
+def draw_grid(*, max_row: int, max_column: int,
+              clued_locations: Set[Location],
               location_to_entry: Dict[Location, str],
               location_to_clue_number: Dict[Location, str],
-              top_bars: Set[Location],
-              left_bars: Set[Location],
-              **more_args: Dict[str, Any]) -> None:
-    _axes = more_args.get('axes')
+              top_bars: Set[Location], left_bars:  Set[Location],
+              shading: Dict[Location, str] = {},
+              rotation: Dict[Location, str] = {},
+              circles: Set[Location] = set(),
+              **args: Any) -> None:
+
+    _axes = args.get('axes')
     if _axes:
         axes = cast(Axes, _axes)
     else:
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
-
-    shading = cast(Dict[Location, str], more_args.get('shading', {}))
-    rotation = cast(Dict[Location, int], more_args.get('rotations', {}))
-    circles = cast(Set[Location], more_args.get('circles', {}))
 
     # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
     axes.axis([1, max_column, max_row, 1])
@@ -75,7 +75,7 @@ def draw_grid(max_row: int, max_column: int, clued_locations: Set[Location],
         if len(split_text) == 2:
             text, remainder = split_text
         else:
-            remainder = None
+            remainder = ''
         axes.text(column + 1 / 20, row + 1 / 20, text,
                   fontsize=points_per_data/4, fontfamily="sans-serif",
                   verticalalignment='top', horizontalalignment='left')

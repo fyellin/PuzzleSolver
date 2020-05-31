@@ -1,7 +1,7 @@
 import itertools
 from typing import Sequence, List, Tuple, Set, Dict, Any
 
-from solver import Clue, ConstraintSolver, Location
+from solver import Clue, ConstraintSolver, Location, ClueValue
 from solver import generators
 
 CLUES = """
@@ -41,18 +41,17 @@ class Solver208(ConstraintSolver):
         clue_list = self.make_clue_list()
         super(Solver208, self).__init__(clue_list)
 
-    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
-                  location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
-                  top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
+    def draw_grid(self, **args: Any) -> None:
+        clue_values: Dict[Clue, ClueValue] = args['clue_values']
+
         specials = self.__get_specials()
         shaded: Set[Location] = set()
         for clue in self._clue_list:
-            value = ''.join(location_to_entry[location] for location in clue.locations)
+            value = clue_values[clue]
             if int(value) in specials:
                 shaded.update(clue.locations)
         shading = {x: 'yellow' for x in shaded}
-        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number, top_bars,
-                          left_bars, shading=shading, **more_args)
+        super().draw_grid(shading=shading, **args)
 
     def make_clue_list(self) -> List[Clue]:
         known = [value for _, value in self.clue_primes]

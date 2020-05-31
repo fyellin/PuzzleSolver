@@ -220,17 +220,16 @@ class MySolver(ConstraintSolver):
         self.add_constraint(('18d', '9d', '7d'), lambda x, y, z: xi(x) == xi(y) - xi(z))
 
 
-    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
-                  location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
-                  top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
+    def draw_grid(self, **args: Any) -> None:
 
-        location_to_clue_number = {clue.base_location: clue.name[0:-1] for clue in self._clue_list}
-        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number, top_bars,
-                          left_bars, **more_args)
+        args['location_to_clue_number'] = {clue.base_location: clue.name[0:-1] for clue in self._clue_list}
+        super().draw_grid(**args)
 
+        location_to_entry: Dict[Location, str] = args['location_to_entry']
         location_to_entry = {location: 'BYGADMORPHICNETS'[int(value, 16)]
                              for location, value in location_to_entry.items()}
-        location_to_clue_number.clear()
+        args['location_to_entry'] = location_to_entry
+        args['location_to_clue_number'].clear()
 
         rotations = {}
         for row, line in enumerate(ROTATIONS.strip().split()):
@@ -245,8 +244,7 @@ class MySolver(ConstraintSolver):
                 if item != '.':
                     shading[row+1, column + 1] = colormap[int(item)]
 
-        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number, top_bars,
-                          left_bars, rotations=rotations, shading=shading, **more_args)
+        super().draw_grid(rotations=rotations, shading=shading, **args)
 
 
 def run() -> None:

@@ -67,14 +67,16 @@ class Solver205(ConstraintSolver):
         super().__init__(self.make_clue_list())
         self.generator_dict: Dict[Tuple[Clue, str], Tuple[Sequence[int], int]] = {}
 
-    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
-                  location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
-                  top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
-        temp = {location: str(ord(value) - 48) for location, value in location_to_entry.items()}
-        shading = {location: 'lightblue' for location, value in temp.items() if value == '3'}
-        super().draw_grid(max_row, max_column, clued_locations, temp, location_to_clue_number, top_bars,
-                          left_bars, shading=shading, **more_args)
-        temp2 = {location: int(value) for location, value in temp.items()}
+    def draw_grid(self, **args: Any) -> None:
+        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry = {location: str(ord(value) - 48) for location, value in location_to_entry.items()}
+        args['location_to_entry'] = location_to_entry
+
+        shading = {location: 'lightblue' for location, value in location_to_entry.items() if value == '3'}
+        super().draw_grid(shading=shading, **args)
+
+
+        temp2 = {location: int(value) for location, value in location_to_entry.items()}
         for i in range(1, 8):
             a = sum(value**3 for (x, y), value in temp2.items() if x == i)
             b = sum(value**3 for (x, y), value in temp2.items() if y == i)

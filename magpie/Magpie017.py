@@ -1,8 +1,3 @@
-"""
-A one-of-a-kind implementation.  We have clues, but don't know where they are going.
-
-"""
-
 import random
 import re
 from datetime import datetime
@@ -61,6 +56,13 @@ V (c + a)r + t + er
 X s+ i + x + t + y — o — n — e
 Y o — aa
 """
+
+"""
+A one-of-a-kind implementation.  We have clues, but don't know where they are going.
+
+"""
+
+
 
 
 ACROSS_LENGTHS = {

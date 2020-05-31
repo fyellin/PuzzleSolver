@@ -93,10 +93,11 @@ class BaseSolver(ABC):
         """Creates the set of (start-location, length, is-across) tuples for all clues in the puzzle"""
         return {(clue.base_location, clue.length, clue.is_across) for clue in self.__name_to_clue.values()}
 
-    def plot_board(self, clue_values: Dict[Clue, ClueValue], **more_args: Any) -> None:
+    def plot_board(self, clue_values: Optional[Dict[Clue, ClueValue]] = None, **more_args: Any) -> None:
         """Draws a picture of the grid with the specified clues filled in."""
         max_row = self.__max_row
         max_column = self.__max_column
+        clue_values = clue_values or {}
 
         # Locations that are part of some clue, whether we know the answer or not.
         clued_locations: Set[Location] = set()
@@ -136,18 +137,17 @@ class BaseSolver(ABC):
             # These are internal locations of an answer, so a heavy bar isn't needed.
             (left_bars if clue.is_across else top_bars).difference_update(clue.locations[1:])
 
-        self.draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
-                       top_bars, left_bars, **more_args)
+        self.draw_grid(max_row=max_row, max_column=max_column,
+                       clued_locations=clued_locations,
+                       clue_values=clue_values,
+                       location_to_entry=location_to_entry,
+                       location_to_clue_number=location_to_clue_number,
+                       top_bars=top_bars,
+                       left_bars=left_bars, **more_args)
 
-    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
-                  location_to_entry: Dict[Location, str],
-                  location_to_clue_number: Dict[Location, str],
-                  top_bars: Set[Location],
-                  left_bars: Set[Location],
-                  **more_args: Any) -> None:
+    def draw_grid(self, **args: Any) -> None:
         """Override this method if you need to intercept the call to the draw_grid() function."""
-        draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number,
-                  top_bars, left_bars, **more_args)
+        draw_grid(**args)
 
     @abstractmethod
     def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int: ...

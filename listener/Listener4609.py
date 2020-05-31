@@ -88,16 +88,12 @@ class Listener4609(EquationSolver):
         locations = Clues.get_locations_from_grid(GRID)
         return Clues.create_from_text(ACROSS, DOWN, locations)
 
-    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
-                  location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
-                  top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
-
+    def draw_grid(self, **args: Any) -> None:
+        location_to_entry: Dict[Location, str] = args['location_to_entry']
         for letter, (row, column) in zip(self.array, itertools.product(range(1, 13), repeat=2)):
             location_to_entry[row, column] = letter
-        circles = {(8, 1)}
-        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number, top_bars,
-                          left_bars,
-                          circles=circles, **more_args)
+        args['circles'] = {(8, 1)}
+        super().draw_grid(**args)
 
     WORDS = [
         "MUM",

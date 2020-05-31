@@ -241,16 +241,15 @@ class Listener4608(ConstraintSolver):
         letters = [chr(ord('A') + digit - 1) for digit in pieces]
         print(''.join(letters))
 
-    def draw_grid(self, max_row: int, max_column: int, clued_locations: Set[Location],
-                  location_to_entry: Dict[Location, str], location_to_clue_number: Dict[Location, str],
-                  top_bars: Set[Location], left_bars: Set[Location], **more_args: Any) -> None:
+    def draw_grid(self, **args: Any) -> None:
+        location_to_clue_number: Dict[Location, str] = args['location_to_clue_number']
         location_to_clue_number[5, 2] = 'J'
 
+        location_to_entry: Dict[Location, str] = args['location_to_entry']
         shaded_squares = {location for location, value in location_to_entry.items() if value in "13579"}
         shading = {location: "lightgreen" for location in shaded_squares}
 
-        super().draw_grid(max_row, max_column, clued_locations, location_to_entry, location_to_clue_number, top_bars,
-                          left_bars, shading=shading, **more_args)
+        super().draw_grid(shading=shading, **args)
 
 def run() -> None:
     solver = Listener4608(CLUES)
