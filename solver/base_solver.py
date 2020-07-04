@@ -3,7 +3,7 @@ import re
 import typing
 from abc import ABC, abstractmethod
 from collections import Counter, OrderedDict
-from typing import FrozenSet, Sequence, Any, Dict, Set, Tuple, Mapping, Optional
+from typing import FrozenSet, Sequence, Any, Dict, Set, Tuple, Mapping, Optional, List
 
 from .clue import Clue
 from .clue import Location
@@ -106,7 +106,7 @@ class BaseSolver(ABC):
         location_to_entry: Dict[Location, str] = {}
 
         # A map from location to clue number to put in that location
-        location_to_clue_number: Dict[Location, str] = {}
+        location_to_clue_numbers: Dict[Location, List[str]] = {}
 
         # Location of squares that have a heavy bar on their left.
         left_bars = set(itertools.product(range(1, max_row), range(2, max_column)))
@@ -119,11 +119,12 @@ class BaseSolver(ABC):
         # possible locations in the set, then remove those bars that are in the interior of a clue.
         for clue in self._clue_list:
             match = re.search(r'\d+', clue.name)
-            if match:
-                location_to_clue_number[clue.base_location] = match.group(0)
-            else:
-                old = location_to_clue_number.get(clue.base_location)
-                location_to_clue_number[clue.base_location] = f'{old}, {clue.name}' if old else clue.name
+            location = clue.base_location
+            clue_name = match.group(0) if match else clue.name
+            if location not in location_to_clue_numbers:
+                location_to_clue_numbers[location] = [clue_name]
+            elif clue_name not in location_to_clue_numbers[location]:
+                location_to_clue_numbers[location].append(clue_name)
 
             # These squares are filled.
             clued_locations.update(clue.locations)
@@ -141,7 +142,7 @@ class BaseSolver(ABC):
                        clued_locations=clued_locations,
                        clue_values=clue_values,
                        location_to_entry=location_to_entry,
-                       location_to_clue_number=location_to_clue_number,
+                       location_to_clue_numbers=location_to_clue_numbers,
                        top_bars=top_bars,
                        left_bars=left_bars, **more_args)
 

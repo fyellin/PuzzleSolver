@@ -1,5 +1,5 @@
 import itertools
-from typing import Set, Dict, Any, cast
+from typing import Set, Dict, Any, cast, Sequence
 
 from matplotlib import pyplot as plt, patches
 from matplotlib.axes import Axes
@@ -11,7 +11,7 @@ from .clue_types import Location
 def draw_grid(*, max_row: int, max_column: int,
               clued_locations: Set[Location],
               location_to_entry: Dict[Location, str],
-              location_to_clue_number: Dict[Location, str],
+              location_to_clue_numbers: Dict[Location, Sequence[str]],
               top_bars: Set[Location], left_bars:  Set[Location],
               shading: Dict[Location, str] = {},
               rotation: Dict[Location, str] = {},
@@ -69,20 +69,17 @@ def draw_grid(*, max_row: int, max_column: int,
 
 
     # Fill in the clue numbers
-    for (row, column), clue_number in location_to_clue_number.items():
-        text = str(clue_number)
-        split_text = text.split(', ', 1)
-        if len(split_text) == 2:
-            text, remainder = split_text
-        else:
-            remainder = ''
-        axes.text(column + 1 / 20, row + 1 / 20, text,
-                  fontsize=points_per_data/4, fontfamily="sans-serif",
-                  verticalalignment='top', horizontalalignment='left')
-        if remainder:
-            axes.text(column + 19 / 20, row + 1 / 20, remainder,
-                      fontsize=points_per_data / 4, fontfamily="sans-serif",
-                      verticalalignment='top', horizontalalignment='right')
+    for (row, column), clue_numbers in location_to_clue_numbers.items():
+        font_info = dict(fontsize=points_per_data / 4, fontfamily="sans-serif")
+        for index, text in enumerate(clue_numbers):
+            if index == 0:
+                axes.text(column + .05, row + .05, text, verticalalignment='top', horizontalalignment='left', **font_info)
+            elif index == 1:
+                axes.text(column + .95, row + .05, text, verticalalignment='top', horizontalalignment='right', **font_info)
+            elif index == 2:
+                axes.text(column + .05, row + .95, text, verticalalignment='bottom', horizontalalignment='left', **font_info)
+            elif index == 3:
+                axes.text(column + .95, row + .95, text, verticalalignment='bottom', horizontalalignment='right', **font_info)
 
     if not _axes:
         plt.show()

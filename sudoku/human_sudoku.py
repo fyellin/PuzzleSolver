@@ -16,6 +16,7 @@ class Sudoku:
 
     def __init__(self, **args: bool) -> None:
         self.grid = Grid(**args)
+        self.magic_squares = None  # [(row, column) for row in (4, 5, 6) for column in (4, 5, 6)]
 
     def solve(self, puzzle: str) -> bool:
         grid = self.grid
@@ -27,11 +28,10 @@ class Sudoku:
         return self.run_solver()
 
     def run_solver(self) -> bool:
-        magic_squares = [(row, column) for row in (4, 5, 6) for column in (4, 5, 6)]
         while True:
             if self.is_solved():
                 return True
-            if self.check_magic_square(magic_squares):
+            if self.magic_squares and self.check_magic_square(self.magic_squares):
                  continue
             if self.check_naked_singles() or self.check_hidden_singles():
                 continue
@@ -392,25 +392,17 @@ class Sudoku:
         plt.show()
 
 def main() -> None:
-    sudoku = Sudoku(knight=True)
-    PUZZLES = [
-        '.......9.'
-        '.......1.'
-        '..5...2..'
-        '.....4...'
-        '.........'
-        '...6.....'
-        '..8......'
-        '49.......'
-        '.........'
-    ]
-    for i, puzzle in enumerate(PUZZLES):
-        print(i, puzzle)
+    sudoku = Sudoku(king=True)
+    # XUZZ = "123456789123456789123456789123456789123456789123456789123456789123456789123456789"
+    PUZZLE = "685......971.4....423.........685......971...8..423.........685......971......423"
+
+    if True:
+        print(PUZZLE)
         try:
-            result = sudoku.solve(puzzle)
+            result = sudoku.solve(PUZZLE)
             sudoku.draw_grid()
         except Exception:
-            print(puzzle)
+            print(PUZZLE)
             raise
 
 

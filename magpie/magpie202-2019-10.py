@@ -222,14 +222,14 @@ class MySolver(ConstraintSolver):
 
     def draw_grid(self, **args: Any) -> None:
 
-        args['location_to_clue_number'] = {clue.base_location: clue.name[0:-1] for clue in self._clue_list}
+        args['location_to_clue_numbers'] = {clue.base_location: [clue.name[0:-1]] for clue in self._clue_list}
         super().draw_grid(**args)
 
         location_to_entry: Dict[Location, str] = args['location_to_entry']
         location_to_entry = {location: 'BYGADMORPHICNETS'[int(value, 16)]
                              for location, value in location_to_entry.items()}
         args['location_to_entry'] = location_to_entry
-        args['location_to_clue_number'].clear()
+        args['location_to_clue_numbers'].clear()
 
         rotations = {}
         for row, line in enumerate(ROTATIONS.strip().split()):

@@ -242,8 +242,8 @@ class Listener4608(ConstraintSolver):
         print(''.join(letters))
 
     def draw_grid(self, **args: Any) -> None:
-        location_to_clue_number: Dict[Location, str] = args['location_to_clue_number']
-        location_to_clue_number[5, 2] = 'J'
+        location_to_clue_numbers: Dict[Location, List[str]] = args['location_to_clue_numbers']
+        location_to_clue_numbers[5, 2].pop()
 
         location_to_entry: Dict[Location, str] = args['location_to_entry']
         shaded_squares = {location for location, value in location_to_entry.items() if value in "13579"}
@@ -254,9 +254,8 @@ class Listener4608(ConstraintSolver):
 def run() -> None:
     solver = Listener4608(CLUES)
     solver.verify_is_vertically_symmetric()
-    solver.solve(debug=True, max_debug_depth=5)
-
-    return
+    # solver.solve(debug=True, max_debug_depth=5)
+    # return
 
     clues = "ABCDEFGHJKLMNPQRSTUVWXabcdefghijklmnopqrstuvwxyzß*"
     values = (162, 649, 54045, 595, 495, 69, 54, 752, 359, 573, 337, 90, 73, 395, 55, 29, 61, 48, 44, 58, 51, 99, 107,
