@@ -82,7 +82,7 @@ class DancingLinks(Generic[Row, Constraint]):
         is_debugging = depth < self.max_debugging_depth
 
         try:
-            min_count, _, min_constraint = min((len(rows), random.random(), constraint)
+            min_count, _, min_constraint = min((len(rows), 0 * random.random(), constraint)
                                                for constraint, rows in self.constraint_to_rows.items()
                                                if constraint not in self.optional_constraints)
         except ValueError:
@@ -135,7 +135,7 @@ class DancingLinks(Generic[Row, Constraint]):
             nonlocal solution_count
             self.count += 1
             try:
-                count, _, constraint = min((len(rows), random.random(), constraint)
+                count, _, constraint = min((len(rows), 0.0 * random.random(), constraint)
                                            for constraint, rows in self.constraint_to_rows.items()
                                            if constraint not in self.optional_constraints)
             except ValueError:
