@@ -3,15 +3,16 @@ from __future__ import annotations
 import abc
 import datetime
 import itertools
-from typing import Tuple, Sequence, Dict, List, Set, ClassVar, Any
+from typing import Tuple, Sequence, Dict, List, Set, ClassVar, Any, Mapping
 
 from matplotlib import pyplot as plt
+from matplotlib.patches import FancyBboxPatch
 
 from solver import DancingLinks
 
 
 class Sudoku:
-    initial_grid: Dict[Tuple[int, int], int]
+    initial_grid: Mapping[Tuple[int, int], int]
     constraints: Dict[Tuple[int, int, int], List[str]]
     optional_constraints: Set[str]
     deletions: Set[Tuple[int, int, int]]
@@ -48,7 +49,7 @@ class Sudoku:
 
         links = DancingLinks(self.constraints, optional_constraints=self.optional_constraints,
                              row_printer=self.draw_grid)
-        links.solve(debug=5, recursive=False)
+        links.solve(debug=1000, recursive=False)
 
 
     def draw_grid(self, results: Sequence[Tuple[int, int, int]]) -> None:
@@ -82,6 +83,8 @@ class Sudoku:
         for feature in self.features:
             feature.post_print(results)
 
+        temp = ''.join(str(value) for _, _, value in sorted(results))
+        print(f"'{temp}'")
         plt.show()
 
     def not_both(self, triple1: Tuple[int, int, int], triple2: Tuple[int, int, int], name: str = '') -> None:
@@ -373,6 +376,99 @@ class EvenFeature(Feature):
         sudoku.deletions.update((row, column, value) for (row, column) in self.evens for value in (1, 3, 5, 7, 9))
 
 
+class CheckEggFeature(Feature):
+    eggs: Sequence[List[Tuple[int, int]]]
+
+    def __init__(self, pattern: str) -> None:
+        super().__init__()
+        assert len(pattern) == 81
+        info: Sequence[List[Tuple[int, int]]] = [list() for _ in range(10)]
+        for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), pattern):
+            if '0' <= letter <= '9':
+                info[int(letter)].append((row, column))
+        for i in range(0, 9):
+            assert len(info[i]) == i
+        self.eggs = info
+
+    def update_constraints(self, sudoku: Sudoku) -> None:
+        for size in range(1, 10):
+            for (row, column) in self.eggs[size]:
+                sudoku.deletions.update((row, column, value) for value in range(size + 1, 10))
+            for value in range(1, size + 1):
+                constraint = f'Snake{size}{value}'
+                for (row, column) in self.eggs[size]:
+                    sudoku.constraints[row, column, value].append(constraint)
+
+    def pre_print(self) -> None:
+        cells = {cell for size in range(1, 10) for cell in self.eggs[size]}
+        for row, column in itertools.product(range(1, 10), repeat=2):
+            if (row, column) not in cells:
+                plt.gca().add_patch(plt.Rectangle((column, row), 1, 1, facecolor='lightblue'))
+
+
+class PlusFeature(Feature):
+    squares: Sequence[Tuple[int, int]]
+    puzzles: Sequence[str]
+
+    def __init__(self, squares: Sequence[Tuple[int, int]], puzzles: Sequence[str]) -> None:
+        super().__init__()
+        self.squares = squares
+        self.puzzles = puzzles
+
+    def update_constraints(self, sudoku: Sudoku) -> None:
+        for row, column in self.squares:
+            value = self.__get_value(row, column)
+            sudoku.deletions.update((row, column, valuex) for valuex in range(1, 10) if valuex != value)
+
+    def __get_value(self, row: int, column: int) -> int:
+        index = (row - 1) * 9 + (column - 1)
+        value = sum(int(puzzle[index]) for puzzle in self.puzzles) % 9
+        if value == 0:
+            value = 9
+        return value
+
+    def pre_print(self) -> None:
+        for row, column in self.squares:
+            plt.plot((column + .2, column + .8), (row + .5, row + .5), color='lightgrey', linewidth=3)
+            plt.plot((column + .5, column + .5), (row + .2, row + .8), color='lightgrey', linewidth=3)
+
+
+class ColorFeature(Feature):
+    setup: Mapping[Tuple[int, int], str]
+    color_map: Mapping[str, str]
+    plus_feature: PlusFeature
+
+    def __init__(self, grid: str, color_map: str, puzzles: Sequence[str]) -> None:
+        super().__init__()
+        self.setup = {(row, column): letter
+                      for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), grid)
+                      if letter != '.' and letter != '+'}
+        pluses = [(row, column)
+                  for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), grid)
+                  if letter == '+']
+        self.color_map = dict(zip(color_map, puzzles))
+        self.plus_feature = PlusFeature(pluses, puzzles)
+
+    def update_constraints(self, sudoku: Sudoku) -> None:
+        self.plus_feature.update_constraints(sudoku)
+        for (row, column), letter in self.setup.items():
+            puzzle = self.color_map[letter]
+            index = (row - 1) * 9 + (column - 1)
+            value = int(puzzle[index])
+            sudoku.deletions.update((row, column, valuex) for valuex in range(1, 10) if valuex != value)
+
+    CIRCLES = dict(r="lightcoral", p="violet", o="bisque", g="lightgreen", G="lightgray", y="yellow", b="skyblue")
+
+    def pre_print(self) -> None:
+        self.plus_feature.pre_print()
+        axis = plt.gca()
+        for (row, column), letter in self.setup.items():
+            axis.add_patch(plt.Circle((column + .5, row + .5), radius=.4, fill=True,
+                                      color=self.CIRCLES[letter]))
+        # noinspection PyTypeChecker
+        axis.add_patch(FancyBboxPatch((2.3, 5.3), 6.4, 0.4, boxstyle='round, pad=0.2', fill=False))
+
+
 def merge(p1: str, p2: str) -> str:
     assert len(p1) == len(p2) == 81
     assert(p1[i] == '.' or p2[i] == '.' or p1[i] == p2[i] for i in range(81))
@@ -421,7 +517,7 @@ def puzzle3() -> None:
     previo = '....4........6.............8.....9..........6.........2..........................'
     puzzle = '..9...7...5.....3.7.4.....9.............5.............5.....8.1.3.....9...7...5..'
 
-    evens = [(2,3), (3, 2), (3, 3), (1, 4), (1, 5), (1, 6)]
+    evens = [(2, 3), (3, 2), (3, 3), (1, 4), (1, 5), (1, 6)]
     evens = evens + [(column, 10 - row) for row, column in evens]
     evens = evens + [(10 - row, 10 - column) for row, column in evens]
 
@@ -454,11 +550,53 @@ def puzzle5() -> None:
     diadem = SnakeFeature([(4, 2), (2, 1), (3, 3), (1, 4), (3, 5), (1, 6), (3, 7), (2, 9), (4, 8)],
                           color='lightblue', closed=True)
     thermometers = [ThermometerFeature([(row, column) for row in (9, 8, 7, 6, 5, 4)]) for column in (2, 4, 6, 8)]
-    circles = DrawCirclesFeature([(3, 5), (4, 8), (6, 3), (7, 3), (9, 3)])
+    circles = DrawCirclesFeature([(3, 5), (5, 8), (6, 3), (7, 3), (9, 3)])
     features = [diadem, *thermometers, circles]
     Sudoku().solve(merge(puzzle, previo), features)
-    # '......................5...........7............1........2.................9......'
 
+
+def puzzle6() -> None:
+    previo = '......................5....................6...1........2.................9......'
+    puzzle = '......75.2.....4.9.....9.......2.8..5...............3........9...7......4........'
+    snakey = '3...777773.5.77...3.5...22...555.....4...8888.4.6.8..8.4.6.88...4.6...1....666...'
+    features = [CheckEggFeature(snakey)]
+    Sudoku().solve(merge(puzzle, previo), features, show=False)
+
+
+def puzzle7() -> None:
+    puzzles = [
+        '925631847364578219718429365153964782249387156687215934472853691531796428896142573',   # Diary, Red
+        '398541672517263894642987513865372941123894756974156238289435167456718329731629485',   # Ring, Purple
+        '369248715152769438784531269843617952291854376675392184526973841438125697917486523',   # Locket, Orangeish
+        '817325496396487521524691783741952638963148257285763149158279364632814975479536812',   # Cup, Yellow
+        '527961384318742596694853217285619473473528169961437852152396748746285931839174625',   # Crown, Blue
+        '196842753275361489384759126963125847548937261721684935612578394837496512459213678',   # Snake, Green
+    ]
+    pluses = [(1, 1), (1, 9), (2, 4), (2, 6), (3, 3), (3, 7), (4, 2), (4, 4), (4, 6), (4, 8), (5, 3)]
+    pluses = pluses + [(10 - row, 10 - column) for row, column in pluses]
+    puzzle = '......................7..1.....8.................6.....3..5......................'
+    feature = PlusFeature(pluses, puzzles)
+    Sudoku().solve(puzzle, [feature], show=False)
+
+
+def puzzle8() -> None:
+    puzzles = [
+        '925631847364578219718429365153964782249387156687215934472853691531796428896142573',   # Diary, Red
+        '398541672517263894642987513865372941123894756974156238289435167456718329731629485',   # Ring, Purple
+        '369248715152769438784531269843617952291854376675392184526973841438125697917486523',   # Locket, Orangeish
+        '817325496396487521524691783741952638963148257285763149158279364632814975479536812',   # Cup, Yellow
+        '527961384318742596694853217285619473473528169961437852152396748746285931839174625',   # Crown, Blue
+        '196842753275361489384759126963125847548937261721684935612578394837496512459213678',   # Snake, Green
+        '213845679976123854548976213361782945859314762724569381632458197185297436497631528',   # Enigma, Gray
+    ]
+
+    grid = '+.y..o+.+...Gb.......p...r.+..+b.b+...........+g.g+..+.o...........ry...+.+g..g.+'
+    features = [
+        ColorFeature(grid, 'rpoybgG', puzzles),
+        SnakeFeature([(i, i) for i in range(1, 10)]),
+        SnakeFeature([(10 - i, i) for i in range(1, 10)]),
+    ]
+    Sudoku().solve('.'*81, features, show=False)
 
 
 def main() -> None:
@@ -468,6 +606,9 @@ def main() -> None:
     puzzle3()
     puzzle4()
     puzzle5()
+    puzzle6()
+    puzzle7()
+    puzzle8()
     end = datetime.datetime.now()
     print(end - start)
 

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import itertools
-from collections import deque
+from collections import deque, defaultdict
 from operator import attrgetter
-from typing import Set, Sequence, Mapping, Iterable, Tuple
+from typing import Set, Sequence, Mapping, Iterable, Tuple, Optional
 
 import matplotlib.pyplot as plt
 
@@ -13,32 +15,38 @@ from hard_medusa import HardMedusa
 
 class Sudoku:
     grid: Grid
+    features: Sequence[Feature]
+    initial_grid: Mapping[Tuple[int, int], int]
 
-    def __init__(self, **args: bool) -> None:
-        self.grid = Grid(**args)
-        self.magic_squares = None  # [(row, column) for row in (4, 5, 6) for column in (4, 5, 6)]
-
-    def solve(self, puzzle: str) -> bool:
-        grid = self.grid
+    def solve(self, puzzle: str, *, features: Sequence[Feature] = (), **args: bool) -> bool:
+        self.grid = grid = Grid(**args)
+        self.features = features
         grid.reset()
-        for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), puzzle):
-            if '1' <= letter <= '9':
-                grid.matrix[row, column].set_value_to(int(letter))
+        self.initial_grid = {(row, column): int(letter)
+                             for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), puzzle)
+                             if '1' <= letter <= '9'}
 
+        for square, value in self.initial_grid.items():
+            grid.matrix[square].set_value_to(value)
         return self.run_solver()
 
     def run_solver(self) -> bool:
+        self.grid.print()
+
         while True:
             if self.is_solved():
                 return True
-            if self.magic_squares and self.check_magic_square(self.magic_squares):
-                 continue
             if self.check_naked_singles() or self.check_hidden_singles():
+                continue
+            if any(feature.check(self) for feature in self.features):
                 continue
             if self.check_intersection_removal():
                 continue
             if self.check_tuples():
                 continue
+            if any(feature.extra_check(self) for feature in self.features):
+                continue
+
             self.grid.print()
             if self.check_fish() or self.check_xy_sword() or self.check_xyz_sword() or self.check_tower():
                 continue
@@ -49,6 +57,7 @@ class Sudoku:
                 continue
             if HardMedusa.run(chains):
                 continue
+
             return False
 
     def is_solved(self) -> bool:
@@ -60,19 +69,19 @@ class Sudoku:
         Finds those squares which are forced because they only have one possible remaining value.
         Returns true if any changes are made to the grid
         """
-        found_forced_cell = False
+        found_naked_single = False
         while True:
             # Cells that only have one possible value
-            forced_cells = {cell for cell in self.grid.cells
-                            if not cell.is_known and len(cell.possible_values) == 1}
-            if not forced_cells:
+            naked_singles = {cell for cell in self.grid.cells
+                             if not cell.is_known and len(cell.possible_values) == 1}
+            if not naked_singles:
                 break
-            found_forced_cell = True
+            found_naked_single = True
             # Officially set the cell to its one possible value
             output = [cell.set_value_to(list(cell.possible_values)[0])
-                      for cell in forced_cells]
-            print("Forced: " + '; '.join(output))
-        return found_forced_cell
+                      for cell in naked_singles]
+            print("Naked single: " + '; '.join(output))
+        return found_naked_single
 
     def check_hidden_singles(self) -> bool:
         """
@@ -343,9 +352,47 @@ class Sudoku:
                                             return True
         return False
 
-    def check_magic_square(self, squares: Sequence[Tuple[int, int]]) -> bool:
+    def draw_grid(self) -> None:
+        figure, axes = plt.subplots(1, 1, figsize=(4, 4), dpi=100)
+
+        # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
+        axes.axis([1, 10, 10, 1])
+        axes.axis('equal')
+        axes.axis('off')
+        figure.tight_layout()
+
+        # Draw the bold outline
+        for x in range(1, 11):
+            width = 3 if x in (1, 4, 7, 10) else 1
+            axes.plot([x, x], [1, 10], linewidth=width, color='black')
+            axes.plot([1, 10], [x, x], linewidth=width, color='black')
+
+        given = dict(fontsize=13, color='black', weight='heavy')
+        found = dict(fontsize=12, color='blue', weight='normal')
+        for cell in self.grid.cells:
+            row, column = cell.index
+            args = given if cell.index in self.initial_grid else found
+            axes.text(column + .5, row + .5, cell.known_value,
+                      verticalalignment='center', horizontalalignment='center', **args)
+        plt.show()
+
+
+class Feature:
+    def check(self, sudoku: Sudoku) -> bool: ...
+
+    def extra_check(self, sudoku: Sudoku) -> bool:
+        return False
+
+
+class MagicSquareFeature(Feature):
+    squares: Sequence[Tuple[int, int]]
+
+    def __init__(self, squares:  Sequence[Tuple[int, int]]):
         assert len(squares) == 9
-        cells = [self.grid.matrix[location] for location in squares]
+        self.squares = squares
+
+    def check(self, sudoku: Sudoku) -> bool:
+        cells = [sudoku.grid.matrix[location] for location in self.squares]
         if not cells[4].is_known:
             print(f'Initial magic square')
             cells[4].set_value_to(5, show=True)
@@ -368,42 +415,131 @@ class Sudoku:
                 return True
         return False
 
-    def draw_grid(self) -> None:
-        figure, axes = plt.subplots(1, 1, figsize=(4, 4), dpi=100)
 
-        # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
-        axes.axis([1, 10, 10, 1])
-        axes.axis('equal')
-        axes.axis('off')
-        figure.tight_layout()
+class GermanSnakeFeature(Feature):
+    GERMAN_SNAKE_INFO = {1: {6, 7, 8, 9}, 2: {7, 8, 9}, 3: {8, 9}, 4: {9},
+                         6: {1}, 7: {1, 2}, 8: {1, 2, 3}, 9: {1, 2, 3, 4}}
 
-        # Draw the bold outline
-        for x in range(1, 11):
-            width = 3 if x in (1, 4, 7, 10) else 1
-            axes.plot([x, x], [1, 10], linewidth=width, color='black')
-            axes.plot([1, 10], [x, x], linewidth=width, color='black')
+    snake: Sequence[Tuple[int, int]]
 
-        given = dict(fontsize=13, color='black', weight='heavy')
-        found = dict(fontsize=12, color='blue', weight='normal')
-        for cell in self.grid.cells:
-            row, column = cell.index
-            axes.text(column + .5, row + .5, cell.known_value,
-                      verticalalignment='center', horizontalalignment='center', **found)
-        plt.show()
+    def __init__(self, snake:  Sequence[Tuple[int, int]]):
+        self.snake = snake
+
+    def check(self, sudoku: Sudoku) -> bool:
+        snake_cells = [sudoku.grid.matrix[location] for location in self.snake]
+
+        if has_5 := [cell for cell in snake_cells if 5 in cell.possible_values]:
+            print("No Fives in a German Snake")
+            Cell.remove_value_from_cells(has_5, 5)
+            return True
+
+        previous_cells = itertools.chain([None], snake_cells)
+        next_cells = itertools.chain(itertools.islice(snake_cells, 1, None), itertools.repeat(None))
+
+        for cell, previous, next in zip(snake_cells, previous_cells, next_cells):
+            impossible_values = set()
+            for value in cell.possible_values:
+                prev_bridge = self.get_bridge(cell, previous, value)
+                next_bridge = self.get_bridge(cell, next, value)
+                if not prev_bridge or not next_bridge:
+                    impossible_values.add(value)
+                elif previous and next and previous.is_neighbor(next) and len(prev_bridge.union(next_bridge)) == 1:
+                    impossible_values.add(value)
+
+            if impossible_values:
+                print("No appropriate value in adjacent cell")
+                Cell.remove_values_from_cells([cell], impossible_values)
+                return True
+        return False
+
+    def get_bridge(self, cell: Optional[Cell], adjacent: Cell, value: int):
+        good_adjacent_values = self.GERMAN_SNAKE_INFO[value]
+        if not adjacent:
+            return good_adjacent_values
+        bridge = adjacent.possible_values.intersection(good_adjacent_values)
+        if cell.is_neighbor(adjacent) and value in bridge:
+            bridge.discard(value)
+        return bridge
+
+
+
+class MalvoloRingFeature(Feature):
+    MARVOLO_RING_INFO = {1: (3, 7, 8), 2: {2, 6, 7}, 3: {1, 5, 6}, 4: {4, 5}, 5: {3, 4}, 6: {2, 3}, 7: {1, 2, 9},
+                         8: {1, 8}, 9: {7}}
+
+    def check(self, sudoku: Sudoku) -> bool:
+        ring_cells = [sudoku.grid.matrix[x] for x in ((2, 4), (2, 5), (2, 6), (3, 7), (4, 8), (5, 8), (6, 8), (7, 7),
+                                                  (8, 6), (8, 5), (8, 4), (7, 3), (6, 2), (5, 2), (4, 2), (3, 3))]
+        for index, cell in enumerate(ring_cells):
+            impossible_values = set()
+            for value in cell.possible_values:
+                adjacent1, adjacent2 = (ring_cells[(index - 1) % 16], ring_cells[(index + 1) % 16])
+                bridge1, bridge2 = self.get_bridge(cell, adjacent1, value), self.get_bridge(cell, adjacent2, value)
+                if not bridge1 or not bridge2:
+                    impossible_values.add(value)
+                elif adjacent1.is_neighbor(adjacent2) and len(bridge1.union(bridge2)) == 1:
+                    # You can't use the same value on both sides if it is a neighbor to both
+                    impossible_values.add(value)
+
+            if impossible_values:
+                print("No appropriate value in adjacent cells")
+                Cell.remove_values_from_cells([cell], impossible_values)
+                return True
+
+        items = defaultdict(list)
+        for cell in ring_cells:
+            for value in cell.possible_values:
+                items[value].append(cell)
+        for value in range(1, 10):
+            if len(items[value]) == 1:
+                cell = items[value].pop()
+                if len(cell.possible_values) > 1:
+                    print(f'Ring:  Value {value} must be {cell}')
+                    cell.set_value_to(value)
+                    return True
+
+        return False
+
+    def extra_check(self, sudoku: Sudoku) -> bool:
+        temp = sudoku.grid.matrix[2, 6]
+        if len(temp.possible_values) == 2:
+            print("Danger, danger")
+            Cell.remove_value_from_cells([temp], 4)
+            return True
+        return False
+
+
+    def get_bridge(self, cell: Cell, adjacent: Cell, value: int):
+        good_adjacent_values = self.MARVOLO_RING_INFO[value]
+        bridge = adjacent.possible_values.intersection(good_adjacent_values)
+        if cell.is_neighbor(adjacent) and value in bridge:
+            bridge.discard(value)
+        return bridge
+
+
+def merge(p1: str, p2: str) -> str:
+    assert len(p1) == len(p2) == 81
+    assert(p1[i] == '.' or p2[i] == '.' or p1[i] == p2[i] for i in range(81))
+    result = ((y if x == '.' else x) for x, y in zip(p1, p2))
+    return ''.join(result)
+
 
 def main() -> None:
-    sudoku = Sudoku(king=True)
-    # XUZZ = "123456789123456789123456789123456789123456789123456789123456789123456789123456789"
-    PUZZLE = "685......971.4....423.........685......971...8..423.........685......971......423"
+    # previo = '.......................1....4..................5...1.............................'
+    # puzzle = '...............5.....6.....' + (54 * '.')
+    # puzzle = merge(puzzle, previo)
+    # info1 = ((1, 2), (2, 2), (3, 3), (4, 4), (5, 4), (6, 4), (7, 4), (8, 4), (8, 3))
+    # info2 = tuple((row, 10-column) for (row, column) in info1)
+    # sudoku = Sudoku()
+    # sudoku.solve(puzzle, features=[GermanSnakeFeature(info1), GermanSnakeFeature(info2)], knight=True)
+    # sudoku.draw_grid()
 
-    if True:
-        print(PUZZLE)
-        try:
-            result = sudoku.solve(PUZZLE)
-            sudoku.draw_grid()
-        except Exception:
-            print(PUZZLE)
-            raise
+    previo = '...........................................5........3.............7..............'
+    puzzle = '.9...16....................8............9............8....................16...8.'
+    puzzle = merge(puzzle, previo)
+    sudoku = Sudoku()
+    sudoku.solve(puzzle, features=[MalvoloRingFeature()])
+    sudoku.draw_grid()
 
 
 if __name__ == '__main__':

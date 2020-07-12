@@ -43,6 +43,14 @@ class DancingLinks(Generic[Row, Constraint]):
         for row, constraints in self.row_to_constraints.items():
             for constraint in constraints:
                 constraint_to_rows[constraint].add(row)
+
+        self.optional_constraints = {x for x in self.optional_constraints if x in constraint_to_rows}
+        unused_constraints = {x for x in self.optional_constraints if len(constraint_to_rows[x]) == 1}
+        for constraint in unused_constraints:
+            row = constraint_to_rows.pop(constraint).pop()
+            self.row_to_constraints[row].remove(constraint)
+            self.optional_constraints.remove(constraint)
+
         runner = copy.copy(self)
 
         runner.constraint_to_rows = constraint_to_rows
