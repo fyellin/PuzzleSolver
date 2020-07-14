@@ -6,7 +6,7 @@ from matplotlib.patches import FancyBboxPatch
 
 from cell import Cell, House, Egg
 from grid import Grid
-from human_sudoku import Sudoku, Feature, KnightsMoveFeature
+from human_sudoku import Sudoku, Feature, KnightsMoveFeature, MagicSquareFeature
 
 
 class GermanSnakeFeature(Feature):
@@ -438,6 +438,19 @@ def puzzle8() -> None:
     Sudoku().solve('.'*81, features=features)
 
 
+def magic_squares() -> None:
+    puzzle = ('.' * 17) + "1" + ('.' * 54) + '.6.......'
+    features = [
+        MagicSquareFeature((2, 6)),
+        MagicSquareFeature((4, 2)),
+        MagicSquareFeature((6, 8)),
+        MagicSquareFeature((8, 4)),
+    ]
+    sudoku = Sudoku()
+    sudoku.solve(puzzle, features=features)
+
+
+
 def run_thermometer():
     thermometers = [[(2, 2), (1, 3), (1, 4), (1, 5), (2, 6)],
                     [(2, 2), (3, 1), (4, 1), (5, 1), (6, 2)],
@@ -455,4 +468,4 @@ def run_thermometer():
     sudoku.draw_grid()
 
 if __name__ == '__main__':
-    puzzle8()
+    magic_squares()

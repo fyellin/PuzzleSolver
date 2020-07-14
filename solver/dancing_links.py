@@ -5,15 +5,16 @@ import copy
 import random
 import sys
 from typing import Optional, Callable, Sequence, Dict, Any, TextIO, Set, Iterator, List, Hashable, \
-    TypeVar, Generic, Mapping, Tuple
+    TypeVar, Generic, Tuple
 
 Row = TypeVar('Row', bound=Hashable)
 Constraint = TypeVar('Constraint', bound=Hashable)
 
 
 class DancingLinks(Generic[Row, Constraint]):
-    row_to_constraints: Mapping[Row, Sequence[Constraint]]
+    row_to_constraints: Dict[Row, List[Constraint]]
     optional_constraints: Set[Constraint]
+    inclusive_contraints: Set[Constraint]
     row_printer: Any
 
     count: int
@@ -22,9 +23,10 @@ class DancingLinks(Generic[Row, Constraint]):
     debug: int
     constraint_to_rows: Dict[Constraint, Set[Row]]
 
-    def __init__(self, constraints: Mapping[Row, Sequence[Constraint]],
+    def __init__(self, constraints: Dict[Row, List[Constraint]],
                  *, row_printer: Optional[Callable[[Sequence[Row]], None]] = None,
-                 optional_constraints: Optional[Set[Constraint]] = None):
+                 optional_constraints: Optional[Set[Constraint]] = None,
+                 inclusive_constraints: Optional[Set[Constraint]] = None):
         """The entry to the Dancing Links code.  constraints should be a dictionary.  Each key
         is the name of the row (something meaningful to the user).  The value should
         be a list/tuple of the row_to_constraints satisfied by this row.
@@ -34,6 +36,7 @@ class DancingLinks(Generic[Row, Constraint]):
         """
         self.row_to_constraints = constraints
         self.optional_constraints = optional_constraints or set()
+        self.inclusive_constraints = inclusive_constraints or set()
         self.row_printer = row_printer or (lambda solution: print(sorted(solution)))
 
     def solve(self, output: TextIO = sys.stdout, debug: Optional[int] = None,

@@ -4,7 +4,7 @@ import abc
 import itertools
 from collections import deque
 from operator import attrgetter
-from typing import Set, Sequence, Mapping, Iterable, Tuple, Any
+from typing import Set, Sequence, Mapping, Iterable, Tuple, Any, List
 
 import matplotlib.pyplot as plt
 
@@ -442,42 +442,51 @@ class KingsMoveFeature(Feature):
 
 
 class MagicSquareFeature(Feature):
-    squares: Sequence[Tuple[int, int]]
+    center: Tuple[int, int]
+    squares: Sequence[Cell]  # just the perimeter
+    possibilities = List[Tuple[int, ...]]
 
-    def __init__(self, squares:  Sequence[Tuple[int, int]]):
-        assert len(squares) == 9
-        self.squares = squares
+    def __init__(self, center: Tuple[int, int] = (5, 5)):
+        self.center = center
+        possibilities = [(2, 9, 4, 3, 8, 1, 6, 7), (2, 7, 6, 1, 8, 3, 4, 9)]
+        possibilities = possibilities + [x[2:] + x[:2] for x in possibilities]
+        possibilities = possibilities + [x[4:] + x[:4] for x in possibilities]
+        self.possibilities = possibilities
+
+    def start_checking(self, sudoku: Sudoku):
+        deltas = ((-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1))
+        center_x, center_y = self.center
+        self.squares = [sudoku.grid.matrix[center_x + delta_x, center_y + delta_y] for delta_x, delta_y in deltas]
+        sudoku.grid.matrix[center_x, center_y].set_value_to(5)
+        Cell.remove_values_from_cells(self.squares[0::2], {1, 3, 5, 7, 9}, show=False)
+        Cell.remove_values_from_cells(self.squares[1::2], {2, 4, 5, 6, 8}, show=False)
 
     def check(self, sudoku: Sudoku) -> bool:
-        cells = [sudoku.grid.matrix[location] for location in self.squares]
-        if not cells[4].is_known:
-            print(f'Initial magic square')
-            cells[4].set_value_to(5, show=True)
-            Cell.remove_values_from_cells((cells[0], cells[2], cells[6], cells[8]), {1, 3, 5, 7, 9})
-            Cell.remove_values_from_cells((cells[1], cells[3], cells[5], cells[7]), {2, 4, 5, 6, 8})
-            return True
+        old_length = len(self.possibilities)
+        if old_length == 1:
+            return False
+        self.possibilities = list(filter(self.__is_possibile, self.possibilities))
+        if len(self.possibilities) == old_length:
+            return False
 
-        for temp in ((0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)):
-            row = [cells[i] for i in temp]
-            legal_triples = [triple for triple in itertools.product(*(x.possible_values for x in row))
-                             if sum(triple) == 15]
-            actual_possible_values = [{triple[i] for triple in legal_triples} for i in range(3)]
-            expected_possible_values = [cell.possible_values for cell in row]
-            if actual_possible_values != expected_possible_values:
-                print(f'{" + ".join(map(str, row))} = 15')
-                for cell, expected, actual in zip(row, expected_possible_values, actual_possible_values):
-                    assert actual <= expected
-                    if len(actual) < len(expected):
-                        Cell.remove_values_from_cells([cell], expected - actual)
-                return True
-        return False
+        made_change = False
+        for index, square in enumerate(self.squares):
+            if square.is_known:
+                continue
+            legal_values = {possibility[index] for possibility in self.possibilities}
+            if not square.possible_values <= legal_values:
+                if not made_change:
+                    print(f"Restricted possibilities for magic square at {self.center}")
+                    made_change = True
+                Cell.remove_values_from_cells([square], square.possible_values.difference(legal_values))
+        return made_change
 
+    def __is_possibile(self, possibility):
+        return all(value in square.possible_values for (value, square) in zip(possibility, self.squares))
 
-
-
-
-
-
-
+    def draw(self, sudoku: Sudoku) -> None:
+        center_x, center_y = self.center
+        plt.gca().add_patch(plt.Rectangle((center_y - 1, center_x - 1), width=3, height=3,
+                                          fill=True, facecolor='lightgray'))
 
 
