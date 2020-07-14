@@ -1,38 +1,44 @@
-from typing import Dict, Tuple, Sequence, Iterable
+from typing import Dict, Tuple, Sequence, Iterable, TYPE_CHECKING
 
 from cell import Cell, House
+if TYPE_CHECKING:
+    from human_sudoku import Feature
 
 
 class Grid:
     matrix: Dict[Tuple[int, int], Cell]
     houses: Sequence[House]
 
-    def __init__(self, **args: bool) -> None:
-        row_houses = [House(House.Type.ROW, index) for index in range(1, 10)]
-        column_houses = [House(House.Type.COLUMN, index) for index in range(1, 10)]
-        box_houses = [House(House.Type.BOX, index) for index in range(1, 10)]
-        all_houses = tuple(row_houses + column_houses + box_houses)
-        all_cells = {}
+    def __init__(self, features: Sequence['Feature']) -> None:
+        self.matrix = {(row, column): Cell(row, column) for row in range(1, 10) for column in range(1, 10)}
 
-        for row in range(1, 10):
-            for column in range(1, 10):
-                row_house = row_houses[row - 1]
-                column_house = column_houses[column - 1]
-                box = row - (row - 1) % 3 + (column - 1) // 3
-                box_house = box_houses[box - 1]
-                cell = Cell(row_house, column_house, box_house)
-                all_cells[(row, column)] = cell
-                for house in (row_house, column_house, box_house):
-                    house.unknown_cells.add(cell)
+        def items_in_row(row: int):
+            return [self.matrix[row, column] for column in range(1, 10)]
 
-        for house in all_houses:
-            house.cells = tuple(sorted(house.unknown_cells))
+        def items_in_column(column: int):
+            return [self.matrix[row, column] for row in range(1, 10)]
 
-        for cell in all_cells.values():
-            cell.initialize_neighbors(all_cells.values(), **args)
+        def items_in_box(box: int):
+            q, r = divmod(box - 1, 3)
+            return [self.matrix[row, column]
+                    for row in range(3 * q + 1, 3 * q + 4)
+                    for column in range(3 * r + 1, 3 * r + 4)]
 
-        self.matrix = all_cells
-        self.houses = all_houses
+        rows = [House(House.Type.ROW, row, items_in_row(row)) for row in range(1, 10)]
+        columns = [House(House.Type.COLUMN, column, items_in_column(column)) for column in range(1, 10)]
+        boxes = [House(House.Type.BOX, box, items_in_box(box)) for box in range(1, 10)]
+
+        houses = [*rows, *columns, *boxes]
+
+        for feature in features:
+            for house in feature.get_houses(self):
+                houses.append(house)
+
+        self.houses = houses
+
+        for cell in self.matrix.values():
+            cell.initialize_neighbors(self.matrix, features)
+
 
     def reset(self) -> None:
         for house in self.houses:

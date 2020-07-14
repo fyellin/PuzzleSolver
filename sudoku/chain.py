@@ -1,9 +1,9 @@
 import itertools
 from collections import deque
 from enum import Enum, auto
-from typing import Set, Iterable, Tuple, Iterator, Sequence, Mapping, Dict, NamedTuple, FrozenSet, List
+from typing import Set, Iterable, Tuple, Iterator, Sequence, Mapping, Dict, NamedTuple, FrozenSet, List, Deque
 
-from cell import CellValue, Cell, House
+from cell import CellValue, Cell
 from color import Color
 
 
@@ -46,8 +46,8 @@ class Chain:
             cell_value, depth = todo.popleft()
             (one if depth % 2 == 0 else two).append(cell_value)
             (this_cell, this_value) = cell_value
-            for house_type in House.Type:
-                next_cell = this_cell.strong_pair(house_type, this_value)
+            for house in this_cell.all_houses():
+                next_cell = this_cell.strong_pair(house, this_value)
                 if next_cell is None:
                     continue
                 next_cell_value = CellValue(next_cell, this_value)
@@ -106,15 +106,15 @@ class Chain:
 
     def __sub_chain_string(self, start: CellValue, end: CellValue) -> str:
         """Given two cell-values in this chain, print out the piece of the chain from "start" to "end" """
-        todo = deque([(end)])
+        todo: Deque[CellValue] = deque([(end)])
         seen = {end: end}
         while todo:
-            cell_value= todo.popleft()
+            cell_value: CellValue = todo.popleft()
             if cell_value == start:
                 break
             (this_cell, this_value) = cell_value
-            for house_type in House.Type:
-                next_cell = this_cell.strong_pair(house_type, this_value)
+            for house in this_cell.all_houses():
+                next_cell = this_cell.strong_pair(house, this_value)
                 if next_cell is None:
                     continue
                 next_cell_value = CellValue(next_cell, this_value)

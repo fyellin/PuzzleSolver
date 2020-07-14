@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections import deque
 from typing import Set, Sequence, Dict, Deque, Mapping, Any, Tuple, Optional, ClassVar, Union
 
@@ -15,7 +16,7 @@ class Reason:
     
     counter: ClassVar[int] = 0
 
-    def __init__(self, medusa: 'HardMedusa', premises: Sequence[CellValue],
+    def __init__(self, medusa: HardMedusa, premises: Sequence[CellValue],
                  conclusions: Sequence[CellValue], cause: Any):
         Reason.counter += 1
         self.id = Reason.counter
@@ -34,15 +35,16 @@ class Reason:
         return len(self.all_reasons)
 
     @staticmethod
-    def print_explanations(medusa: 'HardMedusa', cell_values: Set[CellValue]) -> None:
+    def print_explanations(medusa: HardMedusa, cell_values: Set[CellValue]) -> None:
         reasons = {medusa.cell_value_to_reason[cell_value] for cell_value in cell_values}
         Reason.__print_explanations_internal(medusa, reasons, cell_values)
 
-    def print_explanation(self, medusa: 'HardMedusa'):
+    def print_explanation(self, medusa: HardMedusa):
         Reason.__print_explanations_internal(medusa, {self}, set(self.premises))
 
     @staticmethod
-    def __print_explanations_internal(medusa: 'HardMedusa', initial_reasons: Set['Reason'], highlighted: Set[CellValue]) -> None:
+    def __print_explanations_internal(medusa: HardMedusa, initial_reasons: Set[Reason],
+                                      highlighted: Set[CellValue]) -> None:
         def print_cell_value(cv: CellValue) -> str:
             chain, group = medusa.chains_mapping[cv]
             truth = medusa.chain_to_true_group[chain] == group
@@ -94,7 +96,9 @@ class HardMedusa:
             contradiction2 = medusa2.__find_contradictions(chain, Chain.Group.TWO)
             assert not(contradiction1 and contradiction2)
             if contradiction1 or contradiction2:
-                contradiction, group, medusa = (contradiction1, Chain.Group.ONE, medusa1) if contradiction1 is not None else (contradiction2, Chain.Group.TWO, medusa2)
+                contradiction, group, medusa = (contradiction1, Chain.Group.ONE, medusa1) \
+                    if contradiction1 is not None \
+                    else (contradiction2, Chain.Group.TWO, medusa2)
                 assert contradiction is not None
                 print(f"Setting strong chain {chain} to {group.marker()} yields contradiction")
                 contradiction.print_explanation(medusa)
@@ -175,8 +179,7 @@ class HardMedusa:
         if result:
             return result
 
-        for house_type in House.Type:
-            house = this_cell.house_of_type(house_type)
+        for house in this_cell.all_houses():
             probes = [CellValue(cell, this_value)
                       for cell in house.unknown_cells
                       if this_value in cell.possible_values]
