@@ -12,13 +12,13 @@ class Grid:
     def __init__(self, features: Sequence['Feature']) -> None:
         self.matrix = {(row, column): Cell(row, column) for row in range(1, 10) for column in range(1, 10)}
 
-        def items_in_row(row: int):
+        def items_in_row(row: int) -> Sequence[Cell]:
             return [self.matrix[row, column] for column in range(1, 10)]
 
-        def items_in_column(column: int):
+        def items_in_column(column: int) -> Sequence[Cell]:
             return [self.matrix[row, column] for row in range(1, 10)]
 
-        def items_in_box(box: int):
+        def items_in_box(box: int) -> Sequence[Cell]:
             q, r = divmod(box - 1, 3)
             return [self.matrix[row, column]
                     for row in range(3 * q + 1, 3 * q + 4)

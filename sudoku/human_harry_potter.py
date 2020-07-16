@@ -1,130 +1,145 @@
+import datetime
 import itertools
-from typing import Sequence, Tuple, Iterator, Optional, List, Mapping
+import math
+from typing import Sequence, Tuple, List, Mapping, Iterable, Set, Optional
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyBboxPatch
 
 from cell import Cell, House, Egg
 from grid import Grid
-from human_sudoku import Sudoku, Feature, KnightsMoveFeature, MagicSquareFeature
-
-
-class GermanSnakeFeature(Feature):
-    GERMAN_SNAKE_INFO = {1: {6, 7, 8, 9}, 2: {7, 8, 9}, 3: {8, 9}, 4: {9},
-                         6: {1}, 7: {1, 2}, 8: {1, 2, 3}, 9: {1, 2, 3, 4}}
-
-    snake: Sequence[Tuple[int, int]]
-    snake_cells: Sequence[Cell]
-
-    def __init__(self, snake:  Sequence[Tuple[int, int]]):
-        self.snake = snake
-
-    def start_checking(self, sudoku: Sudoku):
-        self.snake_cells = [sudoku.grid.matrix[location] for location in self.snake]
-        print("No Fives in a German Snake")
-        fives = [cell for cell in self.snake_cells if 5 in cell.possible_values]
-        Cell.remove_value_from_cells(fives, 5)
-
-    def check(self, sudoku: Sudoku) -> bool:
-        previous_cells: Iterator[Optional[Cell]] = itertools.chain([None], self.snake_cells)
-        next_cells: Iterator[Optional[Cell]] = itertools.chain(
-            itertools.islice(self.snake_cells, 1, None), [None])
-
-        for cell, previous, nexxt in zip(self.snake_cells, previous_cells, next_cells):
-            impossible_values = set()
-            for value in cell.possible_values:
-                prev_bridge = self.get_bridge(cell, previous, value)
-                next_bridge = self.get_bridge(cell, nexxt, value)
-                if not prev_bridge or not next_bridge:
-                    impossible_values.add(value)
-                elif previous and nexxt and previous.is_neighbor(nexxt) and len(prev_bridge.union(next_bridge)) == 1:
-                    impossible_values.add(value)
-
-            if impossible_values:
-                print("No appropriate value in adjacent cell")
-                Cell.remove_values_from_cells([cell], impossible_values)
-                return True
-        return False
-
-    def draw(self, _sudoku: Sudoku) -> None:
-        xs = [column + .5 for _, column in self.snake]
-        ys = [row + .5 for row, _ in self.snake]
-        plt.plot(xs, ys, color='gold', linewidth=5)
-
-    def get_bridge(self, cell: Cell, adjacent: Optional[Cell], value: int):
-        good_adjacent_values = self.GERMAN_SNAKE_INFO[value]
-        if not adjacent:
-            return good_adjacent_values
-        bridge = adjacent.possible_values.intersection(good_adjacent_values)
-        if cell.is_neighbor(adjacent) and value in bridge:
-            bridge.discard(value)
-        return bridge
+from human_sudoku import Sudoku, Feature, KnightsMoveFeature, MagicSquareFeature, PossibilitiesFeature, \
+    AdjacentRelationshipFeature, AllDigitsFeature
 
 
 class MalvoloRingFeature(Feature):
-    MARVOLO_RING_INFO = {1: (3, 7, 8), 2: {2, 6, 7}, 3: {1, 5, 6}, 4: {4, 5}, 5: {3, 4}, 6: {2, 3}, 7: {1, 2, 9},
-                         8: {1, 8}, 9: {7}}
-    ring_cells: Sequence[Cell]
+    SQUARES = ((2, 4), (2, 5), (2, 6), (3, 7), (4, 8), (5, 8), (6, 8), (7, 7),
+               (8, 6), (8, 5), (8, 4), (7, 3), (6, 2), (5, 2), (4, 2), (3, 3))
 
-    def start_checking(self, sudoku: Sudoku):
-        self.ring_cells = [sudoku.grid.matrix[x] for x in (
-            (2, 4), (2, 5), (2, 6), (3, 7), (4, 8), (5, 8), (6, 8), (7, 7),
-            (8, 6), (8, 5), (8, 4), (7, 3), (6, 2), (5, 2), (4, 2), (3, 3))]
+    class Adjacency(AdjacentRelationshipFeature):
+        def __init__(self, squares: Sequence[Tuple[int, int]]) -> None:
+            super().__init__(squares, cyclic=True)
 
-    def check(self, sudoku: Sudoku) -> bool:
-        for index, cell in enumerate(self.ring_cells):
-            if cell.is_known:
-                continue
-            impossible_values = set()
-            adjacent1, adjacent2 = (self.ring_cells[(index - 1) % 16], self.ring_cells[(index + 1) % 16])
-            for value in cell.possible_values:
-                bridge1, bridge2 = self.get_bridge(cell, adjacent1, value), self.get_bridge(cell, adjacent2, value)
-                if not bridge1 or not bridge2:
-                    impossible_values.add(value)
-                elif adjacent1.is_neighbor(adjacent2) and len(bridge1.union(bridge2)) == 1:
-                    # You can't use the same value on both sides if it is a neighbor to both
-                    impossible_values.add(value)
+        def match(self, digit1: int, digit2: int) -> bool:
+            return digit1 + digit2 in (4, 8, 9, 16)
 
-            if impossible_values:
-                print("No appropriate value in adjacent cells")
-                Cell.remove_values_from_cells([cell], impossible_values)
-                return True
+    features: Sequence[Feature]
+    special: Cell
 
-        known_cell_values = {cell.known_value for cell in self.ring_cells if cell.is_known}
-        unknown_cell_values = [value for value in range(1, 10)if value not in known_cell_values]
-        unknown_cells = {cell for cell in self.ring_cells if not cell.is_known}
-        result = False
-        for value in unknown_cell_values:
-            cells = [cell for cell in unknown_cells if value in cell.possible_values]
-            assert len(cells) >= 1
-            if len(cells) == 1:
-                cells[0].set_value_to(value)
-                print(f'Hidden Single: Ring = {value} must be {cells[0]}')
-                result = True
-        return result
+    def __init__(self) -> None:
+        self.features = [self.Adjacency(self.SQUARES), AllDigitsFeature(self.SQUARES)]
 
+    def attach_to_board(self, sudoku: Sudoku) -> None:
+        self.special = sudoku.grid.matrix[2, 6]
+        for feature in self.features:
+            feature.attach_to_board(sudoku)
 
-    def check_even_more(self, sudoku: Sudoku) -> bool:
-        sudoku.draw_grid()
-        temp = sudoku.grid.matrix[2, 6]
-        if len(temp.possible_values) == 2:
+    def check(self) -> bool:
+        return any(feature.check() for feature in self.features)
+
+    def check_special(self) -> bool:
+        """A temporary hack that it's not worth writing the full logic for.  If we set this value to 4,
+           then it will start a cascade such that no variable on the ring can have a value of 2. """
+        if len(self.special.possible_values) == 2:
             print("Danger, danger")
-            Cell.remove_value_from_cells([temp], 4)
+            self.special.set_value_to(2)
             return True
         return False
 
-    def draw(self, _sudoku: Sudoku) -> None:
+    def draw(self) -> None:
+        radius = math.hypot(2.5, 1.5)
         plt.gca().add_patch(plt.Circle((5.5, 5.5), radius=3, fill=False, facecolor='black'))
 
-    def get_bridge(self, cell: Cell, adjacent: Cell, value: int):
-        good_adjacent_values = self.MARVOLO_RING_INFO[value]
-        bridge = adjacent.possible_values.intersection(good_adjacent_values)
-        if cell.is_neighbor(adjacent) and value in bridge:
-            bridge.discard(value)
-        return bridge
+
+class GermanSnakeFeature(AdjacentRelationshipFeature):
+    """A sequence of squares that must differ by 5 or more"""
+    def __init__(self, snake:  Sequence[Tuple[int, int]]):
+        super().__init__(snake)
+        self.snake = snake
+
+    def attach_to_board(self, sudoku: Sudoku) -> None:
+        super().attach_to_board(sudoku)
+        print("No Fives in a German Snake")
+        Cell.remove_values_from_cells(self.cells, {5}, show=False)
+
+    def match(self, digit1: int, digit2: int) -> bool:
+        return abs(digit1 - digit2) >= 5
+
+
+class ThermometerFeature(AdjacentRelationshipFeature):
+    """
+    A sequence of squares that must monotomically increase.
+    This is implemented as a subclass of AdjacentRelationshipFeature.  Two implementations are provided, and we
+    have to figure out which is better.
+    """
+    def __init__(self, thermometer: Sequence[Tuple[int, int]]) -> None:
+        super().__init__(thermometer)
+        self.thermometer = thermometer
+
+    def attach_to_board(self, sudoku: Sudoku) -> None:
+        super().attach_to_board(sudoku)
+
+        length = len(self.cells)
+        span = 10 - length  # number of values each element in thermometer can have
+        for minimum, cell in enumerate(self.cells, start=1):
+            maximum = minimum + span - 1
+            bad_values = list(range(1, minimum)) + list(range(maximum + 1, 10))
+            Cell.remove_values_from_cells([cell], set(bad_values))
+
+    def match(self, digit1: int, digit2: int) -> bool:
+        return digit1 < digit2
+
+    def draw(self) -> None:
+        self.draw_line(self.squares, color='lightgrey', linewidth=5)
+        row, column = self.squares[0]
+        plt.gca().add_patch(plt.Circle((column + .5, row + .5), radius=.3, fill=True, facecolor='lightgrey'))
+
+
+class AltThermometerFeature(PossibilitiesFeature):
+    """
+    A sequence of squares that must monotonically increase.
+    This is implemented as a subclass of Possibilities Feature.  Not sure which implementation is better.
+    """
+    def __init__(self, thermometer: Sequence[Tuple[int, int]]):
+        super().__init__("Thermometer", thermometer, self.get_possibilities(len(thermometer)))
+
+    def draw(self) -> None:
+        self.draw_line(self.squares, color='lightgrey', linewidth=5)
+        row, column = self.squares[0]
+        plt.gca().add_patch(plt.Circle((column + .5, row + .5), radius=.3, fill=True, facecolor='lightgrey'))
+
+    @classmethod
+    def get_possibilities(cls, length: int) -> Iterable[Tuple[Set[int], ...]]:
+        return cls.fix_possibilities(itertools.combinations(range(1, 10), length))
+
+class AltAltThermometerFeature(PossibilitiesFeature):
+    """
+    A sequence of squares that must monotonically increase.
+    This is implemented as a subclass of Possibilities Feature.  Not sure which implementation is better.
+    """
+    def __init__(self, thermometer: Sequence[Tuple[int, int]]):
+        assert len(thermometer) >= 2
+        super().__init__("Thermometer", thermometer, self.get_possibilities(len(thermometer)))
+
+    def draw(self) -> None:
+        self.draw_line(self.squares, color='lightgrey', linewidth=5)
+        row, column = self.squares[0]
+        plt.gca().add_patch(plt.Circle((column + .5, row + .5), radius=.3, fill=True, facecolor='lightgrey'))
+
+    @classmethod
+    def get_possibilities(cls, length: int) -> Iterable[Tuple[Set[int], ...]]:
+        if length > 2:
+            for permutation in itertools.combinations(range(2, 9), length - 2):
+                yield (set(range(1, permutation[0])),
+                       *cls.fix_possibility(permutation),
+                       set(range(permutation[-1] + 1, 10)))
+        else:
+            for i in range(1, 9):
+                yield {i}, set(range(1 + 1, 10))
 
 
 class SnakeFeature(Feature):
+    """A set of nine squares where each number is used exactly once."""
     squares: Sequence[Tuple[int, int]]
     cells: Sequence[Cell]
 
@@ -135,115 +150,114 @@ class SnakeFeature(Feature):
         cells = [grid.matrix[square] for square in self.squares]
         return [House(House.Type.EXTRA, 0, cells)]
 
-    def check(self, sudoku: Sudoku) -> bool:
+    def check(self) -> bool:
         return False
 
-    def draw(self, sudoku: Sudoku) -> None:
+    def draw(self) -> None:
         self.draw_line(self.squares, color='lightgrey', linewidth=5)
         row, column = self.squares[0]
         plt.gca().add_patch(plt.Circle((column + .5, row + .5), radius=.3, fill=True, facecolor='lightgrey'))
 
 
-class ContainsTextFeature(Feature):
-    spans: List[List[Tuple[int, Cell]]]
-    text: Sequence[int]
-    row: int
-    done: bool
-
+class ContainsTextFeature(PossibilitiesFeature):
+    """A row that must contain certain digits consecutively"""
     def __init__(self, row: int, text: Sequence[int]) -> None:
-        super().__init__()
-        self.row = row
-        self.text = text
+        super().__init__(f'Row {row}', [(row, column) for column in range(1, 10)], self.get_possibilities(text))
 
-    def start_checking(self, sudoku: Sudoku) -> None:
-        cells = [sudoku.grid.matrix[self.row, column] for column in range(1, 10)]
-        self.spans = [list(zip(self.text, cells[i:])) for i in range(10 - len(self.text))]
-        self.done = False
-
-        for index, value in enumerate(self.text):
-            legal_cells = [span[index][1]for span in self.spans]
-            illegal_cells = [cell for cell in cells if cell not in legal_cells and value in cell.possible_values]
-            Cell.remove_value_from_cells(illegal_cells, value)
-
-    def check(self, sudoku: Sudoku) -> bool:
-        if self.done:
-            return False
-        for span in self.spans:
-            for value, cell in span:
-                if cell.is_known and cell.known_value == value:
-                    assert all(val in cel.possible_values for (val, cel) in span)
-                    unknowns = [(val, cel) for (val, cel) in span if not cel.is_known]
-                    if unknowns:
-                        print(f"We can definitely place {self.text} starting at {span[0][1].index}")
-                        for val, cel in unknowns:
-                            cel.set_value_to(val, show=True)
-                    self.done = True
-                    return True
-        for span in self.spans:
-            for value, cell in span:
-                if value not in cell.possible_values:
-                    unknowns = [(val, cel) for (val, cel) in span if val in cel.possible_values]
-                    if unknowns:
-                        print(f"Text {self.text} definitely doesn't start at {span[0][1].index}")
-                        for val, cel in unknowns:
-                            Cell.remove_value_from_cells([cel], val)
-                        return True
-        return False
+    @staticmethod
+    def get_possibilities(text: Sequence[int]) -> Iterable[Tuple[Set[int], ...]]:
+        unused_digits = {digit for digit in range(1, 10) if digit not in text}
+        text_template = [{v} for v in text]
+        template = [unused_digits] * len(unused_digits)
+        for text_position in range(0, len(unused_digits) + 1):
+            line = (*template[0:text_position], *text_template, *template[text_position:])
+            yield line
 
 
-class ThermometerFeature(Feature):
-    thermometer: Sequence[Tuple[int, int]]
-    cells: Sequence[Cell]
+class LimitedValuesFeature(Feature):
+    """A set of squares that can't contain all possible values"""
+    squares: Sequence[Tuple[int, int]]
+    values: Sequence[int]
 
-    def __init__(self, thermometer: Sequence[Tuple[int, int]]):
-        self.thermometer = thermometer
+    def __init__(self, squares: Sequence[Tuple[int, int]], values:Sequence[int]):
+        self.squares = squares
+        self.values = values
 
-    def start_checking(self, sudoku: Sudoku) -> None:
-        self.cells = [sudoku.grid.matrix[x] for x in self.thermometer]
-        length = len(self.thermometer)
-        span = 10 - length  # number of values each element in thermometer can have
-        for minimum, cell in enumerate(self.cells, start=1):
-            maximum = minimum + span - 1
-            bad_values = list(range(1, minimum)) + list(range(maximum + 1, 10))
-            Cell.remove_values_from_cells([cell], set(bad_values))
+    def attach_to_board(self, sudoku: Sudoku) -> None:
+        cells = [sudoku.grid.matrix[x] for x in self.squares]
+        other_values = {i for i in range(1, 10) if i not in self.values}
+        Cell.remove_values_from_cells(cells, other_values)
 
-    def check(self, sudoku: Sudoku) -> bool:
-        previous_cells = itertools.chain([None], self.cells)
-        next_cells = itertools.chain(itertools.islice(self.cells, 1, None), itertools.repeat(None))
-        for cell, previous_cell, next_cell in zip(self.cells, previous_cells, next_cells):
-            impossible = set()
-            for value in cell.possible_values:
-                if previous_cell and value <= min(previous_cell.possible_values):
-                    impossible.add(value)
-                elif next_cell and value >= max(next_cell.possible_values):
-                    impossible.add(value)
-            if impossible:
-                print("No appropriate value in adjacent cell")
-                Cell.remove_values_from_cells([cell], impossible)
-                return True
-        return False
-
-    def draw(self, sudoku: Sudoku) -> None:
-        self.draw_line(self.thermometer, color='lightgrey', linewidth=5)
-        row, column = self.thermometer[0]
-        plt.gca().add_patch(plt.Circle((column + .5, row + .5), radius=.3, fill=True, facecolor='lightgrey'))
-
-
-class EvenFeature(Feature):
-    evens: Sequence[Tuple[int, int]]
-
-    def __init__(self, evens: Sequence[Tuple[int, int]]):
-        self.evens = evens
-
-    def start_checking(self, sudoku: Sudoku) -> None:
-        cells = [sudoku.grid.matrix[x] for x in self.evens]
-        Cell.remove_values_from_cells(cells, {1, 3, 5, 7, 9})
-
-    def check(self, sudoku: Sudoku) -> bool:
+    def check(self) -> bool:
         pass
 
 
+class SameValueAsOneOfFeature(Feature):
+    main_square: Tuple[int, int]
+    squares: Sequence[Tuple[int, int]]
+    main_cell: Cell
+    cells: Sequence[Cell]
+
+    def __init__(self, main_square: Tuple[int, int], squares: Optional[Sequence[Tuple[int, int]]] = None):
+        if squares is None:
+            (r, c) = main_square
+            squares = [(r + dr, c + dc) for dx in (-1, 1) for dy in (-2, 2)
+                       for (dr, dc) in ((dx, dy), (dy, dx))
+                       if 1 <= r + dr <= 8 and 1 <= c + dc <= 8]
+        self.main_square = main_square
+        self.squares = squares
+
+    def attach_to_board(self, sudoku: Sudoku) -> None:
+        self.main_cell = sudoku.grid.matrix[self.main_square]
+        self.cells = [sudoku.grid.matrix[x] for x in self.squares]
+
+    def check(self) -> bool:
+        if self.main_cell.is_known:
+            assert self.main_cell.known_value is not None
+            return self.check_exactly_one_square_has_value(self.main_cell.known_value)
+        else:
+            return self.check_square_has_possible_value()
+
+    def check_exactly_one_square_has_value(self, value: int) -> bool:
+        count = sum(1 for cell in self.cells if cell.is_known and cell.known_value == value)
+        mates = [cell for cell in self.cells if not cell.is_known and value in cell.possible_values]
+        assert count < 2
+        if count == 1:
+            if mates:
+                print(f'Cell {self.main_square} already has a mate')
+                Cell.remove_value_from_cells(mates, value)
+                return True
+        elif len(mates) == 1:
+            print(f'Cell {self.main_square} only has one possible mate')
+            mates[0].set_value_to(value, show=True)
+            return True
+        return False
+
+    def check_square_has_possible_value(self) -> bool:
+        impossible_values = set()
+        for value in self.main_cell.possible_values:
+            count = sum(1 for cell in self.cells if cell.is_known and cell.known_value == value)
+            mates = [cell for cell in self.cells if not cell.is_known and value in cell.possible_values]
+            if count >= 2 or (count == 0 and not mates):
+                impossible_values.add(value)
+        if impossible_values:
+            print(f'Cell {self.main_square} must have a matable value')
+            Cell.remove_values_from_cells([self.main_cell], impossible_values)
+            return True
+        return False
+
+
+class LimitedKnightsMove(KnightsMoveFeature):
+    BAD_INDICES = {(row, column) for row in (4, 5, 6) for column in (4, 5, 6)}
+
+    def is_neighbor(self, cell1: Cell, cell2: Cell) -> bool:
+        if cell1.index in self.BAD_INDICES or cell2.index in self.BAD_INDICES:
+            return False
+        return super().is_neighbor(cell1, cell2)
+
+
 class CheckEggFeature(Feature):
+    """A snake egg, where eggs of size n have all the digits from 1-n"""
     squares: Sequence[List[Tuple[int, int]]]
     eggs: List[Egg]
 
@@ -262,12 +276,12 @@ class CheckEggFeature(Feature):
         self.eggs = [Egg(i, [grid.matrix[square] for square in self.squares[i]]) for i in range(1, 9)]
         return self.eggs
 
-    def start_checking(self, sudoku: Sudoku):
+    def attach_to_board(self, sudoku: Sudoku) -> None:
         for egg in self.eggs:
             size = len(egg.cells)
-            Cell.remove_values_from_cells(egg.cells, set(range(len(egg.cells) + 1, 10)))
+            Cell.remove_values_from_cells(egg.cells, set(range(size + 1, 10)))
 
-    def draw(self, sudoku: Sudoku) -> None:
+    def draw(self) -> None:
         cells = {cell for size in range(1, 10) for cell in self.squares[size]}
         for row, column in itertools.product(range(1, 10), repeat=2):
             if (row, column) not in cells:
@@ -282,7 +296,7 @@ class PlusFeature(Feature):
         self.squares = squares
         self.puzzles = puzzles
 
-    def start_checking(self, sudoku: Sudoku):
+    def attach_to_board(self, sudoku: Sudoku) -> None:
         for row, column in self.squares:
             value = self.__get_value(row, column)
             sudoku.grid.matrix[row, column].set_value_to(value)
@@ -294,7 +308,7 @@ class PlusFeature(Feature):
             value = 9
         return value
 
-    def draw(self, sudoku: Sudoku) -> None:
+    def draw(self) -> None:
         for row, column in self.squares:
             plt.plot((column + .2, column + .8), (row + .5, row + .5), color='lightgrey', linewidth=3)
             plt.plot((column + .5, column + .5), (row + .2, row + .8), color='lightgrey', linewidth=3)
@@ -316,8 +330,8 @@ class ColorFeature(Feature):
         self.color_map = dict(zip(color_map, puzzles))
         self.plus_feature = PlusFeature(pluses, puzzles)
 
-    def start_checking(self, sudoku: Sudoku):
-        self.plus_feature.start_checking(sudoku)
+    def attach_to_board(self, sudoku: Sudoku) -> None:
+        self.plus_feature.attach_to_board(sudoku)
         for (row, column), letter in self.setup.items():
             puzzle = self.color_map[letter]
             index = (row - 1) * 9 + (column - 1)
@@ -326,8 +340,8 @@ class ColorFeature(Feature):
 
     CIRCLES = dict(r="lightcoral", p="violet", o="bisque", g="lightgreen", G="lightgray", y="yellow", b="skyblue")
 
-    def draw(self, sudoku: Sudoku) -> None:
-        self.plus_feature.draw(sudoku)
+    def draw(self) -> None:
+        self.plus_feature.draw()
         axis = plt.gca()
         for (row, column), letter in self.setup.items():
             axis.add_patch(plt.Circle((column + .5, row + .5), radius=.4, fill=True,
@@ -370,7 +384,7 @@ def puzzle3() -> None:
     evens = evens + [(10 - row, 10 - column) for row, column in evens]
 
     features = [SnakeFeature([(3, 6), (3, 5), (4, 4), (5, 4), (5, 5), (5, 6), (6, 6), (7, 5), (7, 4)]),
-                EvenFeature(evens),
+                LimitedValuesFeature(evens, (2, 4, 6, 8)),
                 ]
     sudoku = Sudoku()
     sudoku.solve(merge(puzzle, previo), features=features)
@@ -450,8 +464,7 @@ def magic_squares() -> None:
     sudoku.solve(puzzle, features=features)
 
 
-
-def run_thermometer():
+def run_thermometer() -> None:
     thermometers = [[(2, 2), (1, 3), (1, 4), (1, 5), (2, 6)],
                     [(2, 2), (3, 1), (4, 1), (5, 1), (6, 2)],
                     [(2, 3), (2, 4), (2, 5), (3, 6), (3, 7), (4, 8)],
@@ -467,5 +480,35 @@ def run_thermometer():
     sudoku.solve(puzzle, features=features)
     sudoku.draw_grid()
 
+def thermo_magic() -> None:
+    thermometers = [
+        [(6 - r, 1) for r in range(1, 6)],
+        [(6 - r, r) for r in range(1, 6)],
+        [(1, 10 - r) for r in range(1, 6)],
+        [(10 - r, 9) for r in range(1, 6)],
+        [(10 - r, 4 + r) for r in range(1, 6)],
+        [(9, 6 - r) for r in range(1, 6)]]
+    features = [
+        MagicSquareFeature(dr=4, dc=4, color='lightblue'),
+        *[ThermometerFeature(squares) for squares in thermometers]
+    ]
+    puzzle = ("." * 18) + '.....2...' + ('.' * 27) + '...8.....' + ('.' * 18)
+    Sudoku().solve(puzzle, features=features)
+
+
+def you_tuber() -> None:
+    puzzle = '...........12986...3.....7..8.....2..1.....6..7.....4..9.....8...54823..........'
+    features = [
+        LimitedKnightsMove(),
+        *[SameValueAsOneOfFeature((row, column)) for row in (4, 5, 6) for column in (4, 5, 6)]
+    ]
+    sudoku = Sudoku()
+    sudoku.solve(puzzle, features=features)
+
+
 if __name__ == '__main__':
-    magic_squares()
+    ThermometerFeature = AltAltThermometerFeature
+    start = datetime.datetime.now()
+    thermo_magic()
+    end = datetime.datetime.now()
+    print(end - start)

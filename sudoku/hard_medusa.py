@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from collections import deque
 from typing import Set, Sequence, Dict, Deque, Mapping, Any, Tuple, Optional, ClassVar, Union
 
@@ -39,7 +40,7 @@ class Reason:
         reasons = {medusa.cell_value_to_reason[cell_value] for cell_value in cell_values}
         Reason.__print_explanations_internal(medusa, reasons, cell_values)
 
-    def print_explanation(self, medusa: HardMedusa):
+    def print_explanation(self, medusa: HardMedusa) -> None:
         Reason.__print_explanations_internal(medusa, {self}, set(self.premises))
 
     @staticmethod
@@ -219,7 +220,7 @@ class HardMedusa:
             self.__set_chain_group_to_true(chain, true_group, reason, cell_value)
 
     def __set_chain_group_to_true(self, chain: Chain, group: Chain.Group, 
-                                  reason: Optional[Reason] = None, cell_value: Optional[CellValue] = None):
+                                  reason: Optional[Reason] = None, cell_value: Optional[CellValue] = None) -> None:
         self.chain_to_true_group[chain] = group
         true_values = group.pick_set(chain)
         false_values = group.pick_other_set(chain)

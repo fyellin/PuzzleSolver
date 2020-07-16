@@ -50,7 +50,7 @@ class Egg (House):
     def __init__(self,index: int, cells: Sequence[Cell]) -> None:
         super().__init__(House.Type.EGG, index, cells)
 
-    def reset(self):
+    def reset(self) -> None:
         super().reset()
         self.unknown_values = set(range(1, len(self.cells) + 1))
 
@@ -62,7 +62,7 @@ class Cell:
     possible_values: Set[int]
     neighbors: Set[Cell]
 
-    def __init__(self, row: index, column: index) -> None:
+    def __init__(self, row: int, column: int) -> None:
         self.index = (row, column)
         self.known_value = None
         self.possible_values = set(range(1, 10))
@@ -135,31 +135,33 @@ class Cell:
     def __hash__(self) -> int:
         return id(self)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         return self is other
 
     def __lt__(self, other: Cell) -> bool:
         return self.index < other.index
 
     @staticmethod
-    def __deleted(i: int):
+    def __deleted(i: int) -> str:
         return f'{Color.lightgrey}{Color.strikethrough}{i}{Color.reset}'
 
     @staticmethod
-    def remove_value_from_cells(cells: Iterable[Cell], value: int, *, show: bool = True):
+    def remove_value_from_cells(cells: Iterable[Cell], value: int, *, show: bool = True) -> None:
         for cell in cells:
-            foo = ''.join((Cell.__deleted(i) if i == value else str(i)) for i in sorted(cell.possible_values))
+            # foo = ''.join((Cell.__deleted(i) if i == value else str(i)) for i in sorted(cell.possible_values))
             cell.possible_values.remove(value)
             if show:
-                print(f'  {cell} = {foo}')
+                print(f'  {cell} = {cell.possible_value_string()} \ {value}')
+                # print(f'  {cell} = {foo}')
 
     @staticmethod
-    def remove_values_from_cells(cells: Iterable[Cell], values: Set[int], *, show: bool = True):
+    def remove_values_from_cells(cells: Iterable[Cell], values: Set[int], *, show: bool = True) -> None:
         for cell in cells:
-            foo = ''.join((Cell.__deleted(i) if i in values else str(i)) for i in sorted(cell.possible_values))
-            cell.possible_values -= values
+            # foo = ''.join((Cell.__deleted(i) if i in values else str(i)) for i in sorted(cell.possible_values))
+            removed_values = cell.possible_values.intersection(values)
+            cell.possible_values -= removed_values
             if show:
-                print(f'  {cell} = {foo}')
+                print(f'  {cell} = {cell.possible_value_string()} \ {"".join(sorted(map(str, removed_values)))}')
 
 
 class CellValue(NamedTuple):
@@ -169,6 +171,6 @@ class CellValue(NamedTuple):
     def __repr__(self) -> str:
         return f'{self.cell}={self.value}'
 
-    def to_string(self, truth: bool):
+    def to_string(self, truth: bool) -> str:
         char = '=' if truth else '≠'
         return f'{self.cell}{char}{self.value}'
