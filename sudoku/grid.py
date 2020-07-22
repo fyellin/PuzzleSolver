@@ -1,16 +1,18 @@
-from typing import Dict, Tuple, Sequence, Iterable, TYPE_CHECKING
+from typing import Dict, Tuple, Sequence, Iterable, TYPE_CHECKING, List
 
 from cell import Cell, House
 if TYPE_CHECKING:
-    from human_sudoku import Feature
+    from human_features import Feature
 
 
 class Grid:
     matrix: Dict[Tuple[int, int], Cell]
-    houses: Sequence[House]
+    houses: List[House]
+    features: Sequence['Feature']
 
     def __init__(self, features: Sequence['Feature']) -> None:
-        self.matrix = {(row, column): Cell(row, column) for row in range(1, 10) for column in range(1, 10)}
+        self.matrix = {(row, column): Cell(row, column, features) for row in range(1, 10) for column in range(1, 10)}
+        self.features = features
 
         def items_in_row(row: int) -> Sequence[Cell]:
             return [self.matrix[row, column] for column in range(1, 10)]
@@ -28,26 +30,35 @@ class Grid:
         columns = [House(House.Type.COLUMN, column, items_in_column(column)) for column in range(1, 10)]
         boxes = [House(House.Type.BOX, box, items_in_box(box)) for box in range(1, 10)]
 
-        houses = [*rows, *columns, *boxes]
+        self.houses = [*rows, *columns, *boxes]
 
         for feature in features:
-            for house in feature.get_houses(self):
-                houses.append(house)
-
-        self.houses = houses
+            feature.initialize(self)
 
         for cell in self.matrix.values():
-            cell.initialize_neighbors(self.matrix, features)
-
+            cell.initialize_neighbors(self)
 
     def reset(self) -> None:
-        for house in self.houses:
-            house.reset()
         for cell in self.cells:
             cell.reset()
+        for house in self.houses:
+            house.reset()
+        for feature in self.features:
+            feature.reset(self)
 
     def is_solved(self) -> bool:
         return all(cell.is_known for cell in self.cells)
+
+
+    def delete_normal_boxes(self) -> None:
+        boxes = [house for house in self.houses if house.house_type == House.Type.BOX]
+        for box in boxes:
+            self.delete_house(box)
+
+    def delete_house(self, house: House) -> None:
+        self.houses.remove(house)
+        for cell in house.cells:
+            cell.houses.remove(house)
 
     @property
     def cells(self) -> Iterable[Cell]:

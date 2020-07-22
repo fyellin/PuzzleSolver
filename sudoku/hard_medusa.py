@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import Set, Sequence, Dict, Deque, Mapping, Any, Tuple, Optional, ClassVar, Union
+from typing import Set, Sequence, Dict, Deque, Mapping, Any, Tuple, Optional, ClassVar, Union, TYPE_CHECKING
 
 from cell import House, CellValue, Cell
 from chain import Chain, Chains
 from color import Color
+
+if TYPE_CHECKING:
+    from human_features import Feature
 
 
 class Reason:
@@ -81,6 +84,7 @@ class Reason:
 
 class HardMedusa:
     chains_mapping: Mapping[CellValue, Tuple[Chain, Chain.Group]]
+    features: Sequence[Feature]
     true_values: Set[CellValue]
     false_values: Set[CellValue]
     chain_to_true_group: Dict[Chain, Chain.Group]
@@ -89,10 +93,10 @@ class HardMedusa:
     todo: Deque[CellValue]
 
     @staticmethod
-    def run(chains: Chains) -> bool:
+    def run(chains: Chains, features: Sequence[Feature]) -> bool:
         for chain in chains.chains:
-            medusa1 = HardMedusa(chains.mapping)
-            medusa2 = HardMedusa(chains.mapping)
+            medusa1 = HardMedusa(chains.mapping, features)
+            medusa2 = HardMedusa(chains.mapping, features)
             contradiction1 = medusa1.__find_contradictions(chain, Chain.Group.ONE)
             contradiction2 = medusa2.__find_contradictions(chain, Chain.Group.TWO)
             assert not(contradiction1 and contradiction2)
@@ -126,8 +130,9 @@ class HardMedusa:
                     return True
         return False
 
-    def __init__(self, cell_value_to_chain: Mapping[CellValue, Tuple[Chain, Chain.Group]]):
+    def __init__(self, cell_value_to_chain: Mapping[CellValue, Tuple[Chain, Chain.Group]], features: Sequence[Feature]):
         self.chains_mapping = cell_value_to_chain
+        self.features = features
 
     def __find_contradictions(self, chain: Chain, group: Chain.Group) -> Optional[Reason]:
         self.true_values = set()
@@ -162,6 +167,11 @@ class HardMedusa:
                           if this_value in cell.possible_values)
         falsehoods.update(CellValue(this_cell, value) for value in this_cell.possible_values
                           if value != this_value)
+        falsehoods.update(CellValue(cell, this_value)
+                          for feature in self.features
+                          for cell in feature.get_neighbors_for_value(this_cell, this_value)
+                          if cell.known_value is None
+                          if this_value in cell.possible_values)
 
         contradictions = {x for x in falsehoods if x in self.true_values}
         if contradictions:

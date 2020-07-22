@@ -469,6 +469,16 @@ class ColorFeature(Feature):
         axis.add_patch(FancyBboxPatch((2.3, 5.3), 6.4, 0.4, boxstyle='round, pad=0.2', fill=False))
 
 
+class LittlePrincessFeature(Feature):
+    def update_constraints(self, sudoku: Sudoku) -> None:
+        squares = [(row, column) for row, column in itertools.product(range(1, 10), repeat=2)]
+        for (r1, c1), (r2, c2) in itertools.combinations(squares, 2):
+            dr, dc = abs(r1 - r2), abs(c1 - c2)
+            if dr == dc:
+                for value in range(dr + 1, 10):
+                    sudoku.not_both((r1, c1, value), (r2, c2, value))
+
+
 def merge(p1: str, p2: str) -> str:
     assert len(p1) == len(p2) == 81
     assert(p1[i] == '.' or p2[i] == '.' or p1[i] == p2[i] for i in range(81))
@@ -598,17 +608,15 @@ def puzzle8() -> None:
     ]
     Sudoku().solve('.'*81, features, show=False)
 
+def little_princess() -> None:
+    puzzle = '.......6...8..........27......6.8.1....4..........9..............7...............'
+    Sudoku().solve(puzzle, features=[LittlePrincessFeature()])
+
+
 
 def main() -> None:
     start = datetime.datetime.now()
-    puzzle1()
-    puzzle2()
-    puzzle3()
-    puzzle4()
-    puzzle5()
-    puzzle6()
-    puzzle7()
-    puzzle8()
+    little_princess()
     end = datetime.datetime.now()
     print(end - start)
 

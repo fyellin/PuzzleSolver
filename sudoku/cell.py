@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Sequence, Set, Optional, Iterable, Iterator, NamedTuple, Tuple, List, TYPE_CHECKING, Mapping, Final
+from typing import Sequence, Set, Optional, Iterable, Iterator, NamedTuple, Tuple, List, TYPE_CHECKING, Final
 
 from color import Color
 if TYPE_CHECKING:
-    from human_sudoku import Feature
+    from human_features import Feature
+    from grid import Grid
 
 
 class House:
@@ -46,24 +47,17 @@ class House:
         return (self.house_type, self.index) < (other.house_type, other.index)
 
 
-class Egg (House):
-    def __init__(self,index: int, cells: Sequence[Cell]) -> None:
-        super().__init__(House.Type.EGG, index, cells)
-
-    def reset(self) -> None:
-        super().reset()
-        self.unknown_values = set(range(1, len(self.cells) + 1))
-
-
 class Cell:
     houses: List[House]
     index: Tuple[int, int]
     known_value: Optional[int]
     possible_values: Set[int]
     neighbors: Set[Cell]
+    features: Sequence['Feature']
 
-    def __init__(self, row: int, column: int) -> None:
+    def __init__(self, row: int, column: int, features: Sequence['Feature']) -> None:
         self.index = (row, column)
+        self.features = features
         self.known_value = None
         self.possible_values = set(range(1, 10))
         self.neighbors = set()  # Filled in later
@@ -78,6 +72,12 @@ class Cell:
             house.set_value_to(self, value)
         for neighbor in self.neighbors:
             neighbor.possible_values.discard(value)
+        for feature in self.features:
+            for neighbor in feature.get_neighbors_for_value(self, value):
+                neighbor.possible_values.discard(value)
+        for neighbor in {cell for feature in self.features for cell in feature.get_neighbors_for_value(self, value)}:
+            neighbor.possible_values.discard(value)
+
         assert value in self.possible_values
         self.known_value = value
         self.possible_values.clear()
@@ -91,13 +91,11 @@ class Cell:
     def is_known(self) -> bool:
         return self.known_value is not None
 
-    def initialize_neighbors(self, matrix: Mapping[Tuple[int, int], Cell], features: Sequence['Feature']) -> None:
+    def initialize_neighbors(self, grid: 'Grid') -> None:
         neighbors: Set[Cell] = set()
         for house in self.all_houses():
             neighbors.update(house.cells)
-        for cell in matrix.values():
-            if cell not in neighbors and any(feature.is_neighbor(self, cell) for feature in features):
-                neighbors.add(cell)
+        neighbors.update(cell for feature in self.features for cell in feature.get_neighbors(self))
         neighbors.remove(self)
         self.neighbors = neighbors
 
@@ -143,26 +141,24 @@ class Cell:
 
     @staticmethod
     def __deleted(i: int) -> str:
-        return f'{Color.lightgrey}{Color.strikethrough}{i}{Color.reset}'
+        return f'[{Color.lightgrey}{Color.strikethrough}{i}{Color.reset}]'
 
     @staticmethod
     def remove_value_from_cells(cells: Iterable[Cell], value: int, *, show: bool = True) -> None:
         for cell in cells:
-            # foo = ''.join((Cell.__deleted(i) if i == value else str(i)) for i in sorted(cell.possible_values))
+            foo = ''.join((Cell.__deleted(i) if i == value else str(i)) for i in sorted(cell.possible_values))
             cell.possible_values.remove(value)
             if show:
-                print(f'  {cell} = {cell.possible_value_string()} \ {value}')
-                # print(f'  {cell} = {foo}')
+                print(f'  {cell} = {foo}')
 
     @staticmethod
     def remove_values_from_cells(cells: Iterable[Cell], values: Set[int], *, show: bool = True) -> None:
         for cell in cells:
-            # foo = ''.join((Cell.__deleted(i) if i in values else str(i)) for i in sorted(cell.possible_values))
+            foo = ''.join((Cell.__deleted(i) if i in values else str(i)) for i in sorted(cell.possible_values))
             removed_values = cell.possible_values.intersection(values)
             cell.possible_values -= removed_values
             if show:
-                print(f'  {cell} = {cell.possible_value_string()} \ {"".join(sorted(map(str, removed_values)))}')
-
+                print(f'  {cell} = {foo}')
 
 class CellValue(NamedTuple):
     cell: Cell
