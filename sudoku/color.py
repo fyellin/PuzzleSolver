@@ -1,5 +1,5 @@
 class Color:
-    reverse='\033[07m'
+    reverse ='\033[07m'
     reset = '\033[0m'
     strikethrough = '\033[09m'
     bold = '\033[1m'

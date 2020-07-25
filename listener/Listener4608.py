@@ -39,7 +39,7 @@ def generate_k(clue: Clue) -> Iterator[int]:
 
 
 def generate_l(clue: Clue) -> Iterator[int]:
-    "1000 less than a triangular number"
+    """1000 less than a triangular number"""
     triangulars = (i * (i + 1) // 2 for i in itertools.count(1))
     min_value, max_value = generators.get_min_max(clue)
     min_value += 1000

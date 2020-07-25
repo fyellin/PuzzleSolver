@@ -116,7 +116,7 @@ class Chain:
 
     def __sub_chain_string(self, start: CellValue, end: CellValue) -> str:
         """Given two cell-values in this chain, print out the piece of the chain from "start" to "end" """
-        todo: Deque[CellValue] = deque([(end)])
+        todo: Deque[CellValue] = deque([end])
         seen = {end: end}
         while todo:
             cell_value: CellValue = todo.popleft()

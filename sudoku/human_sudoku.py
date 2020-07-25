@@ -22,8 +22,6 @@ class Sudoku:
     def solve(self, puzzle: str, *, features: Sequence[Feature] = (), show: bool = False) -> bool:
         self.features = features
         self.grid = grid = Grid(features)
-
-
         grid.reset()
         self.initial_grid = {(row, column): int(letter)
                              for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), puzzle)
@@ -414,17 +412,17 @@ class Sudoku:
         axes.axis('off')
         figure.tight_layout()
 
+        for feature in self.features:
+            feature.draw()
+
         # Draw the bold outline
         for x in range(1, 11):
             width = 3 if x in (1, 4, 7, 10) else 1
             axes.plot([x, x], [1, 10], linewidth=width, color='black')
             axes.plot([1, 10], [x, x], linewidth=width, color='black')
 
-        for feature in self.features:
-            feature.draw()
-
-        given = dict(fontsize=13, color='black', weight='heavy')
-        found = dict(fontsize=13, color='blue', weight='bold')
+        given = dict(fontsize=25, color='black', weight='heavy')
+        found = dict(fontsize=25, color='blue', weight='bold')
         digit_width = (7/8) / 3
         for cell in self.grid.cells:
             row, column = cell.index

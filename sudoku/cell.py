@@ -48,12 +48,13 @@ class House:
 
 
 class Cell:
-    houses: List[House]
-    index: Tuple[int, int]
+    houses: Final[List[House]]
+    index: Final[Tuple[int, int]]
+    neighbors: Final[Set[Cell]]
+    features: Final[Sequence['Feature']]
+
     known_value: Optional[int]
     possible_values: Set[int]
-    neighbors: Set[Cell]
-    features: Sequence['Feature']
 
     def __init__(self, row: int, column: int, features: Sequence['Feature']) -> None:
         self.index = (row, column)
@@ -72,9 +73,6 @@ class Cell:
             house.set_value_to(self, value)
         for neighbor in self.neighbors:
             neighbor.possible_values.discard(value)
-        for feature in self.features:
-            for neighbor in feature.get_neighbors_for_value(self, value):
-                neighbor.possible_values.discard(value)
         for neighbor in {cell for feature in self.features for cell in feature.get_neighbors_for_value(self, value)}:
             neighbor.possible_values.discard(value)
 
@@ -154,11 +152,19 @@ class Cell:
     @staticmethod
     def remove_values_from_cells(cells: Iterable[Cell], values: Set[int], *, show: bool = True) -> None:
         for cell in cells:
-            foo = ''.join((Cell.__deleted(i) if i in values else str(i)) for i in sorted(cell.possible_values))
-            removed_values = cell.possible_values.intersection(values)
-            cell.possible_values -= removed_values
             if show:
+                foo = ''.join((Cell.__deleted(i) if i in values else str(i)) for i in sorted(cell.possible_values))
                 print(f'  {cell} = {foo}')
+            cell.possible_values.difference_update(values)
+
+    @staticmethod
+    def keep_values_for_cell(cells: Iterable[Cell], values: Set[int], *, show: bool = True) -> None:
+        for cell in cells:
+            if show:
+                foo = ''.join((Cell.__deleted(i) if i not in values else str(i)) for i in sorted(cell.possible_values))
+                print(f'  {cell} = {foo}')
+            cell.possible_values.intersection_update(values)
+
 
 class CellValue(NamedTuple):
     cell: Cell

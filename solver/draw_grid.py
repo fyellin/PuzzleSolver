@@ -73,13 +73,17 @@ def draw_grid(*, max_row: int, max_column: int,
         font_info = dict(fontsize=points_per_data / 4, fontfamily="sans-serif")
         for index, text in enumerate(clue_numbers):
             if index == 0:
-                axes.text(column + .05, row + .05, text, verticalalignment='top', horizontalalignment='left', **font_info)
+                axes.text(column + .05, row + .05, text,
+                          verticalalignment='top', horizontalalignment='left', **font_info)
             elif index == 1:
-                axes.text(column + .95, row + .05, text, verticalalignment='top', horizontalalignment='right', **font_info)
+                axes.text(column + .95, row + .05, text,
+                          verticalalignment='top', horizontalalignment='right', **font_info)
             elif index == 2:
-                axes.text(column + .05, row + .95, text, verticalalignment='bottom', horizontalalignment='left', **font_info)
+                axes.text(column + .05, row + .95, text,
+                          verticalalignment='bottom', horizontalalignment='left', **font_info)
             elif index == 3:
-                axes.text(column + .95, row + .95, text, verticalalignment='bottom', horizontalalignment='right', **font_info)
+                axes.text(column + .95, row + .95, text,
+                          verticalalignment='bottom', horizontalalignment='right', **font_info)
 
     if not _axes:
         plt.show()

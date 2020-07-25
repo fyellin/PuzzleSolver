@@ -608,10 +608,10 @@ def puzzle8() -> None:
     ]
     Sudoku().solve('.'*81, features, show=False)
 
+
 def little_princess() -> None:
     puzzle = '.......6...8..........27......6.8.1....4..........9..............7...............'
     Sudoku().solve(puzzle, features=[LittlePrincessFeature()])
-
 
 
 def main() -> None:

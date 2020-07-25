@@ -1,7 +1,7 @@
 import datetime
 import itertools
 import math
-from typing import Sequence, Tuple, List, Mapping, Iterable, Set
+from typing import Sequence, Tuple, List, Mapping, Iterable, Set, Optional
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyBboxPatch
@@ -11,7 +11,8 @@ from grid import Grid
 from human_sudoku import Sudoku
 from human_features import Feature, KnightsMoveFeature, PossibilitiesFeature, MagicSquareFeature, \
     AdjacentRelationshipFeature, AllValuesPresentFeature, ThermometerFeature, SnakeFeature, LimitedValuesFeature, \
-    SameValueAsExactlyOneMateFeature, SameValueAsAtLeastOneMateFeature, LittlePrincessFeature, AlternativeBoxesFeature
+    SameValueAsExactlyOneMateFeature, SameValueAsAtLeastOneMateFeature, LittlePrincessFeature, \
+    AlternativeBoxesFeature, SlowThermometerFeature
 
 
 class MalvoloRingFeature(Feature):
@@ -64,6 +65,7 @@ class GermanSnakeFeature(AdjacentRelationshipFeature):
         self.snake = snake
 
     def initialize(self, grid: Grid) -> None:
+        super().initialize(grid)
         print("No Fives in a German Snake")
         Cell.remove_values_from_cells(self.cells, {5}, show=False)
 
@@ -228,6 +230,36 @@ class ColorFeature(Feature):
                                       color=self.CIRCLES[letter]))
         # noinspection PyTypeChecker
         axis.add_patch(FancyBboxPatch((2.3, 5.3), 6.4, 0.4, boxstyle='round, pad=0.2', fill=False))
+
+
+class DoubleSumFeature(PossibilitiesFeature):
+    def __init__(self, type: House.Type, row_column: int, ptotal: int, total: Optional[int] = None):
+        name = f'DoubleSum {type.name.title()} #{row_column}'
+        if type == House.Type.ROW:
+            squares = [(row_column, i) for i in range(1, 10)]
+        else:
+            squares = [(i, row_column) for i in range(1, 10)]
+        print(f'{name} {ptotal} {total} {len(list(self.__get_possibilities(total, ptotal)))}')
+        super().__init__(name, squares, self.__get_possibilities(total, ptotal))
+
+    @staticmethod
+    def __get_possibilities(total: Optional[int], ptotal: int) -> Iterable[Tuple[Set[int], ...]]:
+        for item1, item2 in itertools.permutations(range(1, 10), 2):
+            if total and item1 + item2 != total:
+                continue
+            item3_possibilities = [item1] if item1 == 1 else [item2] if item1 == 2 \
+                else [x for x in range(1, 10) if x not in {item1, item2}]
+            for item3 in item3_possibilities:
+                item4_possibilities = [item1] if item2 == 1 else [item2] if item2 == 2 \
+                    else [x for x in range(1, 10) if x not in {item1, item2, item3}]
+                item4 = ptotal - item3
+                if item4 not in item4_possibilities:
+                    continue
+                other_values = set(range(1, 10)) - {item1, item2, item3, item4}
+                temp = [{item1}, {item2}] + [other_values] * 7
+                temp[item1 - 1] = {item3}
+                temp[item2 - 1] = {item4}
+                yield tuple(temp)
 
 
 def merge(p1: str, p2: str) -> str:
@@ -405,7 +437,7 @@ def puzzle44() -> None:
 
 def puzzle_alice() -> None:
     # puzzle = "......... 3......8. ..4...... ......... 2...9...7 ......... ......5.. .1......6 ........."
-    puzzle = "......... 3....6.8. ..4...... ......... 2...9...7 ......... ......5.. .1......6 ........." #18:30
+    puzzle = "......... 3....6.8. ..4...... ......... 2...9...7 ......... ......5.. .1......6 ........."  # 18:30
 
     pieces = "122222939112122333911123333441153666445555696497758966447958886447559886777778889"
     features = [AlternativeBoxesFeature(pieces),
@@ -415,9 +447,100 @@ def puzzle_alice() -> None:
     Sudoku().solve(puzzle, features=features)
 
 
+
+def slow_thermometer_puzzle1() -> None:
+    puzzle = '.' * 81
+    thermos = [
+        [(4, 5), (5, 5), (6, 6), (5, 6), (4, 6), (3, 7), (2, 7), (1, 6), (1, 5), (1, 4), (2, 3), (3, 3), (4, 4)],
+        [(4, 5), (5, 5), (6, 6), (5, 7), (4, 7), (3, 8), (2, 8)],
+        [(2, 2), (2, 1), (1, 1), (1, 2)],
+        [(1, 7), (1, 8), (2, 9), (3, 9), (4, 8), (5, 8)],
+        [(6, 4),  (5, 4),  (4, 3), (3, 2)],
+        [(5, 3), (4, 2), (4, 1), (5, 2), (5, 1), (6, 1)],
+        [(6, 8), (6, 9), (5, 9), (4, 9)],
+        [(8, 4), (9, 3), (8, 2), (8, 3), (7, 4), (6, 3), (7, 3), (7, 2)],
+        [(7, 6), (7, 7), (7, 8), (7, 9), (8, 8), (9, 8), (9, 7), (8, 6), (7, 5)]
+    ]
+    thermometers = [SlowThermometerFeature(f'Thermo#{i}', thermo)
+                    for i, thermo in enumerate(thermos, start=1)]
+    Sudoku().solve(puzzle, features=thermometers)
+
+
+def slow_thermometer_puzzle2() -> None:
+    puzzle = '.' * 72 + ".....1..."
+    thermos = [
+        "2,4,N,W,S,S,E,SE",
+        "2,7,N,W,S",
+        "4,6,N,NW",
+        "4,7,N,SE,SE",
+        "4,2,SW,E,SW,E,SW,E,SW,E,SW",
+        "5,4,SE,E",
+        "6,4,E,E",
+        "7,3,S,S",
+        "9,5,NW,S",
+        "9,6,N",
+        "9,6,NW",
+        "6,7,E,SW,W,W,W,NW",
+        "6,9,W,SW,W,W,W,NW",
+        "8,8,NW",
+        "8,8,W,SE,W"
+    ]
+    thermometers = [SlowThermometerFeature(f'Thermo#{i}', Feature.parse_line(line), color='lightblue')
+                    for i, line in enumerate(thermos)]
+    Sudoku().solve(puzzle, features=thermometers)
+
+
+def thermometer_07_23() -> None:
+    puzzle = ".....................9.............5...............3.................8.......9..."
+    thermos = [
+        "1,1,SE,SE,SE,SW,SW",
+        "1,9,SW,SW,SW,NW,NW",
+        "9,1,NE,NE,NE,SE,SE",
+        "9,9,NW,NW,NW,NE,NE"
+    ]
+    thermometers = [ThermometerFeature(f'Thermo#{i}', Feature.parse_line(line), color='lightgray')
+                    for i, line in enumerate(thermos)]
+    Sudoku().solve(puzzle, features=thermometers)
+
+
+
+def double_sum_puzzle() -> None:
+    cells: Sequence[Cell]
+
+    class CheckSpecialFeature(Feature):
+        def initialize(self, grid: Grid) -> None:
+            self.cells = [grid.matrix[1, 6], grid.matrix[2, 6]]
+
+        def check_special(self) -> bool:
+            if len(self.cells[0].possible_values) == 4:
+                print("Danger.  Danger")
+                Cell.keep_values_for_cell(self.cells, {3, 7})
+                return True
+            return False
+
+    features = [
+        DoubleSumFeature(House.Type.ROW, 1, 6),
+        DoubleSumFeature(House.Type.ROW, 4, 10, 10),
+        DoubleSumFeature(House.Type.ROW, 5, 10, 9),
+        DoubleSumFeature(House.Type.ROW, 6, 10, 10),
+        DoubleSumFeature(House.Type.ROW, 7, 10, 10),
+        DoubleSumFeature(House.Type.ROW, 9, 9, 11),
+
+        DoubleSumFeature(House.Type.COLUMN, 1, 16),
+        DoubleSumFeature(House.Type.COLUMN, 3, 13, 13),
+        DoubleSumFeature(House.Type.COLUMN, 4, 12, 11),
+        # DoubleSumFeature(House.Type.COLUMN, 5, 9),
+        DoubleSumFeature(House.Type.COLUMN, 6, 10, 10),
+        DoubleSumFeature(House.Type.COLUMN, 7, 11, 15),
+        DoubleSumFeature(House.Type.COLUMN, 8, 11, 9),
+        CheckSpecialFeature(),
+    ]
+    Sudoku().solve('.' * 81, features=features)
+
+
 if __name__ == '__main__':
     start = datetime.datetime.now()
-    puzzle_alice()
+    double_sum_puzzle()
     end = datetime.datetime.now()
     print(end - start)
 

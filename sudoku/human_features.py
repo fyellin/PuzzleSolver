@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import abc
 import functools
 import itertools
-from typing import Iterable, Tuple, Sequence, Any, Set, List, Optional
+from typing import Iterable, Tuple, Sequence, Any, Set, List, Optional, ClassVar
 
 from matplotlib import pyplot as plt
 
@@ -37,6 +39,21 @@ class Feature(abc.ABC):
         for dr, dc in offsets:
             if 1 <= row + dr <= 9 and 1 <= column + dc <= 9:
                 yield grid.matrix[row + dr, column + dc]
+
+    __DESCRIPTORS = dict(N=(-1, 0), S=(1, 0), E=(0, 1), W=(0, -1), NE=(-1, 1), NW=(-1, -1), SE=(1, 1), SW=(1, -1))
+
+    @staticmethod
+    def parse_line(descriptor: str) -> Sequence[Tuple[int, int]]:
+        descriptors = Feature.__DESCRIPTORS
+        pieces = descriptor.split(',')
+        last_piece_row, last_piece_column = int(pieces[0]), int(pieces[1])
+        squares = [(last_piece_row, last_piece_column)]
+        for direction in pieces[2:]:
+            dr, dc = descriptors[direction.upper()]
+            last_piece_row += dr
+            last_piece_column += dc
+            squares.append((last_piece_row, last_piece_column))
+        return squares
 
     @staticmethod
     def draw_line(points: Sequence[Tuple[int, int]], *, closed: bool = False, **kwargs: Any) -> None:
@@ -134,6 +151,7 @@ class PossibilitiesFeature(Feature):
 
         self.possibilities = list(filter(is_viable, self.possibilities))
         if len(self.possibilities) < old_length:
+            print(f"Possibilities for {self.name} reduced from {old_length} to {len(self.possibilities)}")
             return self.__update_for_possibilities()
         return False
 
@@ -144,12 +162,12 @@ class PossibilitiesFeature(Feature):
                 continue
             legal_values = set.union(*[possibility[index] for possibility in self.possibilities])
             if not cell.possible_values <= legal_values:
-                if not updated:
-                    if show:
-                        print(f"Restricted possibilities for {self.name}")
-                    updated = True
-                Cell.remove_values_from_cells([cell], cell.possible_values.difference(legal_values), show=show)
+                updated = True
+                Cell.keep_values_for_cell([cell], legal_values, show=show)
         return updated
+
+    def __repr__(self) -> str:
+        return f'<{self.name}>'
 
     @staticmethod
     def fix_possibility(possibility: Tuple[int, ...]) -> Tuple[Set[int], ...]:
@@ -188,9 +206,9 @@ class MagicSquareFeature(PossibilitiesFeature):
         self.center = center
 
     def draw(self) -> None:
+        axes = plt.gca()
         for (row, column) in self.squares:
-            plt.gca().add_patch(plt.Rectangle((column, row), width=1, height=1,
-                                              fill=True, facecolor=self.color))
+            axes.add_patch(plt.Rectangle((column, row), width=1, height=1, fill=True, facecolor=self.color))
 
 
 class AdjacentRelationshipFeature(Feature, abc.ABC):
@@ -235,27 +253,30 @@ class AdjacentRelationshipFeature(Feature, abc.ABC):
         for previous_cell, cell, next_cell in self.triples:
             if cell.is_known:
                 continue
-            impossible_values = set()
-            for value in cell.possible_values:
-                previous_match = next_match = set(range(1, 10))
-                if previous_cell:
-                    previous_match = {value2 for value2 in previous_cell.possible_values if self.match(value2, value)}
-                    if cell.is_neighbor(previous_cell):
-                        previous_match.discard(value)
-                if next_cell:
-                    next_match = {value2 for value2 in next_cell.possible_values if self.match(value, value2)}
-                    if cell.is_neighbor(next_cell):
-                        next_match.discard(value)
-                if not previous_match or not next_match:
-                    impossible_values.add(value)
-                elif previous_cell and next_cell and previous_cell.is_neighbor(next_cell) \
-                        and len(previous_match) == 1 and len(next_match) == 1 and previous_match == next_match:
-                    impossible_values.add(value)
+            impossible_values = {value for value in cell.possible_values
+                                 if self.__is_impossible_value(value, previous_cell, cell, next_cell)}
             if impossible_values:
                 if show:
                     print("No appropriate value in adjacent cells")
                 Cell.remove_values_from_cells([cell], impossible_values, show=show)
                 return True
+        return False
+
+    def __is_impossible_value(self, value: int, previous_cell: Cell, cell: Cell, next_cell: Cell) -> bool:
+        previous_match = next_match = set(range(1, 10))
+        if previous_cell:
+            previous_match = {value2 for value2 in previous_cell.possible_values if self.match(value2, value)}
+            if cell.is_neighbor(previous_cell):
+                previous_match.discard(value)
+        if next_cell:
+            next_match = {value2 for value2 in next_cell.possible_values if self.match(value, value2)}
+            if cell.is_neighbor(next_cell):
+                next_match.discard(value)
+        if not previous_match or not next_match:
+            return True
+        elif previous_cell and next_cell and previous_cell.is_neighbor(next_cell) \
+                and len(previous_match) == 1 and len(next_match) == 1 and previous_match == next_match:
+            return True
         return False
 
     def draw(self) -> None:
@@ -290,7 +311,7 @@ class AllValuesPresentFeature(Feature):
 
 
 def _draw_thermometer(feature: Feature, squares: Sequence[Tuple[int, int]], color: str) -> None:
-    feature.draw_line(squares, color=color, linewidth=5)
+    feature.draw_line(squares, color=color, linewidth=10)
     row, column = squares[0]
     plt.gca().add_patch(plt.Circle((column + .5, row + .5), radius=.3, fill=True, facecolor=color))
 
@@ -304,13 +325,11 @@ class Thermometer1Feature(AdjacentRelationshipFeature):
 
     This implementation uses "adjacency"
     """
-    def __init__(self, name: str, thermometer: Sequence[Tuple[int, int]], *, slow: bool = False,
-                 color: str = 'lightgrey') -> None:
+    def __init__(self, name: str, thermometer: Sequence[Tuple[int, int]], *, color: str = 'lightgrey') -> None:
         super().__init__(name, thermometer, reset=True, color=color)
-        self.slow = slow
 
     def match(self, digit1: int, digit2: int) -> bool:
-        return digit1 <= digit2 if self.slow else digit1 < digit2
+        return digit1 < digit2
 
     def draw(self) -> None:
         _draw_thermometer(self, self.squares, self.color)
@@ -365,7 +384,14 @@ class ThermometerFeature(Thermometer3Feature):
     pass
 
 
+class SlowThermometerFeature(Thermometer1Feature):
+    def match(self, digit1: int, digit2: int) -> bool:
+        return digit1 <= digit2
+
+
 class SnakeFeature(Feature):
+    count: ClassVar[int] = 0
+
     """A set of nine squares where each number is used exactly once."""
     squares: Sequence[Tuple[int, int]]
 
@@ -393,8 +419,7 @@ class LimitedValuesFeature(Feature):
 
     def reset(self, grid: Grid) -> None:
         cells = [grid.matrix[x] for x in self.squares]
-        other_values = {i for i in range(1, 10) if i not in self.values}
-        Cell.remove_values_from_cells(cells, other_values)
+        Cell.keep_values_for_cell(cells, self.values)
 
     def check(self) -> bool:
         pass
@@ -488,10 +513,9 @@ class SameValueAsAtLeastOneMateFeature(SameValueAsFeature):
 
     def _check_value_not_known(self) -> bool:
         legal_values = set.union(*(cell.possible_values for cell in self.cells))
-        impossible_values = self.main_cell.possible_values - legal_values
-        if impossible_values:
+        if not self.main_cell.possible_values <= legal_values:
             print(f'Cell {self.main_square} must must have a mate')
-            Cell.remove_values_from_cells([self.main_cell], impossible_values)
+            Cell.keep_values_for_cell([self.main_cell], legal_values)
             return True
         return False
 
