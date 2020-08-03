@@ -50,7 +50,7 @@ class House:
 class Cell:
     houses: Final[List[House]]
     index: Final[Tuple[int, int]]
-    neighbors: Final[Set[Cell]]
+    neighbors: Set[Cell]
     features: Final[Sequence['Feature']]
 
     known_value: Optional[int]

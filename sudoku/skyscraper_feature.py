@@ -1,0 +1,119 @@
+import itertools
+from typing import Optional, Sequence, Tuple, Iterable, Set, List, cast
+
+from cell import House
+from human_features import PossibilitiesFeature
+
+
+class SkyscraperFeature(PossibilitiesFeature):
+    htype: House.Type
+    row_column: int
+    left: Optional[int]
+    right: Optional[int]
+    basement: Sequence[Tuple[int, int]]
+
+    def __init__(self, htype: House.Type, row_column: int,
+                 left: Optional[int] = None, right: Optional[int] = None,
+                 *, basement: Sequence[Tuple[int, int]] = ()):
+        name = f'Skyscraper {htype.name.title()} #{row_column}'
+        squares = [square for square in self.get_row_or_column(htype, row_column) if square not in basement]
+        self.htype = htype
+        self.row_column = row_column
+        self.left = left
+        self.right = right
+        self.basement = basement
+        super().__init__(name, squares)
+
+    def get_possibilities(self) -> Iterable[Sequence[Set[int]]]:
+        if self.left and self.right:
+            return self.__get_possibilities2(self.left, self.right, len(self.squares))
+        elif self.left:
+            return self.__get_possibilities1(self.left, len(self.squares))
+        else:
+            return map(lambda x: x[::-1], self.__get_possibilities1(cast(int, self.right), len(self.squares)))
+
+    def __get_possibilities1(self, left: int, length: int) -> Iterable[Tuple[Set[int], ...]]:
+        shadowed_count = length - left  # Number of values that need to be overshadowed
+        for towers in ((*values, peak) for peak in range(length, 10)
+                       for values in itertools.combinations(range(1, peak), left - 1)):
+            for groupings in self.__combine_towers_and_shadowed(towers, shadowed_count):
+                yield tuple(x for grouping in groupings for x in grouping)
+
+    def __get_possibilities2(self, left: int, right: int, length: int) -> Iterable[Tuple[Set[int], ...]]:
+        shadowed_count = length - (left + right - 1)
+        for towers in ((*values, off_peak)
+                       for off_peak in range(length - 1, 9)  # need to leave space for peak
+                       for values in itertools.combinations(range(1, off_peak), left + right - 3)):
+            off_peak = towers[-1]
+            for groupings in self.__combine_towers_and_shadowed(towers, shadowed_count):
+                for left_indices in itertools.combinations(range(len(towers)), left - 1):
+                    right_indices = [x for x in range(len(towers)) if x not in left_indices]
+                    yield (
+                        *(x for index in left_indices for x in groupings[index]),
+                        set(range(off_peak + 1, 10)),
+                        *(x for index in reversed(right_indices) for x in reversed(groupings[index]))
+                    )
+
+    @staticmethod
+    def __combine_towers_and_shadowed(towers: Sequence[int], shadowed_count: int) -> \
+            Iterable[Sequence[List[Set[int]]]]:
+        if shadowed_count == 0:
+            return [[{tower}] for tower in towers],
+        shadowable_values = [x for x in range(1, towers[-1]) if x not in towers]
+        shadowable_values_by_tower = [{x for x in shadowable_values if x < tower} for tower in towers]
+
+        def inner(tower_index: int, currently_shadowed: int) -> Iterable[List[List[Set[int]]]]:
+            # Get the current tower, and the values that can hide behind it.
+            this_tower = towers[tower_index]
+            these_shadowable_values = shadowable_values_by_tower[tower_index]
+            if tower_index == len(towers) - 1:
+                # The last tower.  We must reach a total of shadowed_count shadowed values
+                yield [[{this_tower}] + [these_shadowable_values] * (shadowed_count - currently_shadowed)]
+                return
+            # The amount of items we put behind the current tower is next_shadowed - currently_shadowed.
+            # Any amount is okay, as long as our total doesn't go over shadowed_count, and we don't use more towers
+            # than are available to hide behind the current tower.
+            for next_shadowed in range(currently_shadowed, min(shadowed_count, len(these_shadowable_values)) + 1):
+                this_group = [{this_tower}] + [these_shadowable_values] * (next_shadowed - currently_shadowed)
+                for result in inner(tower_index + 1, next_shadowed):
+                    result.insert(0, this_group)
+                    yield result
+
+        return inner(0, 0)
+
+    def draw(self) -> None:
+        args = dict(fontsize=20, weight='bold')
+        if self.left:
+            self.draw_outside(self.left, self.htype, self.row_column, **args)
+        if self.right:
+            self.draw_outside(self.right, self.htype, self.row_column, is_right=True, **args)
+        self.draw_rectangles(self.basement, facecolor="lightgrey")
+
+
+"""
+Skyscraper Row #2 has 90 possibilities
+Skyscraper Row #3 has 81 possibilities
+Skyscraper Row #5 has 1764 possibilities
+Skyscraper Row #6 has 1764 possibilities
+Skyscraper Row #8 has 126 possibilities
+Skyscraper Row #9 has 56 possibilities
+Skyscraper Column #2 has 126 possibilities
+Skyscraper Column #3 has 81 possibilities
+Skyscraper Column #4 has 36 possibilities
+Skyscraper Column #5 has 70 possibilities
+Skyscraper Column #6 has 2450 possibilities
+Skyscraper Column #8 has 126 possibilities
+Skyscraper Column #9 has 56 possibilities
+
+"""
+
+
+def main():
+    basement = ((1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9))
+    temp = SkyscraperFeature(House.Type.ROW, 1, 2, 2, basement=basement[0:6])
+    for foo in temp.get_possibilities():
+        print(len(foo), foo)
+
+
+if __name__ == '__main__':
+    main()

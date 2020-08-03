@@ -3,8 +3,10 @@ from __future__ import annotations
 import abc
 import functools
 import itertools
-from typing import Iterable, Tuple, Sequence, Any, Set, List, Optional, ClassVar
-
+from collections import deque, defaultdict
+import datetime
+from typing import Iterable, Tuple, Sequence, Any, Set, List, Optional, ClassVar, Mapping, Dict
+import numpy as np
 from matplotlib import pyplot as plt
 
 from cell import Cell, House
@@ -64,6 +66,94 @@ class Feature(abc.ABC):
             xs.append(xs[0])
         plt.plot(xs, ys, **{'color': 'black', **kwargs})
 
+    @staticmethod
+    def draw_rectangles(points: Seqeunce[Tuple[int, int]], **args: Any):
+        args = {'facecolor': 'lightgrey', 'fill': True, **args}
+        axis = plt.gca()
+        for row, column in points:
+            axis.add_patch(plt.Rectangle((column, row), width=1, height=1, **args))
+
+    @staticmethod
+    def draw_outside(value: Any, htype: House.Type, row_or_column: int, *,
+                     is_right: bool = False, padding: float = 0, **args: Any):
+        args = {'fontsize': 20, 'weight': 'bold', **args}
+
+        if htype == House.Type.ROW:
+            if not is_right:
+                plt.text(.9 - padding, row_or_column + .5, str(value),
+                         verticalalignment='center', horizontalalignment='right', **args)
+            else:
+                plt.text(10.1 + padding, row_or_column + .5, str(value),
+                         verticalalignment='center', horizontalalignment='left', **args)
+        else:
+            if not is_right:
+                plt.text(row_or_column + .5, .9 - padding, str(value),
+                         verticalalignment='bottom', horizontalalignment='center', **args)
+            else:
+                plt.text(row_or_column + .5, 10.1 + padding, str(value),
+                         verticalalignment='top', horizontalalignment='center', **args)
+
+    @staticmethod
+    def draw_outline(squares: Sequence[Tuple[int, int]], *, inset: float = .1, **args: Any) -> None:
+        args = {'color': 'black', 'linewidth': 2, 'linestyle': "dotted", **args}
+        squares_set = set(squares)
+
+        # A wall is identified by the square it is in, and the direction you'd be facing from the center of that
+        # square to see the wall.  A wall separates a square inside of "squares" from a square out of it.
+        walls = {(row, column, dr, dc)
+                 for row, column in squares for dr, dc in ((0, 1), (0, -1), (1, 0), (-1, 0))
+                 if (row + dr, column + dc) not in squares_set}
+
+        while walls:
+            start_wall = current_wall = next(iter(walls))  # pick some wall
+            points: List[np.ndarray] = []
+
+            while True:
+                # Find the connecting point between the current wall and the wall to the right and add it to our
+                # set of points
+
+                row, column, ahead_dr, ahead_dc = current_wall  # square, and direction of wall from center
+                right_dr, right_dc = ahead_dc, -ahead_dr  # The direction if we turned right
+
+                # Three possible next walls, in order of preference.
+                #  1) The wall makes a right turn, staying with the current square
+                #  2) The wall continues in its direction, going into the square to our right
+                #  3) The wall makes a left turn, continuing in the square diagonally ahead to the right.
+                next1 = (row, column, right_dr, right_dc)   # right
+                next2 = (row + right_dr, column + right_dc, ahead_dr, ahead_dc)  # straight
+                next3 = (row + right_dr + ahead_dr, column + right_dc + ahead_dc, -right_dr, -right_dc)  # left
+
+                # It is possible for next1 and next3 to both be in walls if we have two squares touching diagonally.
+                # In that case, we prefer to stay within the same cell, so we prefer next1 to next3.
+                next_wall = next(x for x in (next1, next2, next3) if x in walls)
+                walls.remove(next_wall)
+
+                if next_wall == next2:
+                    # We don't need to add a point if the wall is continuing in the direction it was going.
+                    pass
+                else:
+                    np_center = np.array((row, column)) + .5
+                    np_ahead = np.array((ahead_dr, ahead_dc))
+                    np_right = np.array((right_dr, right_dc))
+                    right_inset = inset if next_wall == next1 else -inset
+                    points.append(np_center + (.5 - inset) * np_ahead + (.5 - right_inset) * np_right)
+
+                if next_wall == start_wall:
+                    break
+                current_wall = next_wall
+
+            points.append(points[0])
+            pts = np.vstack(points)
+            plt.plot(pts[:, 1], pts[:, 0], **args)
+
+    @staticmethod
+    def get_row_or_column(htype, row_column):
+        if htype == House.Type.ROW:
+            squares = [(row_column, i) for i in range(1, 10)]
+        else:
+            squares = [(i, row_column) for i in range(1, 10)]
+        return squares
+
 
 class KnightsMoveFeature(Feature):
     """No two squares within a knight's move of each other can have the same value."""
@@ -87,6 +177,24 @@ class KingsMoveFeature(Feature):
 
     def get_neighbors(self, cell: Cell) -> Iterable[Cell]:
         return self.neighbors_from_offsets(self.grid, cell, self.OFFSETS)
+
+
+class QueensMoveFeature(Feature):
+    OFFSETS = [(dr, dc) for delta in range(1, 9) for dr in (-delta, delta) for dc in (-delta, delta)]
+    grid: Grid
+    values: Set[int]
+
+    def __init__(self, values: Set[int] = frozenset({9})):
+        self.values = values
+
+    def initialize(self, grid: Grid) -> None:
+        self.grid = grid
+
+    def get_neighbors_for_value(self, cell: Cell, value: int) -> Iterable[Cell]:
+        if value in self.values:
+            return self.neighbors_from_offsets(self.grid, cell, self.OFFSETS)
+        else:
+            return ()
 
 
 class TaxicabFeature(Feature):
@@ -115,7 +223,7 @@ class TaxicabFeature(Feature):
         return result
 
 
-class PossibilitiesFeature(Feature):
+class PossibilitiesFeature(Feature, abc.ABC):
     """We are given a set of possible values for a set of cells"""
     name: str
     squares: Sequence[Tuple[int, int]]
@@ -123,21 +231,27 @@ class PossibilitiesFeature(Feature):
     initial_possibilities: List[Tuple[Set[int], ...]]
     possibilities: List[Tuple[Set[int], ...]]
     handle_neighbors: bool
+    compressed: bool
 
-    def __init__(self, name: str, squares: Sequence[Tuple[int, int]],
-                 possibilities: Iterable[Tuple[Set[int], ...]], *, neighbors: bool = False) -> None:
+    def __init__(self, name: str, squares: Sequence[Tuple[int, int]], *,
+                 neighbors: bool = False, compressed: bool = False) -> None:
         self.name = name
         self.squares = squares
-        self.initial_possibilities = list(possibilities)
         self.handle_neighbors = neighbors
+        self.compressed = compressed
 
     def initialize(self, grid: Grid) -> None:
         self.cells = [grid.matrix[square] for square in self.squares]
-
-    def reset(self, grid: Grid) -> None:
-        self.possibilities = self.initial_possibilities
+        self.initial_possibilities = list(self.get_possibilities())
         if self.handle_neighbors:
             self.__fix_possibilities_for_neighbors()
+        print(f'{self.name} has {len(self.initial_possibilities)} possibilities')
+
+    @abc.abstractmethod
+    def get_possibilities(self) -> List[Tuple[Set[int], ...]]: ...
+
+    def reset(self, grid: Grid) -> None:
+        self.possibilities = list(self.initial_possibilities)
         self.__update_for_possibilities(False)
 
     def check(self) -> bool:
@@ -147,7 +261,16 @@ class PossibilitiesFeature(Feature):
 
         # Only keep those possibilities that are still available
         def is_viable(possibility: Tuple[Set[int], ...]) -> bool:
-            return all(value.intersection(square.possible_values) for (value, square) in zip(possibility, self.cells))
+            choices = [value.intersection(square.possible_values) for (value, square) in zip(possibility, self.cells)]
+            if not all(choices):
+                return False
+            if self.compressed:
+                open_choices = [choice for choice, cell in zip(choices, self.cells) if not cell.is_known]
+                for length in range(2, len(open_choices)):
+                    for subset in itertools.combinations(open_choices, length):
+                        if len(set.union(*subset)) < length:
+                            return False
+            return True
 
         self.possibilities = list(filter(is_viable, self.possibilities))
         if len(self.possibilities) < old_length:
@@ -201,14 +324,16 @@ class MagicSquareFeature(PossibilitiesFeature):
     def __init__(self, center: Tuple[int, int] = (5, 5), *, dr: int = 1, dc: int = 1, color: str = 'lightblue'):
         center_x, center_y = center
         squares = [(center_x + dr * dx, center_y + dc * dy) for dx, dy in itertools.product((-1, 0, 1), repeat=2)]
-        super().__init__(f'magic square at {center}', squares, self.fix_possibilities(self.POSSIBILITES))
+        super().__init__(f'magic square at {center}', squares)
         self.color = color
         self.center = center
 
+    def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
+        return self.fix_possibilities(self.POSSIBILITES)
+
     def draw(self) -> None:
         axes = plt.gca()
-        for (row, column) in self.squares:
-            axes.add_patch(plt.Rectangle((column, row), width=1, height=1, fill=True, facecolor=self.color))
+        self.draw_rectangles(self.squares, facecolor=self.color)
 
 
 class AdjacentRelationshipFeature(Feature, abc.ABC):
@@ -262,7 +387,8 @@ class AdjacentRelationshipFeature(Feature, abc.ABC):
                 return True
         return False
 
-    def __is_impossible_value(self, value: int, previous_cell: Cell, cell: Cell, next_cell: Cell) -> bool:
+    def __is_impossible_value(self, value: int,
+                              previous_cell: Optional[Cell], cell: Cell, next_cell: Optional[Cell]) -> bool:
         previous_match = next_match = set(range(1, 10))
         if previous_cell:
             previous_match = {value2 for value2 in previous_cell.possible_values if self.match(value2, value)}
@@ -343,15 +469,14 @@ class Thermometer2Feature(PossibilitiesFeature):
     color: str
 
     def __init__(self, name: str, thermometer: Sequence[Tuple[int, int]],  *, color: str = 'lightgrey'):
-        super().__init__(name, thermometer, self.get_possibilities(len(thermometer)))
+        super().__init__(name, thermometer)
         self.color = color
 
     def draw(self) -> None:
         _draw_thermometer(self, self.squares, self.color)
 
-    @classmethod
-    def get_possibilities(cls, length: int) -> Iterable[Tuple[Set[int], ...]]:
-        return cls.fix_possibilities(itertools.combinations(range(1, 10), length))
+    def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
+        return self.fix_possibilities(itertools.combinations(range(1, 10), len(self.squares)))
 
 
 class Thermometer3Feature(PossibilitiesFeature):
@@ -362,18 +487,18 @@ class Thermometer3Feature(PossibilitiesFeature):
     color: str
 
     def __init__(self, name: str, thermometer: Sequence[Tuple[int, int]], color: str = 'lightgrey'):
-        super().__init__(name, thermometer, self.get_possibilities(len(thermometer)))
+        super().__init__(name, thermometer)
         self.color = color
 
     def draw(self) -> None:
         _draw_thermometer(self, self.squares, self.color)
 
-    @classmethod
-    def get_possibilities(cls, length: int) -> Iterable[Tuple[Set[int], ...]]:
+    def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
+        length = len(self.squares)
         if length > 2:
             for permutation in itertools.combinations(range(2, 9), length - 2):
                 yield (set(range(1, permutation[0])),
-                       *cls.fix_possibility(permutation),
+                       *self.fix_possibility(permutation),
                        set(range(permutation[-1] + 1, 10)))
         else:
             for i in range(1, 9):
@@ -391,12 +516,23 @@ class SlowThermometerFeature(Thermometer1Feature):
 
 class SnakeFeature(Feature):
     count: ClassVar[int] = 0
+    my_number: int
 
     """A set of nine squares where each number is used exactly once."""
     squares: Sequence[Tuple[int, int]]
 
     def __init__(self, squares: Sequence[Tuple[int, int]]):
+        SnakeFeature.count += 1
+        self.my_number = SnakeFeature.count
         self.squares = squares
+
+    @staticmethod
+    def major_diagonal() -> SnakeFeature:
+        return SnakeFeature([(i, i) for i in range(1, 10)])
+
+    @staticmethod
+    def minor_diagonal() -> SnakeFeature:
+        return SnakeFeature([(10 - i, i) for i in range(1, 10)])
 
     def initialize(self, grid: Grid) -> None:
         cells = [grid.matrix[square] for square in self.squares]
@@ -404,8 +540,6 @@ class SnakeFeature(Feature):
 
     def draw(self) -> None:
         self.draw_line(self.squares, color='lightgrey', linewidth=5)
-        row, column = self.squares[0]
-        plt.gca().add_patch(plt.Circle((column + .5, row + .5), radius=.3, fill=True, facecolor='lightgrey'))
 
 
 class LimitedValuesFeature(Feature):
@@ -419,7 +553,7 @@ class LimitedValuesFeature(Feature):
 
     def reset(self, grid: Grid) -> None:
         cells = [grid.matrix[x] for x in self.squares]
-        Cell.keep_values_for_cell(cells, self.values)
+        Cell.keep_values_for_cell(cells, set(self.values))
 
     def check(self) -> bool:
         pass
@@ -560,8 +694,82 @@ class AlternativeBoxesFeature(Feature):
     def draw(self) -> None:
         colors = ('lightcoral', "violet", "bisque", "lightgreen", "lightgray", "yellow", "skyblue",
                   "pink", "purple")
-        # colors = ('tab:cyan', 'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
-        #           'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', )
-        for color, squarex in zip(colors, self.squares):
-            for row, column in squarex:
-                plt.gca().add_patch(plt.Rectangle((column, row), 1, 1, facecolor=color))
+        for squarex, color in zip(self.squares, colors):
+            self.draw_outline(squarex, color=color, inset=.1)
+
+
+class SandwichFeature(PossibilitiesFeature):
+    htype: House.Type
+    row_column: int
+    total: int
+
+    def __init__(self, htype: House.Type, row_column: int, total: int):
+        name = f'Sandwich {htype.name.title()} #{row_column}'
+        squares = self.get_row_or_column(htype, row_column)
+        self.htype = htype
+        self.row_column = row_column
+        self.total = total
+        super().__init__(name, squares, compressed=True)
+
+    def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
+        return self._get_possibilities(self.total)
+
+    @classmethod
+    def _get_possibilities(cls, total: int) -> Iterable[Tuple[Set[int], ...]]:
+        for length in range(0, 8):
+            for values in itertools.combinations((2, 3, 4, 5, 6, 7, 8), length):
+                if sum(values) == total:
+                    non_values = set(range(2, 9)) - set(values)
+                    non_values_length = 7 - length
+                    temp = deque([{1, 9}, *([set(values)] * length), {1, 9}, *([non_values] * non_values_length)])
+                    for i in range(0, non_values_length + 1):
+                        yield tuple(temp)
+                        temp.rotate(1)
+
+    def draw(self) -> None:
+        self.draw_outside(self.total, self.htype, self.row_column, fontsize=20, weight='bold')
+
+
+class SandwichXboxFeature(PossibilitiesFeature):
+    htype: House.Type
+    row_column: int
+    value: int
+    is_right: bool
+
+    def __init__(self, htype: House.Type, row_column: int, value: int, right: bool = False) -> None:
+        name = f'Skyscraper {htype.name.title()} #{row_column}'
+        squares = self.get_row_or_column(htype, row_column)
+        self.htype = htype
+        self.row_column = row_column
+        self.value = value
+        self.is_right = right
+        super().__init__(name, squares)
+
+    def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
+        result = self._get_all_possibilities()[self.value]
+        if not self.is_right:
+            return self.fix_possibilities(result)
+        else:
+            return self.fix_possibilities(item[::-1] for item in result)
+
+    @staticmethod
+    @functools.lru_cache(None)
+    def _get_all_possibilities() -> Mapping[int, Sequence[Tuple[int, ...]]]:
+        result: Dict[int, List[Tuple[int, ...]]] = defaultdict(list)
+        start = datetime.datetime.now()
+        for values in itertools.permutations(range(1, 10)):
+            index1 = values.index(1)
+            index2 = values.index(9)
+            if index2 < index1:
+                index2, index1 = index1, index2
+            sandwich = sum([values[index] for index in range(index1 + 1, index2)])
+            xbox = sum([values[index] for index in range(values[0])])
+            if sandwich == xbox:
+                result[sandwich].append(values)
+        end = datetime.datetime.now()
+        print(f'Initialization = {end - start}.')
+        return result
+
+    def draw(self) -> None:
+        args = dict(fontsize=20, weight='bold')
+        self.draw_outside(self.value, self.htype, self.row_column, is_right=self.is_right, **args)
