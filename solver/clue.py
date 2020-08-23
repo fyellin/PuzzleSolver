@@ -64,6 +64,8 @@ class Clue:
             # ), letter, or digit followed by (, letter, or digit needs an * in between, except when we have
             # two digits in a row with no space between them.  Note negative lookahead below.
             expression = re.sub(r'(?!\d\d)([\w)])\s*([(\w])', r'\1*\2', expression)
+        if '!' in expression:
+            expression = re.sub(r'(\w)!', r'math.factorial(\1)', expression)
         return expression.split('=')
 
     def __hash__(self) -> int:

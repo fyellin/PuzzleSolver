@@ -5,7 +5,7 @@ from typing import Sequence, Set, Optional, Iterable, Iterator, NamedTuple, Tupl
 
 from color import Color
 if TYPE_CHECKING:
-    from human_features import Feature
+    from feature import Feature
     from grid import Grid
 
 

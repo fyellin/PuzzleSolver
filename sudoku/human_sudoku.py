@@ -11,7 +11,7 @@ from cell import House, Cell, CellValue
 from chain import Chains
 from grid import Grid
 from hard_medusa import HardMedusa
-from human_features import Feature
+from feature import Feature
 
 
 class Sudoku:
@@ -29,7 +29,11 @@ class Sudoku:
 
         for square, value in self.initial_grid.items():
             grid.matrix[square].set_value_to(value)
-        return self.run_solver(show)
+        try:
+            return self.run_solver(show)
+        except:
+            self.draw_grid()
+            raise
 
     def run_solver(self, show: bool) -> bool:
         self.grid.print()
@@ -437,5 +441,3 @@ class Sudoku:
                               verticalalignment='center', horizontalalignment='center',
                               fontsize=8, color='blue', weight='light')
         plt.show()
-
-

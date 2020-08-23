@@ -2,7 +2,7 @@ import itertools
 from typing import Optional, Sequence, Tuple, Iterable, Set, List, cast
 
 from cell import House
-from human_features import PossibilitiesFeature
+from features import PossibilitiesFeature
 
 
 class SkyscraperFeature(PossibilitiesFeature):
@@ -17,12 +17,12 @@ class SkyscraperFeature(PossibilitiesFeature):
                  *, basement: Sequence[Tuple[int, int]] = ()):
         name = f'Skyscraper {htype.name.title()} #{row_column}'
         squares = [square for square in self.get_row_or_column(htype, row_column) if square not in basement]
+        super().__init__(name, squares)
         self.htype = htype
         self.row_column = row_column
         self.left = left
         self.right = right
         self.basement = basement
-        super().__init__(name, squares)
 
     def get_possibilities(self) -> Iterable[Sequence[Set[int]]]:
         if self.left and self.right:
@@ -57,8 +57,8 @@ class SkyscraperFeature(PossibilitiesFeature):
     @staticmethod
     def __combine_towers_and_shadowed(towers: Sequence[int], shadowed_count: int) -> \
             Iterable[Sequence[List[Set[int]]]]:
-        if shadowed_count == 0:
-            return [[{tower}] for tower in towers],
+        # if shadowed_count == 0:
+        #     return [[{tower}] for tower in towers],
         shadowable_values = [x for x in range(1, towers[-1]) if x not in towers]
         shadowable_values_by_tower = [{x for x in shadowable_values if x < tower} for tower in towers]
 
@@ -67,7 +67,7 @@ class SkyscraperFeature(PossibilitiesFeature):
             this_tower = towers[tower_index]
             these_shadowable_values = shadowable_values_by_tower[tower_index]
             if tower_index == len(towers) - 1:
-                # The last tower.  We must reach a total of shadowed_count shadowed values
+                # The last tower.  We include this tower and the right number of shadows behind it
                 yield [[{this_tower}] + [these_shadowable_values] * (shadowed_count - currently_shadowed)]
                 return
             # The amount of items we put behind the current tower is next_shadowed - currently_shadowed.
@@ -79,7 +79,7 @@ class SkyscraperFeature(PossibilitiesFeature):
                     result.insert(0, this_group)
                     yield result
 
-        return inner(0, 0)
+        inner(0, 0)
 
     def draw(self) -> None:
         args = dict(fontsize=20, weight='bold')
@@ -90,29 +90,14 @@ class SkyscraperFeature(PossibilitiesFeature):
         self.draw_rectangles(self.basement, facecolor="lightgrey")
 
 
-"""
-Skyscraper Row #2 has 90 possibilities
-Skyscraper Row #3 has 81 possibilities
-Skyscraper Row #5 has 1764 possibilities
-Skyscraper Row #6 has 1764 possibilities
-Skyscraper Row #8 has 126 possibilities
-Skyscraper Row #9 has 56 possibilities
-Skyscraper Column #2 has 126 possibilities
-Skyscraper Column #3 has 81 possibilities
-Skyscraper Column #4 has 36 possibilities
-Skyscraper Column #5 has 70 possibilities
-Skyscraper Column #6 has 2450 possibilities
-Skyscraper Column #8 has 126 possibilities
-Skyscraper Column #9 has 56 possibilities
-
-"""
-
-
 def main():
     basement = ((1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9))
-    temp = SkyscraperFeature(House.Type.ROW, 1, 2, 2, basement=basement[0:6])
+    temp = SkyscraperFeature(House.Type.ROW, 1, 5, 2, basement=basement[0:0])
+    count = 0
     for foo in temp.get_possibilities():
+        count += 1
         print(len(foo), foo)
+    print(count)
 
 
 if __name__ == '__main__':

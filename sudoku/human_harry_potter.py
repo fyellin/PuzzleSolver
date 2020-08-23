@@ -9,11 +9,12 @@ from matplotlib.patches import FancyBboxPatch
 from cell import Cell, House
 from grid import Grid
 from human_sudoku import Sudoku
-from human_features import Feature, KnightsMoveFeature, PossibilitiesFeature, MagicSquareFeature, \
+from features import KnightsMoveFeature, PossibilitiesFeature, MagicSquareFeature, \
     AdjacentRelationshipFeature, AllValuesPresentFeature, ThermometerFeature, SnakeFeature, LimitedValuesFeature, \
-    SameValueAsExactlyOneMateFeature, SameValueAsAtLeastOneMateFeature, LittlePrincessFeature, \
+    SameValueAsExactlyOneMateFeature, SameValueAsMateFeature, LittlePrincessFeature, \
     AlternativeBoxesFeature, SlowThermometerFeature, SandwichFeature, KingsMoveFeature, \
-    QueensMoveFeature, SandwichXboxFeature
+    QueensMoveFeature, SandwichXboxFeature, MultiPossibilityFeature
+from feature import Feature
 from skyscraper_feature import SkyscraperFeature
 
 
@@ -141,6 +142,7 @@ class SnakesEggFeature(Feature):
 
 
 class Pieces44(Feature):
+    """Eggs that contain the numbers 2-9, but no 1"""
     class Egg(House):
         def __init__(self, index: int, cells: Sequence[Cell]) -> None:
             super().__init__(House.Type.EGG, index, cells)
@@ -280,8 +282,7 @@ class DoubleSumFeature(PossibilitiesFeature):
 class CageFeature(PossibilitiesFeature):
     total: int
 
-    def __init__(self, total: int, squares: Sequence[Tuple[int, int]]):
-        name = "Cage"
+    def __init__(self, name: str, total: int, squares: Sequence[Tuple[int, int]]):
         self.total = total
         super().__init__(name, squares)
 
@@ -291,7 +292,7 @@ class CageFeature(PossibilitiesFeature):
             last_value = self.total - sum(values)
             if 1 <= last_value <= 9 and last_value not in values:
                 result = (*values, last_value)
-                yield CageFeature.fix_possibility(result)
+                yield self.fix_possibility(result)
 
     def draw(self) -> None:
         self.draw_outline(self.squares)
@@ -318,7 +319,7 @@ def merge(p1: str, p2: str) -> str:
 
 
 def puzzle1() -> None:
-    # XUZZ = "123456789123456789123456789123456789123456789123456789123456789123456789123456789"
+    # INFO = "123456789123456789123456789123456789123456789123456789123456789123456789123456789"
     puzzle = "...6.1.....4...2...1.....6.1.......2....8....6.......4.7.....9...1...4.....1.2..3"
     texts = [(3, 1, 8), *[(x, 9) for x in range(1, 9)]]
     features: List[Feature] = [ContainsTextFeature(i, text) for i, text in enumerate(texts, start=1)]
@@ -327,7 +328,7 @@ def puzzle1() -> None:
 
 
 def puzzle2() -> None:
-    previo = '...........................................5........3.............7..............'
+    previo: str = '...........................................5........3.............7..............'
     puzzle = '.9...16....................8............9............8....................16...8.'
     puzzle = merge(puzzle, previo)
     sudoku = Sudoku()
@@ -489,7 +490,7 @@ def puzzle_alice(*, show: bool = False) -> None:
 
     pieces = "122222939112122333911123333441153666445555696497758966447958886447559886777778889"
     features = [AlternativeBoxesFeature(pieces),
-                *(SameValueAsAtLeastOneMateFeature((r, c)) for r in range(1, 10) for c in range(1, 10))
+                *(SameValueAsMateFeature((r, c)) for r in range(1, 10) for c in range(1, 10))
                 ]
     puzzle = puzzle.replace(' ', '')
     Sudoku().solve(puzzle, features=features, show=show)
@@ -667,9 +668,114 @@ def puzzle_07_30_Simon(*, show: bool = False) -> None:
     puzzle = nada + "......3.." + nada * 6 + ".......3."
     Sudoku().solve(puzzle, features=thermometers, show=show)
 
+def puzzle_08_02(*, show: bool = False) -> None:
+    thermos = [
+        "2,1,SE,SE,NE,N,NE",
+        "2,9,SW,SW,NW,N,NW",
+        "6,1,N,N,N",
+        "3,9,S,S,S",
+        "8,1,E,E",
+        "8,7,E,E",
+        "5,6,SW,NW"
+    ]
+    features = [
+        MagicSquareFeature(),
+        KingsMoveFeature(),
+        *[ThermometerFeature(f'Thermo#{i}', Feature.parse_line(line))
+          for i, line in enumerate(thermos, start=1)],
+    ]
+    Sudoku().solve('.' * 81, features=features, show=show)
+
+def puzzle_08_06(*, show: bool = False) -> None:
+    OFFSETS1 = [(dr, dc) for dx in (-1, 1) for dy in (-2, 2) for (dr, dc) in ((dx, dy), (dy, dx))]
+    OFFSETS2 = [(dr, dc) for delta in range(1, 9) for dr in (-delta, delta) for dc in (-delta, delta)]
+    OFFSETS = OFFSETS1 + OFFSETS2
+
+    class MyFeature(SameValueAsMateFeature):
+        def get_mates(self, cell: Cell, grid: Grid) -> Iterable[Cell]:
+            return self.neighbors_from_offsets(grid, cell, OFFSETS)
+
+    features = [MyFeature((i, j)) for i, j in itertools.product(range(1, 10), repeat=2)]
+    puzzle = "39.1...822.....5.....4.....6..2.....1....4.........3............6...3..551.....64"
+    Sudoku().solve(puzzle, features=features, show=show)
+
+def puzzle_08_07(*, show: bool = False) -> None:
+    class FoobarFeature(Feature):
+        def reset(self, grid: Grid) -> None:
+            Cell.remove_value_from_cells([grid.matrix[5, 5]], 1)
+            Cell.remove_value_from_cells([grid.matrix[1, 9]], 6)
+            Cell.remove_value_from_cells([grid.matrix[9, 9]], 6)
+
+    thermos = [
+        "1,1,S,S,S",
+        "9,1,N,N,N",
+        "1,4,E,E,E,E,E,S",
+        "2,4,E,E,E",
+        "5,5,E,E,E,E",
+        "6,5,SW",
+        "9,4,E,E,E,E,E"
+    ]
+    thermometers = [ThermometerFeature(f'Thermo#{i}', Feature.parse_line(line))
+                    for i, line in enumerate(thermos, start=1)]
+
+    features = [
+        SnakeFeature.major_diagonal(),
+        SnakeFeature.minor_diagonal(),
+        *thermometers,
+        # FoobarFeature()
+    ]
+    Sudoku().solve('.'*81, features=features, show=show)
+
+
+def puzzle_08_12(*, show: bool = False) -> None:
+    thermos = [
+        "5,5,nw,nw,n,ne",
+        "5,5,nw,nw,sw,sw,s",
+        "5,5,ne,ne,n,nw",
+        "5,5,ne,ne,se,se,s",
+        "5,5,s,s,sw,w,nw",
+        "5,5,s,s,se,e,ne",
+        "1,1,e", "1,1,s",
+        "2,9,n,w",
+        "8,1,s,e",
+        "9,9,w", "9,9,n",
+        "4,3,ne",
+        "3,5,e,se,s",
+        "6,7,sw,w,w",
+        "6,3,n"
+    ]
+    thermometers = [ThermometerFeature(f'Thermo#{i}', Feature.parse_line(line))
+                    for i, line in enumerate(thermos, start=1)]
+    puzzle = "." * 63 + "....8...." + "." * 9
+    Sudoku().solve(puzzle, features=thermometers, show=show)
+
+def puzzle_08_15(*, show: bool = False) -> None:
+    puzzle = "....1...4........5.............................1.....8........75.3....6.....3...."
+    odds = [(3, 2), (3, 4), (3, 6), (3, 7), (3,8),
+            (4, 1), (4, 2), (4, 4), (4, 8),
+            (5,2), (5, 4), (5, 5), (5, 6), (5, 8),
+            (6, 2), (6, 5), (6, 8),
+            (7, 2), (7, 5), (7, 8)]
+    features = [KingsMoveFeature(),
+                LimitedValuesFeature(odds, (1, 3, 5, 7, 9), color='lightgray')
+                ]
+    Sudoku().solve(puzzle, features=features, show=show)
+
+def puzzle_08_15_2(*, show: bool = False) -> None:
+    Liar
+    puzzle = "....1...4........5.............................1.....8........75.3....6.....3...."
+    odds = [(3, 2), (3, 4), (3, 6), (3, 7), (3,8),
+            (4, 1), (4, 2), (4, 4), (4, 8),
+            (5,2), (5, 4), (5, 5), (5, 6), (5, 8),
+            (6, 2), (6, 5), (6, 8),
+            (7, 2), (7, 5), (7, 8)]
+    features = [KingsMoveFeature(),
+                LimitedValuesFeature(odds, (1, 3, 5, 7, 9), color='lightgray')
+                ]
+    Sudoku().solve(puzzle, features=features, show=show)
 
 if __name__ == '__main__':
     start = datetime.datetime.now()
-    skyscraper_07_29()
+    puzzle_08_15(show=False)
     end = datetime.datetime.now()
     print(end - start)

@@ -2,7 +2,7 @@ from typing import Dict, Tuple, Sequence, Iterable, TYPE_CHECKING, List
 
 from cell import Cell, House
 if TYPE_CHECKING:
-    from human_features import Feature
+    from feature import Feature
 
 
 class Grid:

@@ -180,4 +180,4 @@ class InnerSolver(ConstraintSolver):
 
 if __name__ == '__main__':
     OuterSolver.run()
-    # InnerSolver.test()
+    InnerSolver.test()

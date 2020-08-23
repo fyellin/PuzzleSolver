@@ -30,9 +30,11 @@ class Evaluator (NamedTuple):
         variables = sorted({Letter(node.id) for node in ast.walk(expression_ast)
                             if isinstance(node, ast.Name) and len(node.id) == 1
                             })
+        importation = "import math" if 'math' in expression else ""
         code = f"""
         def result(value_dict):
             ({", ".join(variables)}) = ({", ".join(f'value_dict["{v}"]' for v in variables)})
+            {importation}
             rvalue = {expression}
             ivalue = int(rvalue)
             return ClueValue(str(ivalue)) if ivalue == rvalue > 0  else None

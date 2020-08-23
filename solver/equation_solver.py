@@ -253,3 +253,20 @@ class EquationSolver(BaseSolver):
         pairs.sort(key=itemgetter(1))
         print(' '.join(f'{letter:<{max_length}}' for letter, _ in pairs))
         print(' '.join(f'{value:<{max_length}}' for _, value in pairs))
+
+"""
+A  B  C  D  E  G  H  I  K  L  M  N  O  R  S  T  U  V  W 
+3  10 2  15 6  4  12 8  18 11 19 9  14 5  1  7  16 17 13
+S  C  A  G  R  E  T  I  N  B  L  H  W  O  D  U  V  K  M 
+1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19
+{<Clue 29d>: '343', <Clue 28a>: '639', <Clue 22d>: '1993', <Clue 23d>: '81119',
+ <Clue 35a>: '4389', <Clue 11d>: '2519', <Clue 18a>: '18894', <Clue 19d>: '8675', 
+ <Clue 21a>: '3198', <Clue 34a>: '653', <Clue 3d>: '711118', <Clue 15a>: '2316',
+  <Clue 20d>: '4694', <Clue 14a>: '5151', <Clue 7d>: '19133', <Clue 31a>: '789', 
+  <Clue 12a>: '1125', <Clue 27d>: '1983', <Clue 17d>: '33317', <Clue 9d>: '5131', 
+  <Clue 32a>: '4311', <Clue 7a>: '1965', <Clue 10a>: '823', <Clue 2d>: '3315', 
+  <Clue 25a>: '7318', <Clue 26d>: '1856', <Clue 30a>: '173', <Clue 25d>: '7714', 
+  <Clue 4d>: '6210', <Clue 4a>: '6916', <Clue 1d>: '88146', <Clue 16a>: '6193', 
+  <Clue 5d>: '9569', <Clue 13a>: '1113', <Clue 8d>: '6116', <Clue 6d>: '16142', 
+  <Clue 24d>: '1111', <Clue 33a>: '111417', <Clue 1a>: '81237'}
+"""
