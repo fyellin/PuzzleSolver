@@ -27,7 +27,7 @@ class Feature(abc.ABC):
     def check_special(self) -> bool:
         return False
 
-    def draw(self) -> None:
+    def draw(self, context: dict) -> None:
         pass
 
     @staticmethod

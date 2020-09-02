@@ -13,7 +13,7 @@ from features import KnightsMoveFeature, PossibilitiesFeature, MagicSquareFeatur
     AdjacentRelationshipFeature, AllValuesPresentFeature, ThermometerFeature, SnakeFeature, LimitedValuesFeature, \
     SameValueAsExactlyOneMateFeature, SameValueAsMateFeature, LittlePrincessFeature, \
     AlternativeBoxesFeature, SlowThermometerFeature, SandwichFeature, KingsMoveFeature, \
-    QueensMoveFeature, SandwichXboxFeature, MultiPossibilityFeature
+    QueensMoveFeature, SandwichXboxFeature
 from feature import Feature
 from skyscraper_feature import SkyscraperFeature
 
@@ -56,7 +56,7 @@ class MalvoloRingFeature(Feature):
             return True
         return False
 
-    def draw(self) -> None:
+    def draw(self, context: dict) -> None:
         radius = math.hypot(2.5, 1.5)
         plt.gca().add_patch(plt.Circle((5.5, 5.5), radius=radius, fill=False, facecolor='black'))
 
@@ -134,7 +134,7 @@ class SnakesEggFeature(Feature):
         eggs = [self.Egg(i, [grid.matrix[square] for square in self.squares[i]]) for i in range(1, 9)]
         grid.houses.extend(eggs)
 
-    def draw(self) -> None:
+    def draw(self, context: dict) -> None:
         # Find all squares that aren't in one of the eggs.
         snake = set(itertools.product(range(1, 10), repeat=2))
         snake.difference_update(cell for size in range(1, 10) for cell in self.squares[size])
@@ -169,7 +169,7 @@ class Pieces44(Feature):
         eggs = [self.Egg(i + 1, [grid.matrix[square] for square in self.eggs[i]]) for i in range(len(self.eggs))]
         grid.houses.extend(eggs)
 
-    def draw(self) -> None:
+    def draw(self, context: dict) -> None:
         colors = ('lightcoral', "violet", "bisque", "lightgreen", "lightgray", "yellow", "skyblue")
         for color, squares in zip(colors, self.eggs):
             self.draw_rectangles(squares, facecolor=color)
@@ -195,7 +195,7 @@ class PlusFeature(Feature):
             value = 9
         return value
 
-    def draw(self) -> None:
+    def draw(self, context: dict) -> None:
         for row, column in self.squares:
             plt.plot((column + .2, column + .8), (row + .5, row + .5), color='lightgrey', linewidth=3)
             plt.plot((column + .5, column + .5), (row + .2, row + .8), color='lightgrey', linewidth=3)
@@ -227,8 +227,8 @@ class ColorFeature(Feature):
 
     CIRCLES = dict(r="lightcoral", p="violet", o="bisque", g="lightgreen", G="lightgray", y="yellow", b="skyblue")
 
-    def draw(self) -> None:
-        self.plus_feature.draw()
+    def draw(self, context: dict) -> None:
+        self.plus_feature.draw(dict())
         axis = plt.gca()
         for (row, column), letter in self.setup.items():
             axis.add_patch(plt.Circle((column + .5, row + .5), radius=.4, fill=True,
@@ -272,7 +272,7 @@ class DoubleSumFeature(PossibilitiesFeature):
                 temp[item2 - 1] = {item4}
                 yield tuple(temp)
 
-    def draw(self) -> None:
+    def draw(self, context: dict) -> None:
         args = {'fontsize': '15'}
         if self.total:
             self.draw_outside(f'{self.total}', self.htype, self.row_column, padding=.6, **args)
@@ -294,7 +294,7 @@ class CageFeature(PossibilitiesFeature):
                 result = (*values, last_value)
                 yield self.fix_possibility(result)
 
-    def draw(self) -> None:
+    def draw(self, context: dict) -> None:
         self.draw_outline(self.squares)
         row, column = min(self.squares)
         plt.text(column + .2, row + .2, str(self.total),
@@ -307,7 +307,7 @@ class DrawBoxFeature(Feature):
     def __init__(self, squares: Sequence[Tuple[int, int]]):
         self.squares = squares
 
-    def draw(self) -> None:
+    def draw(self, context: dict) -> None:
         self.draw_outline(self.squares)
 
 
@@ -552,7 +552,6 @@ def thermometer_07_23() -> None:
     Sudoku().solve(puzzle, features=thermometers)
 
 
-
 def double_sum_puzzle(*, show: bool = False) -> None:
 
     class CheckSpecialFeature(Feature):
@@ -668,6 +667,7 @@ def puzzle_07_30_Simon(*, show: bool = False) -> None:
     puzzle = nada + "......3.." + nada * 6 + ".......3."
     Sudoku().solve(puzzle, features=thermometers, show=show)
 
+
 def puzzle_08_02(*, show: bool = False) -> None:
     thermos = [
         "2,1,SE,SE,NE,N,NE",
@@ -761,21 +761,45 @@ def puzzle_08_15(*, show: bool = False) -> None:
                 ]
     Sudoku().solve(puzzle, features=features, show=show)
 
-def puzzle_08_15_2(*, show: bool = False) -> None:
-    Liar
-    puzzle = "....1...4........5.............................1.....8........75.3....6.....3...."
-    odds = [(3, 2), (3, 4), (3, 6), (3, 7), (3,8),
-            (4, 1), (4, 2), (4, 4), (4, 8),
-            (5,2), (5, 4), (5, 5), (5, 6), (5, 8),
-            (6, 2), (6, 5), (6, 8),
-            (7, 2), (7, 5), (7, 8)]
-    features = [KingsMoveFeature(),
-                LimitedValuesFeature(odds, (1, 3, 5, 7, 9), color='lightgray')
-                ]
-    Sudoku().solve(puzzle, features=features, show=show)
+
+def puzzle_08_26(*, show: bool = False) -> None:
+    class PrimeRing(AdjacentRelationshipFeature):
+        def __init__(self, squares):
+            super().__init__("Prime", squares, cyclic=True, color='red')
+        def match(self, digit1: int, digit2: int) -> bool:
+            return digit1 + digit2 in {2, 3, 5, 7, 11, 13, 17}
+
+    columns = (21, 25, 11, 0, 35, 23, 13, 4, 18)
+    rows = (13, 13, 6, 9, 0, 29, 2, 13, 2)
+    thermo = "3,7,S,S,S,S"
+    wave = "2,2,E,E,S,E,E,N,E,E,S,S,W,S,S,E,S,S,W,W,N,W,W,S,W,W,N,N,E,N,N,W,N"
+    features = [
+        ThermometerFeature(f'Thermo', Feature.parse_line(thermo)),
+        PrimeRing(Feature.parse_line(wave)),
+        *[SandwichFeature(House.Type.ROW, row, total) for row, total in enumerate(rows, start=1)],
+        *[SandwichFeature(House.Type.COLUMN, col, total) for col, total in enumerate(columns, start=1)],
+    ]
+    Sudoku().solve(' ' * 81, features=features, show=show)
+
+def puzzle_08_31(*, show: bool = False) -> None:
+    thermos = ["1,5,SW,SW,E,S",
+               "1,8,W,W",
+               "3,8,SW,S,SE,E",
+               "7,3,NW,NW",
+               "9,1,E,E",
+               "9,8,NW,SW,NW,N,N,N,N"
+               ]
+    thermometers = [ThermometerFeature(f'Thermo#{i}', Feature.parse_line(line))
+                    for i, line in enumerate(thermos, start=1)]
+    snake_squares = [thermometer.squares[0] for thermometer in thermometers]
+    snake_squares.extend(((2,2), (4, 1), (7, 2)))
+    snake = SnakeFeature(snake_squares, line=False)
+    puzzle = ".....8....................9.................6.....4.................6.......7.9.."
+    Sudoku().solve(puzzle, features=[*thermometers, snake], show=show)
+
 
 if __name__ == '__main__':
     start = datetime.datetime.now()
-    puzzle_08_15(show=False)
+    puzzle_08_31(show=False)
     end = datetime.datetime.now()
     print(end - start)

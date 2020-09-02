@@ -14,7 +14,7 @@ class Clues:
         return [(row + 1, column + 1)
                 for row, line in enumerate(grid.splitlines())
                 for column, item in enumerate(line)
-                if item == 'X']
+                if item.upper() == 'X']
 
     @classmethod
     def create_from_text(cls, across: str, down: str, locations: Sequence[Location]) -> Sequence[Clue]:

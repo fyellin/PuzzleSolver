@@ -81,7 +81,7 @@ class SkyscraperFeature(PossibilitiesFeature):
 
         inner(0, 0)
 
-    def draw(self) -> None:
+    def draw(self, context) -> None:
         args = dict(fontsize=20, weight='bold')
         if self.left:
             self.draw_outside(self.left, self.htype, self.row_column, **args)

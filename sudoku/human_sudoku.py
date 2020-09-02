@@ -417,7 +417,7 @@ class Sudoku:
         figure.tight_layout()
 
         for feature in self.features:
-            feature.draw()
+            feature.draw(dict())
 
         # Draw the bold outline
         for x in range(1, 11):
