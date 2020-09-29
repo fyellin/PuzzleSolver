@@ -75,7 +75,7 @@ class TaxicabFeature(Feature):
 
     @staticmethod
     @functools.lru_cache()
-    def __get_offsets_for_value(value: int) -> Sequence[Tuple[int, int]]:
+    def __get_offsets_for_value(value: int) -> Sequence[Square]:
         result = [square for i in range(0, value)
                   for square in [(i - value, i), (i, value - i), (value - i, -i), (-i, i - value)]]
         return result
@@ -84,15 +84,18 @@ class TaxicabFeature(Feature):
 class PossibilitiesFeature(Feature, abc.ABC):
     """We are given a set of possible values for a set of cells"""
     name: str
-    squares: Sequence[Tuple[int, int]]
+    squares: Sequence[Square]
     cells: Sequence[Cell]
     initial_possibilities: List[Tuple[Set[int], ...]]
     possibilities: List[Tuple[Set[int], ...]]
+    grid: Grid
     handle_neighbors: bool
     compressed: bool
 
-    def __init__(self, name: str, squares: Sequence[Tuple[int, int]], *,
+    def __init__(self, name: str, squares: Union(Sequence[Square], str), *,
                  neighbors: bool = False, compressed: bool = False) -> None:
+        if isinstance(squares, str):
+            squares = self.parse_line(squares)
         self.name = name
         self.squares = squares
         self.handle_neighbors = neighbors
@@ -101,6 +104,7 @@ class PossibilitiesFeature(Feature, abc.ABC):
     def initialize(self, grid: Grid) -> None:
         self.cells = [grid.matrix[square] for square in self.squares]
         self.initial_possibilities = list(self.get_possibilities())
+        self.grid = grid
         print(f'{self.name} has {len(self.initial_possibilities)} possibilities')
 
     @abc.abstractmethod
@@ -196,10 +200,10 @@ class MagicSquareFeature(PossibilitiesFeature):
                     (4, 3, 8, 9, 5, 1, 2, 7, 6), (6, 1, 8, 7, 5, 3, 2, 9, 4),
                     (6, 7, 2, 1, 5, 9, 8, 3, 4), (4, 9, 2, 3, 5, 7, 8, 1, 6),)
 
-    center: Tuple[int, int]
+    center: Square
     color: str
 
-    def __init__(self, center: Tuple[int, int] = (5, 5), *, dr: int = 1, dc: int = 1, color: str = 'lightblue'):
+    def __init__(self, center: Square = (5, 5), *, dr: int = 1, dc: int = 1, color: str = 'lightblue'):
         center_x, center_y = center
         squares = [(center_x + dr * dx, center_y + dc * dy) for dx, dy in itertools.product((-1, 0, 1), repeat=2)]
         super().__init__(f'magic square at {center}', squares)
@@ -221,7 +225,7 @@ class AdjacentRelationshipFeature(Feature, abc.ABC):
     The squares have an order, so this relationship does not need to be symmetric.  (I.e. a thermometer)
     """
     name: str
-    squares: Sequence[Tuple[int, int]]
+    squares: Sequence[Square]
     cells: Sequence[Cell]
     cyclic: bool
     handle_reset: bool
@@ -229,10 +233,10 @@ class AdjacentRelationshipFeature(Feature, abc.ABC):
     triples: Sequence[Tuple[Optional[Cell], Cell, Optional[Cell]]]
     color: str
 
-    def __init__(self, name: str, squares: Sequence[Tuple[int, int]], *,
+    def __init__(self, name: str, squares: Union[Sequence[Square], str], *,
                  cyclic: bool = False, reset: bool = False, color: str = 'gold'):
         self.name = name
-        self.squares = squares
+        self.squares = self.parse_line(squares) if isinstance(squares, str) else squares
         self.cyclic = cyclic
         self.handle_reset = reset
         self.color = color
@@ -294,10 +298,10 @@ class AllValuesPresentFeature(Feature):
     You should probably be using a SnakeFeature if there are exactly nine squares, as other more complicated logic
     is available if there is precisely one of each number.
     """
-    squares: Sequence[Tuple[int, int]]
+    squares: Sequence[Square]
     cells: Sequence[Cell]
 
-    def __init__(self, squares: Sequence[Tuple[int, int]]):
+    def __init__(self, squares: Sequence[Square]):
         assert len(squares) >= 9
         self.squares = squares
 
@@ -319,7 +323,7 @@ class AllValuesPresentFeature(Feature):
         return result
 
 
-def _draw_thermometer(feature: Feature, squares: Sequence[Tuple[int, int]], color: str) -> None:
+def _draw_thermometer(feature: Feature, squares: Sequence[Square], color: str) -> None:
     feature.draw_line(squares, color=color, linewidth=10)
     row, column = squares[0]
     plt.gca().add_patch(plt.Circle((column + .5, row + .5), radius=.3, fill=True, facecolor=color))
@@ -334,7 +338,7 @@ class Thermometer1Feature(AdjacentRelationshipFeature):
 
     This implementation uses "adjacency"
     """
-    def __init__(self, name: str, thermometer: Sequence[Tuple[int, int]], *, color: str = 'lightgrey') -> None:
+    def __init__(self, name: str, thermometer: Union[Sequence[Square], str], *, color: str = 'lightgrey') -> None:
         super().__init__(name, thermometer, reset=True, color=color)
 
     def match(self, digit1: int, digit2: int) -> bool:
@@ -351,7 +355,7 @@ class Thermometer2Feature(PossibilitiesFeature):
     """
     color: str
 
-    def __init__(self, name: str, thermometer: Sequence[Tuple[int, int]],  *, color: str = 'lightgrey'):
+    def __init__(self, name: str, thermometer: Union[Sequence[Square], str],  *, color: str = 'lightgrey'):
         super().__init__(name, thermometer)
         self.color = color
 
@@ -369,7 +373,7 @@ class Thermometer3Feature(PossibilitiesFeature):
     """
     color: str
 
-    def __init__(self, name: str, thermometer: Sequence[Tuple[int, int]], color: str = 'lightgrey'):
+    def __init__(self, name: str, thermometer: Union[Sequence[Square], str], color: str = 'lightgrey'):
         super().__init__(name, thermometer)
         self.color = color
 
@@ -403,9 +407,9 @@ class SnakeFeature(Feature):
     line: bool
 
     """A set of nine squares where each number is used exactly once."""
-    squares: Sequence[Tuple[int, int]]
+    squares: Sequence[Square]
 
-    def __init__(self, squares: Sequence[Tuple[int, int]], *, line: bool = True):
+    def __init__(self, squares: Sequence[Square], *, line: bool = True):
         SnakeFeature.count += 1
         assert len(squares) == 9
         self.my_number = SnakeFeature.count
@@ -434,11 +438,12 @@ class SnakeFeature(Feature):
 
 class LimitedValuesFeature(Feature):
     """A set of squares that can't contain all possible values"""
-    squares: Sequence[Tuple[int, int]]
+    squares: Sequence[Square]
     values: Sequence[int]
     color: Optional[str]
 
-    def __init__(self, squares: Sequence[Tuple[int, int]], values: Sequence[int], *, color: Optional[str] = None):
+    def __init__(self, squares: Sequence[Square], values: Sequence[int], *,
+                 color: Optional[str] = None):
         self.squares = squares
         self.values = values
         self.color = color
@@ -447,21 +452,18 @@ class LimitedValuesFeature(Feature):
         cells = [grid.matrix[x] for x in self.squares]
         Cell.keep_values_for_cell(cells, set(self.values), show=False)
 
-    def check(self) -> bool:
-        pass
-
     def draw(self, context: dict) -> None:
         if self.color:
             self.draw_rectangles(self.squares, color=self.color)
 
 
 class AbstractMateFeature(Feature, abc.ABC):
-    this_square: Tuple[int, int]
+    this_square: Square
     this_cell: Cell
     possible_mates: Sequence[Cell]
     done: bool
 
-    def __init__(self, square: Tuple[int, int]):
+    def __init__(self, square: Square):
         self.this_square = square
 
     def initialize(self, grid: Grid) -> None:
@@ -559,17 +561,17 @@ class LittlePrincessFeature(Feature):
 
     @staticmethod
     @functools.lru_cache
-    def __get_offsets_for_value(value: int) -> Sequence[Tuple[int, int]]:
+    def __get_offsets_for_value(value: int) -> Sequence[Square]:
         return [(dr, dc) for delta in range(1, value)
                 for dr in (-delta, delta) for dc in (-delta, delta)]
 
 
 class AlternativeBoxesFeature(Feature):
-    squares: Sequence[List[Tuple[int, int]]]
+    squares: Sequence[List[Square]]
 
     def __init__(self, pattern: str) -> None:
         assert len(pattern) == 81
-        info: Sequence[List[Tuple[int, int]]] = [list() for _ in range(10)]
+        info: Sequence[List[Square]] = [list() for _ in range(10)]
         for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), pattern):
             assert '1' <= letter <= '9'
             info[int(letter)].append((row, column))
@@ -596,6 +598,10 @@ class SandwichFeature(PossibilitiesFeature):
     row_column: int
     total: int
     grid: Grid
+
+    @staticmethod
+    def all(htype: House.Type, totals: Sequence[int]) -> Sequence[SandwichFeature]:
+        return [SandwichFeature(htype, rc, total) for rc, total in enumerate(totals, start=1)]
 
     def __init__(self, htype: House.Type, row_column: int, total: int):
         name = f'Sandwich {htype.name.title()} #{row_column}'
@@ -656,7 +662,6 @@ class SandwichXboxFeature(PossibilitiesFeature):
     @staticmethod
     @functools.lru_cache(None)
     def _get_all_possibilities() -> Mapping[int, Sequence[Tuple[int, ...]]]:
-
         result: Dict[int, List[Tuple[int, ...]]] = defaultdict(list)
         start = datetime.datetime.now()
         for values in itertools.permutations(range(1, 10)):
@@ -675,3 +680,82 @@ class SandwichXboxFeature(PossibilitiesFeature):
     def draw(self, context: dict) -> None:
         args = dict(fontsize=20, weight='bold')
         self.draw_outside(self.value, self.htype, self.row_column, is_right=self.is_right, **args)
+
+class PalindromeFeature(Feature):
+    squares: Sequence[Square]
+    cells: Sequence[Cell]
+    color: str
+
+    def __init__(self, squares: Union[Tuple[Square], str], color: str):
+        if isinstance(squares, str):
+            squares = self.parse_line(squares)
+        self.squares = squares
+        self.color = color
+
+    def initialize(self, grid: Grid) -> None:
+        self.cells = [grid.matrix[square] for square in self.squares]
+
+    def check(self) -> bool:
+        changed = False
+        pairs = len(self.cells) // 2
+        for cell1, cell2 in zip(self.cells[:pairs], self.cells[::-1]):
+            if cell1.possible_values != cell2.possible_values:
+                changed = True
+                print(f'{cell1.index} and {cell2.index} must have the same values {cell1.possible_values} {cell2.possible_values}')
+                values = cell1.possible_values.intersection(cell2.possible_values)
+                for a, b in ((cell1, cell2), (cell2, cell1)):
+                    if a.possible_values != values:
+                        if b.is_known:
+                            a.set_value_to(b.known_value, show=True)
+                        else:
+                            Cell.keep_values_for_cell([a], values)
+        return changed
+
+    def draw(self, context: dict) -> None:
+        self.draw_line(self.squares, color=self.color)
+
+
+class XVFeature(AdjacentRelationshipFeature):
+    total: Optional[int]
+
+    def __init__(self, squares: Tuple[Square], total: Optional[int]):
+        super().__init__(f'{squares[0]}/{squares[1]}', squares)
+        self.total = total
+
+    def match(self, digit1: int, digit2: int) -> bool:
+        if self.total:
+             return digit1 + digit2 == self.total
+        else:
+            return digit1 + digit2 not in (5, 10)
+
+    def draw(self, context: dict) -> None:
+        if self.total:
+            args = {}
+            (r1, c1), (r2, c2) = self.squares
+            character = 'X' if self.total == 10 else 'V'
+            plt.text((c1 + c2 + 1)/2, (r1 + r2 + 1)/2, character,
+                     verticalalignment='center', horizontalalignment='center', **args)
+
+    @staticmethod
+    def setup(*, across_x: Sequence[Square] = (), across_v: Sequence[Square] = (),
+              down_x: Sequence[Square] = (), down_v: Sequence[Square] = ()) -> Sequence[Features]:
+        features = []
+        for row, column in itertools.product(range(1, 10), range(1, 9)):
+            feature_type = 10 if (row, column) in across_x else 5 if (row, column) in across_v else None
+            features.append(XVFeature(((row, column), (row, column + 1)), feature_type))
+        for row, column in itertools.product(range(1, 9), range(1, 10)):
+            feature_type = 10 if (row, column) in down_x else 5 if (row, column) in down_v else None
+            features.append(XVFeature(((row, column), (row + 1, column)), feature_type))
+        return features
+
+
+
+
+
+
+
+
+
+
+
+

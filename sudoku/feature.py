@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from cell import Cell, House
 from grid import Grid
 
+Square = Tuple[int, int]
 
 class Feature(abc.ABC):
     def initialize(self, grid: Grid) -> None:

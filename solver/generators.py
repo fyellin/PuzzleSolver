@@ -43,6 +43,11 @@ def cube(clue: Clue) -> Iterator[int]:
     upper = int(math.ceil(max_value ** (1 / 3)))
     return map(lambda x: x * x * x, range(lower, upper))
 
+def filterer(predicate) -> Callable[[Clue], Iterable[int]]:
+    def result(clue: Clue) -> Iterator[int]:
+        min_value, max_value = get_min_max(clue)
+        return filter(predicate, range(min_value, max_value))
+    return result
 
 def nth_power(n: int) -> Callable[[Clue], Iterable[int]]:
     def result(clue: Clue) -> Iterator[int]:
@@ -51,7 +56,6 @@ def nth_power(n: int) -> Callable[[Clue], Iterable[int]]:
         upper = int(math.ceil(max_value ** (1 / n)))
         return map(lambda x: x ** n, range(lower, upper))
     return result
-
 
 def prime(clue: Clue) -> Iterator[int]:
     """Returns primes"""
@@ -102,6 +106,15 @@ def fibonacci(clue: Clue) -> Iterator[int]:
 def lucas(clue: Clue) -> Iterator[int]:
     """Returns Lucas numbers"""
     return within_clue_limits(clue, __fibonacci_like(2, 1))
+
+
+def filtering(predicate) -> Callable[[Clue], Iterable[int]]:
+    def result(clue: Clue) -> Iterator[int]:
+        min_value, max_value = get_min_max(clue)
+        return filter(predicate, range(min_value, max_value))
+    return result
+
+
 
 
 def within_clue_limits(clue: Clue, stream: Iterator[int]) -> Iterator[int]:
@@ -206,3 +219,22 @@ def __fibonacci_like(start_i: int, start_j: int) -> Iterator[int]:
     while True:
         yield i
         i, j = j, i + j
+
+
+def phi(value: int) -> int:
+    result = 1
+    for prime in prime_generator():
+        if value % prime == 0:
+            value = value // prime
+            count = 1
+            while value % prime == 0:
+                count += 1
+                value = value // prime
+            result *= count + 1
+        if value == 1:
+            return result
+        if value < prime * prime:
+            return result * 2
+
+
+

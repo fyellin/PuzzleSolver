@@ -1,4 +1,5 @@
 import datetime
+import functools
 import itertools
 import math
 from typing import Sequence, Tuple, List, Mapping, Iterable, Set, Optional
@@ -13,9 +14,10 @@ from features import KnightsMoveFeature, PossibilitiesFeature, MagicSquareFeatur
     AdjacentRelationshipFeature, AllValuesPresentFeature, ThermometerFeature, SnakeFeature, LimitedValuesFeature, \
     SameValueAsExactlyOneMateFeature, SameValueAsMateFeature, LittlePrincessFeature, \
     AlternativeBoxesFeature, SlowThermometerFeature, SandwichFeature, KingsMoveFeature, \
-    QueensMoveFeature, SandwichXboxFeature
-from feature import Feature
+    QueensMoveFeature, SandwichXboxFeature, PalindromeFeature, XVFeature
+from feature import Feature, Square
 from skyscraper_feature import SkyscraperFeature
+from solver.generators import phi
 
 
 class MalvoloRingFeature(Feature):
@@ -235,6 +237,17 @@ class ColorFeature(Feature):
                                       color=self.CIRCLES[letter]))
         # noinspection PyTypeChecker
         axis.add_patch(FancyBboxPatch((2.3, 5.3), 6.4, 0.4, boxstyle='round, pad=0.2', fill=False))
+
+
+class DrawCircleFeature(Feature):
+    squares: Sequence[Tuple[int, int]]
+
+    def __init__(self, squares: Sequence[Tuple[int, int]]):
+        self.squares = squares
+
+    def draw(self, context: dict) -> None:
+        for row, column in self.squares:
+            plt.gca().add_patch(plt.Circle((column + .5, row + .5), radius=.5, fill=False, color='blue'))
 
 
 class DoubleSumFeature(PossibilitiesFeature):
@@ -797,9 +810,163 @@ def puzzle_08_31(*, show: bool = False) -> None:
     puzzle = ".....8....................9.................6.....4.................6.......7.9.."
     Sudoku().solve(puzzle, features=[*thermometers, snake], show=show)
 
+def puzzle_09_03(*, show: bool = False) -> None:
+    columns = (11, 0, 17, 6, 22, 0, 10, 35, 9)
+    rows = (27, 3, 0, 16, 16, 19, 5, 13, 0)
+    primes = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79}
+    prime_squares = [square for value, square in enumerate(itertools.product(range(1, 10), repeat=2), start=1)
+                    if value in primes]
+    features = [
+        *[SandwichFeature(House.Type.ROW, row, total) for row, total in enumerate(rows, start=1)],
+        *[SandwichFeature(House.Type.COLUMN, col, total) for col, total in enumerate(columns, start=1)],
+        LimitedValuesFeature(prime_squares, (2, 3, 5, 7)),
+        DrawCircleFeature(prime_squares)
+    ]
+    Sudoku().solve('1' + ' ' * 80, features=features, show=show)
+
+
+def puzzle_09_04(*, show: bool = False) -> None:
+    class IncreasingFeature(AdjacentRelationshipFeature):
+        def __init__(self, square1: Square, square2: Square):
+            super().__init__("<", [square1, square2], color='purple')
+
+        def match(self, digit1: int, digit2: int) -> bool:
+            return digit2 == digit1 + 1
+
+    features = [
+        PalindromeFeature("1,2,E,E,S,S", color="blue"),
+        PalindromeFeature("1,8,W,W,S,S", color="blue"),
+        PalindromeFeature("1,5,S,S,S,W,W,W", color="red"),
+        PalindromeFeature("2,7,S,S,E,E", color="red"),
+        PalindromeFeature("7,1,E,E,N,N", color="blue"),
+        PalindromeFeature("7,5,E,E,S,S", color="blue"),
+        PalindromeFeature("7,2,E,E,S,S", color="red"),
+        PalindromeFeature("7,8,W,W,S,S", color="red"),
+        IncreasingFeature((7,2), (7,3)),
+        IncreasingFeature((7,6), (7,7))
+    ]
+    puzzle = "8....6..9..........3......42...............8.............5......1...............7"
+    extras = "XXXXXXX--..6X".replace("X","---").replace("-", "...")
+    puzzle = merge(puzzle, extras)
+    Sudoku().solve(puzzle, features=features, show=show)
+
+
+def puzzle_09_05(*, show: bool = False) -> None:
+    class DeltaFeature(AdjacentRelationshipFeature):
+        delta: int
+
+        def __init__(self, square: Square, delta: int, is_right: bool):
+            row, column = square
+            square2 = (row, column + 1) if is_right else (row + 1, column)
+            self.delta = delta
+            super().__init__("d", [square, square2])
+
+        def draw(self, context: dict) -> None:
+            (r1, c1), (r2, c2) = self.squares
+            plt.text((c1 + c2 + 1)/2, (r1 + r2 + 1)/2, str(self.delta),
+                     verticalalignment='center', horizontalalignment='center', fontsize=15, weight='bold', color='red')
+
+        def match(self, digit1: int, digit2: int) -> bool:
+            return abs(digit1 - digit2) == self.delta
+
+    features = [
+        DeltaFeature((2, 3), 1, True),
+        DeltaFeature((2, 6), 1, True),
+        DeltaFeature((3, 3), 7, True),
+        DeltaFeature((3, 6), 7, True),
+        DeltaFeature((4, 3), 5, True),
+        DeltaFeature((4, 6), 5, True),
+        DeltaFeature((6, 2), 1, True),
+        DeltaFeature((6, 7), 2, True),
+        DeltaFeature((1, 5), 8, False),
+        DeltaFeature((2, 1), 4, False),
+        DeltaFeature((2, 9), 4, False),
+        DeltaFeature((3, 2), 6, False),
+        DeltaFeature((3, 8), 6, False),
+        DeltaFeature((4, 5), 3, False),
+        DeltaFeature((7, 1), 1, False),
+        DeltaFeature((7, 9), 2, False),
+        DeltaFeature((8, 2), 1, False),
+        DeltaFeature((8, 8), 2, False),
+
+    ]
+    puzzle = "XXXXXX.921.738.-3.9-X".replace("X","---").replace("-", "...")
+    Sudoku().solve(puzzle, features=features, show=show)
+
+def puzzle_09_06(*, show: bool = False) -> None:
+    class CamelJumpFeature(SameValueAsMateFeature):
+        OFFSETS = [(dr, dc) for dx in (-1, 1) for dy in (-3, 3) for (dr, dc) in ((dx, dy), (dy, dx))]
+
+        def get_mates(self, cell: Cell, grid: Grid) -> Iterable[Cell]:
+            return self.neighbors_from_offsets(grid, cell, self.OFFSETS)
+
+        def draw(self, context: dict) -> None:
+            if self.done:
+                self.draw_outline([self.this_square], linestyle="-")
+
+    features = [CamelJumpFeature(square) for square in itertools.product(range(1, 10), repeat=2)]
+    puzzle = "........9.....85..7...2.1..35...............6.96.....7...........1.7.9......452.."
+    Sudoku().solve(puzzle, features=features, show=show)
+
+def puzzle_09_10(*, show: bool = False) -> None:
+    puzzle = "....9.....14..5..8......3.4.2.3..74...6.......81.24....6.9..........69.28.9..1..3"
+    Sudoku().solve(puzzle, features=(), show=show)
+
+
+def puzzle_09_15(*, show: bool = False) -> None:
+    puzzle = "-----.5.3.8.2.2.5.3.6.9.9.4.6.1.-".replace('-', '.........')
+    features = XVFeature.setup(down_x=[(1,3), (1, 5), (1, 7), (2, 2), (2, 4), (2, 6), (2, 8), (3, 3), (3, 5), (3, 7)])
+    Sudoku().solve(puzzle, features=features, show=show)
+
+
+def puzzle_09_16(*, show: bool = False) -> None:
+    puzzle = "529784361............2......4....2..361529784..2....3......2............784361529"
+    features = [SnakeFeature.major_diagonal(), SnakeFeature.minor_diagonal()]
+    Sudoku().solve(puzzle, features=features, show=show)
+
+
+def puzzle_09_17_2(*, show: bool = False) -> None:
+    puzzle = "..8..964.9..1.6........7....3.....5.7.2...4.3.6.....8...18..9.....4....5.832..1.."
+    Sudoku().solve(puzzle, features=(), show=show)
+
+
+def puzzle_09_20(*, show: bool = False) -> None:
+    puzzle = "XXXXX-1..-XXX".replace("X","---").replace("-", "...")
+    features = [
+        *SandwichFeature.all(House.Type.ROW, [10, 19, 25, 28, 17, 3, 23, 6, 7]),
+        *SandwichFeature.all(House.Type.COLUMN, [18, 8, 21, 18, 13, 27, 25, 13, 3]),
+        KnightsMoveFeature()
+    ]
+    Sudoku().solve(puzzle, features=features, show=show)
+
+
+def puzzle_09_21(*, show: bool = False) -> None:
+    class Multiplication(PossibilitiesFeature):
+        def __init__(self, row, column):
+            squares = [(row, column), (row, column + 1), (row + 1, column), (row + 1, column + 1)]
+            super().__init__(f"Square{row}{column}", squares, neighbors=True)
+
+        def get_possibilities(self) -> List[Tuple[Set[int], ...]]:
+            for x, y in itertools.product(range(1, 10), repeat=2):
+                if x <= y:
+                    z = x * y
+                    if z >= 11 and z % 10 != 0:
+                        yield ({x, y}, {x, y}, { z // 10}, { z % 10 })
+
+        def draw(self, context: dict) -> None:
+            self.draw_rectangles(self.squares, color='lightgray')
+
+    puzzle = "X..7-6...5.-.8.-..9-X-5..-.6.-.9...1-2..X".replace("X","---").replace("-", "...")
+    features = [
+        Multiplication(1, 1), Multiplication(1, 8), Multiplication(3, 3), Multiplication(6, 6),
+        Multiplication(8, 1), Multiplication(8, 8)
+    ]
+    Sudoku().solve(puzzle, features=features, show=show)
+
+
 
 if __name__ == '__main__':
     start = datetime.datetime.now()
-    puzzle_08_31(show=False)
+    puzzle_09_21(show=False)
     end = datetime.datetime.now()
     print(end - start)

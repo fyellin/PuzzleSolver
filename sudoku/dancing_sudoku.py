@@ -49,7 +49,7 @@ class Sudoku:
 
         links = DancingLinks(self.constraints, optional_constraints=self.optional_constraints,
                              row_printer=self.draw_grid)
-        links.solve(debug=1000, recursive=False)
+        links.solve(recursive=False)
 
 
     def draw_grid(self, results: Sequence[Tuple[int, int, int]]) -> None:

@@ -53,14 +53,19 @@ class PainInTheButtFeature(PossibilitiesFeature):
         others = set(range(1, 10)) - {self.value}
         prototype = [others] * 27
         for column in range(1, 10):
-            for delta in (-self.value, self.value):
-                if 1 <= column + 2 * delta <= 9:
-                    possibility = prototype[:]
-                    possibility[-1 + column] = {self.value}
-                    possibility[-1 + 9 + column + delta] = {self.value}
-                    possibility[-1 + 18 + column + 2 * delta] = {self.value}
-                    yield tuple(possibility)
+            delta = -self.value
+            if 1 <= column + 2 * delta <= 9:
+                possibility = prototype[:]
+                possibility[-1 + column] = {self.value}
+                possibility[-1 + 9 + column + delta] = {self.value}
+                possibility[-1 + 18 + column + 2 * delta] = {self.value}
+                yield tuple(possibility)
 
+    def check_special(self) -> bool:
+        if self.value == 1 and not self.grid.matrix[8, 6].is_known:
+            self.grid.matrix[8, 6].set_value_to(1, show=True)
+            return True
+        return False
 
 class PainInTheButtFeatureX(PossibilitiesFeature):
     def __init__(self):
@@ -69,17 +74,25 @@ class PainInTheButtFeatureX(PossibilitiesFeature):
 
     def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
         others = set(range(1, 10)) - {1}
-        prototype = [others] * 27 + [set(range(1, 10))] * 9
+        prototype = [others] * 27
+        normal = [set(range(1, 10))] * 9
         for column in range(1, 10):
-            for delta in (-1, 1):
-                if 1 <= column + 2 * delta <= 9:
-                    possibility = prototype[:]
-                    possibility[-1 + column] = {1}
-                    possibility[-1 + 9 + column + delta] = {1}
-                    possibility[-1 + 18 + column + 2 * delta] = {1}
-                    yield tuple(possibility)
-                    possibility2 = possibility[27:] + possibility[:27]
-                    yield tuple(possibility2)
+            if 1 <= column - 2 <= 9:
+                possibility = prototype[:]
+                possibility[column - 1] = {1}
+                possibility[column + 7] = {1}
+                possibility[column + 15] = {1}
+                yield tuple(possibility + normal)
+                yield tuple(normal + possibility)
+
+    def check_special(self) -> bool:
+        square = 3, 2
+        if not self.grid.matrix[square].is_known:
+            print("SPECIAL")
+            # // self.grid.matrix[square].set_value_to(1, show=True)
+            # // return True
+        return False
+
 
 
 class DrawCircleFeature(Feature):
@@ -121,9 +134,9 @@ def tour_puzzle_two(*, show: bool = False) -> None:
     previous = ".4.8.............7................9..85...76..7................4.............4.7."
     puzzle = "X,,6--XXXXX--6...5.--".replace('X', '---').replace('-', '...')
     puzzle = merge(previous, puzzle)
-    foobar = "XXXXXXX.........X".replace('X', '---').replace('-', '...')
-    print(len(foobar))
-    puzzle = merge(foobar, puzzle)
+    # foobar = "XX..1--XXXX.....1...X".replace('X', '---').replace('-', '...')
+    # print(len(foobar))
+    # puzzle = merge(foobar, puzzle)
     features = [PainInTheButtFeature(i) for i in range(1, 4)]
     features.append(PainInTheButtFeatureX())
     Sudoku().solve(puzzle, features=features, show=show)
