@@ -9,9 +9,9 @@ from matplotlib import pyplot as plt
 
 from cell import House, Cell, CellValue
 from chain import Chains
+from feature import Feature
 from grid import Grid
 from hard_medusa import HardMedusa
-from feature import Feature
 
 
 class Sudoku:
@@ -31,7 +31,7 @@ class Sudoku:
             grid.matrix[square].set_value_to(value)
         try:
             return self.run_solver(show)
-        except:
+        except Exception:
             self.draw_grid()
             raise
 

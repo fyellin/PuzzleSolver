@@ -1,14 +1,13 @@
 import functools
-import datetime
+import functools
 import itertools
 import math
-from collections import defaultdict, Counter, deque
-from fractions import Fraction
-from typing import Tuple, Sequence, Any, Set, Iterable
-import numpy as np
-import fraction
-
 import operator
+from collections import Counter
+from fractions import Fraction
+from typing import Tuple, Sequence, Any, Iterable
+
+from misc.primes import PRIMES, PRIMES_LIMIT
 
 num2words = {1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five',
              6: 'Six', 7: 'Seven', 8: 'Eight', 9: 'Nine', 10: 'Ten',
@@ -84,11 +83,6 @@ def divisor_count(value: int):
 def product(values):
     return functools.reduce(operator.mul, values, 1)
 
-def phi(value: int):
-    current = value
-    for prime, _ in  prime_factors(value):
-        current = (current // prime) * (prime - 1)
-    return current
 
 @functools.lru_cache(None)
 def sum_factors(value: int):
@@ -178,27 +172,137 @@ def is_special_set(values):
 
 
 def foobar() -> Any:
-    # 166 is wrong answer
-    def is_palindrome(number):
-        temp = str(number)
-        return temp == temp[::-1]
+    prime_set = set(PRIMES)
 
-    maximum = 10 ** 8
+    # 44680   362800
+    def is_prime(value: int) -> bool:
+        if value <= PRIMES_LIMIT:
+            return value in prime_set
+        return is_prime_large(value)
 
-    indices = np.arange(0, math.isqrt(maximum // 2) + 10)
-    squares = indices ** 2
-    squares_cumsum = np.cumsum(squares)
-    matrix = squares_cumsum[:, None] - squares_cumsum[None, :]
-    matrix[(indices[:, None] < indices[None, :] + 2)]  = 0
+    @functools.lru_cache(None)
+    def is_prime_large(value: int) -> bool:
+        sqrt = math.isqrt(value)
+        for prime in PRIMES:
+            if prime > sqrt:
+                return True
+            if value % prime == 0:
+                return False
 
-    items = { int(value) for value in np.nditer(matrix) if 0 < value < maximum and is_palindrome(value)}
-    print(len(items), sorted(items), sum(items))
+    def get_partitions(n: int, smallest: int, permutation_pairs, foo=()):
+        print(9-n, foo, len(permutation_pairs))
+        if n == 0:
+            return len(permutation_pairs)
+        count = 0
+        for i in range(smallest, n + 1):
+            if i == n:
+                variables = [int(permutation[-n:]) for _, permutation in permutation_pairs]
+            else:
+                if n - i < i: continue
+                variables = [int(permutation[-n: -n + i]) for _, permutation in permutation_pairs]
+            prime_variables = {x for x in set(variables) if is_prime(x)}
+            next = [(variable, permutation)
+                    for variable, (prev, permutation) in zip(variables, permutation_pairs)
+                    if variable > prev and variable in prime_variables]
+            if next:
+                count += get_partitions(n - i, i, next, foo + (i,))
+        return count
 
 
+    def run2():
+        permutations = [(0, ''.join(x)) for x in itertools.permutations("123456789")]
+        return get_partitions(9, 1, permutations)
+
+    return run2()
 
 
+def convert_to_base(num: int, base: int) -> str:
+    """Converts a number to the specified base, and returns the value as a string"""
+    result = []
+    if not num:
+        return '0'
+    while num:
+        num, mod = divmod(num, base)
+        result.append('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz<>'[mod])
+    result.reverse()
+    return ''.join(result)
 
+
+def foobar():
+    prime_set = set(PRIMES)
+
+    # 44680   362800
+    def is_prime(value: int) -> bool:
+        if value <= PRIMES_LIMIT:
+            return value in prime_set
+        return is_prime_large(value)
+
+    @functools.lru_cache(None)
+    def is_prime_large(value: int) -> bool:
+        sqrt = math.isqrt(value)
+        for prime in PRIMES:
+            if prime > sqrt:
+                return True
+            if value % prime == 0:
+                return False
+
+    @functools.lru_cache(None)
+    def get_order_of_prime(n):
+        factors = prime_factors(n - 1)
+        result = n
+        for prime, count in factors:
+            result = result // (prime ** count)
+            a = pow(10, result, n)
+            while a != 1:
+                a = pow(a, prime, n); result = result * prime
+        return result
+
+    def get_repl_n(value):
+        assert value % 2 != 0 and value % 5 != 0
+        factors = prime_factors(value * 9)
+        result = 1
+        for prime, count in factors:
+            assert prime != 2
+            if prime == 3:
+                assert count >= 2
+                this_result = prime ** (count - 2)
+            elif prime == 483:
+                this_result = prime - 1 if count <= 2 else (prime - 1) * prime ** (count - 2)
+            else:
+                this_result = get_order_of_prime(prime) * prime ** (count - 1)
+            result = result * this_result // math.gcd(result, this_result)
+        return result
+
+    maximum = 100_000
+    total = 0
+    for prime in PRIMES:
+        if prime > maximum:
+            break
+        elif prime == 2 or prime == 5:
+            total += prime
+        else:
+            value = temp = get_repl_n(prime)
+            while temp % 2 == 0: temp //= 2
+            while temp % 5 == 0: temp //= 5
+            if temp == 1:
+                print(prime, value)
+            else:
+                total += prime
+    return total
+
+def foobar():
+    from sympy.parsing.sympy_parser import parse_expr
+    from sympy.parsing.sympy_parser import standard_transformations, implicit_multiplication_application
+    transformations = (standard_transformations + (implicit_multiplication_application,))
+    print(parse_expr("xy", transformations=transformations))
 
 
 if __name__ == '__main__':
-    print(foobar())
+    foobar()
+
+
+
+
+
+
+

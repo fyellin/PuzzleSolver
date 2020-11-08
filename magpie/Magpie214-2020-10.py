@@ -1,17 +1,9 @@
 import functools
-import itertools
 import math
 import operator
-import re
-from collections import defaultdict, Counter
-from typing import Sequence, Dict, Tuple, List, cast, Any, Union
+from typing import Sequence, Tuple, Iterator
 
-from matplotlib import pyplot as plt
-from matplotlib.patches import Ellipse
-
-from misc.primes import PRIMES
-from solver import generators, ConstraintSolver, Clues, Clue, Location
-from solver.constraint_solver import KnownClueDict
+from solver import generators, ConstraintSolver, Clues, Clue
 from solver.generators import filtering, allvalues
 
 
@@ -34,23 +26,26 @@ def prime_factors(value: int) -> Sequence[Tuple[int, int]]:
             result.append((value, 1))
             return result
 
+
 @functools.lru_cache(None)
-def divisor_count(value: int):
+def divisor_count(value: int) -> int:
     factorization = prime_factors(value)
     return product(count + 1 for _prime, count in factorization)
 
-def phi(value: int):
+
+def phi(value: int) -> int:
     # number of values that mutually prime
     current = value
-    for prime, _ in  prime_factors(value):
+    for prime, _ in prime_factors(value):
         current = (current // prime) * (prime - 1)
     return current
 
 
 @functools.lru_cache(None)
-def factor_sum(value: int):
+def factor_sum(value: int) -> int:
     factorization = prime_factors(value)
     return product((prime ** (count + 1) - 1) // (prime - 1) for prime, count in factorization)
+
 
 @functools.lru_cache(None)
 def factor_count(value: int) -> int:
@@ -60,10 +55,10 @@ def factor_count(value: int) -> int:
 
 @functools.lru_cache(None)
 def factor_list(value: int) -> Sequence[int]:
-    def recurse(factor_list) -> Sequence[int]:
-        if not factor_list:
+    def recurse(prime_factor_list) -> Sequence[int]:
+        if not prime_factor_list:
             return [1]
-        *start_factor_list, (prime, count) = factor_list
+        *start_factor_list, (prime, count) = prime_factor_list
         sub_factors = recurse(start_factor_list)
         powers = [prime ** i for i in range(0, count + 1)]
         return [factor * power for factor in sub_factors for power in powers]
@@ -72,45 +67,41 @@ def factor_list(value: int) -> Sequence[int]:
     assert sum(result) == factor_sum(value)
     return result
 
-@functools.lru_cache(None)
-def shares_prime_factor(x, y):
-    gcd = math.gcd(x, y)
-    return gcd > 1
 
 @functools.lru_cache(None)
-def shared_factor_count(x, y) -> int:
+def shared_factor_count(x: int, y: int) -> int:
     gcd = math.gcd(x, y)
     return factor_count(gcd)
 
+
 @functools.lru_cache(None)
-def odd_factor_count(value):
+def odd_factor_count(value: int) -> int:
     while value % 2 == 0:
         value = value // 2
     return factor_count(value)
 
-@functools.lru_cache(None)
-def even_factor_count(value):
-    try:
-        if value & 1 == 1:
-            return 0
-        count = 0
-        while value & 1 == 0:
-            value = value // 2;
-            count += 1
-        return count * factor_count(value)
-    except:
-        print(value)
 
-def product(values):
+@functools.lru_cache(None)
+def even_factor_count(value: int) -> int:
+    count = 0
+    while value & 1 == 0:
+        value = value // 2
+        count += 1
+    return 0 if count == 0 else count * factor_count(value)
+
+
+def product(values: Iterator[int]) -> int:
     return functools.reduce(operator.mul, values, 1)
 
-GRID="""
+
+GRID = """
 XX.XX
 X.X..
 XX.X.
 XX.XX
 X.X..
 """
+
 
 class Solver214(ConstraintSolver):
     @staticmethod
@@ -126,7 +117,7 @@ class Solver214(ConstraintSolver):
 
     @staticmethod
     def get_clue_list() -> Sequence[Clue]:
-        grid_locations = [None] + Clues.get_locations_from_grid(GRID)
+        grid_locations = [(-1, -1)] + Clues.get_locations_from_grid(GRID)
 
         clues = [
             Clue("1a", True, grid_locations[1], 3, generator=filtering(lambda x: factor_count(x) == 6)),
@@ -151,18 +142,13 @@ class Solver214(ConstraintSolver):
         ]
         return clues
 
-    def check_solution(self, known_clues: KnownClueDict) -> bool:
-        special = self.clue_named("6d")
-        special_count = factor_count(int(known_clues[special]))
-        return all(special_count > factor_count(int(value)) for clue, value in known_clues.items() if clue != special)
-
-    def add_all_constraints(self):
+    def add_all_constraints(self) -> None:
         self.add_constraint(("3a", "1a"), lambda x, y: factor_count(int(x)) > factor_count(int(y)))
         self.add_constraint(("8a", "6d"), lambda x, y: even_factor_count(int(x)) > even_factor_count(int(y)))
         self.add_constraint(("10a", "12a"), lambda x, y: factor_count(int(x)) > factor_count(int(y)))
         self.add_constraint(("12a", "1d"), lambda x, y: int(x) % int(y) == 0)
         self.add_constraint(("14a", "3a"), lambda x, y: factor_count(int(x)) == factor_count(int(y)))
-        self.add_constraint(("15a", "2d"), lambda x, y: shares_prime_factor(int(x), int(y)))
+        self.add_constraint(("15a", "2d"), lambda x, y: math.gcd(int(x), int(y)) > 1)
         self.add_constraint(("1d", "3d"), lambda x, y: factor_count(int(x)) > factor_count(int(y)))
         self.add_constraint(("4d", "13d"), lambda x, y: shared_factor_count(int(x), int(y)) > 5)
         # 6d will be handled in check_clue
@@ -178,12 +164,12 @@ class Solver214(ConstraintSolver):
         self.add_constraint(("3d", "9d"), lambda x, y: odd_factor_count(int(x)) == odd_factor_count(int(y)))
         self.add_constraint(("4d", "13d"), lambda x, y: factor_count(int(x)) == factor_count(int(y)))
 
+        six_down = self.clue_named("6d")
+        for clue in self._clue_list:
+            if clue != six_down:
+                self.add_constraint((six_down, clue), lambda x, y: factor_count(int(x)) > factor_count(int(y)))
 
 
 
 if __name__ == '__main__':
-    Solver214.run()
-    # temp = Solver214()
-
-
-
+    temp = Solver214()

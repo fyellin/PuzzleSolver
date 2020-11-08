@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import abc
+import datetime
 import functools
 import itertools
 from collections import deque, defaultdict
-import datetime
 from typing import Iterable, Tuple, Sequence, Set, List, Optional, ClassVar, Mapping, Dict
+
 from matplotlib import pyplot as plt
 
 from cell import Cell, House
@@ -717,36 +718,80 @@ class PalindromeFeature(Feature):
 
 class XVFeature(AdjacentRelationshipFeature):
     total: Optional[int]
+    non_total: Optional[Set[int]]
 
-    def __init__(self, squares: Tuple[Square], total: Optional[int]):
+    def __init__(self, squares: Tuple[Square], *,
+                 total: Optional[int] = None, non_total: Optional[Set[int]] = None):
         super().__init__(f'{squares[0]}/{squares[1]}', squares)
         self.total = total
+        self.non_total = non_total
 
     def match(self, digit1: int, digit2: int) -> bool:
         if self.total:
-             return digit1 + digit2 == self.total
+            return digit1 + digit2 == self.total
         else:
-            return digit1 + digit2 not in (5, 10)
+            return digit1 + digit2 not in self.non_total
 
     def draw(self, context: dict) -> None:
         if self.total:
             args = {}
             (r1, c1), (r2, c2) = self.squares
-            character = 'X' if self.total == 10 else 'V'
-            plt.text((c1 + c2 + 1)/2, (r1 + r2 + 1)/2, character,
+            character = 'X' if self.total == 10 else 'XV' if self.total == 15 else 'V'
+            plt.text((c1 + c2 + 1) / 2, (r1 + r2 + 1) / 2, character,
                      verticalalignment='center', horizontalalignment='center', **args)
 
     @staticmethod
-    def setup(*, across_x: Sequence[Square] = (), across_v: Sequence[Square] = (),
-              down_x: Sequence[Square] = (), down_v: Sequence[Square] = ()) -> Sequence[Features]:
+    def setup(*, across: Mapping[int, Sequence[Square]], down: Mapping[int, Sequence[Square]],
+              all_listed: bool = True,
+              all_values: Optional[Set[int]] = None) -> Sequence[Features]:
         features = []
-        for row, column in itertools.product(range(1, 10), range(1, 9)):
-            feature_type = 10 if (row, column) in across_x else 5 if (row, column) in across_v else None
-            features.append(XVFeature(((row, column), (row, column + 1)), feature_type))
-        for row, column in itertools.product(range(1, 9), range(1, 10)):
-            feature_type = 10 if (row, column) in down_x else 5 if (row, column) in down_v else None
-            features.append(XVFeature(((row, column), (row + 1, column)), feature_type))
+        features.extend(XVFeature(((row, column), (row, column + 1)), total=total)
+                        for total, squares in across.items()
+                        for row, column in squares)
+        features.extend(XVFeature(((row, column), (row + 1, column)), total=total)
+                        for total, squares in down.items()
+                        for row, column in squares)
+        if all_listed:
+            if all_values is None:
+                all_values = set(across.keys()).union(set(down.keys()))
+            acrosses_seen = {square for total, squares in across.items() for square in squares}
+            downs_seen = {square for total, squares in down.items() for square in squares}
+            features.extend(XVFeature(((row, column), (row, column + 1)), non_total=all_values)
+                            for row, column in itertools.product(range(1, 10), range(1, 9))
+                            if (row, column) not in acrosses_seen)
+            features.extend(XVFeature(((row, column), (row + 1, column)), non_total=all_values)
+                            for row, column in itertools.product(range(1, 9), range(1, 10))
+                            if (row, column) not in downs_seen)
         return features
+
+    def __str__(self):
+        if self.total:
+            return f'<{self.squares[0]}+{self.squares[1]}={self.total}>'
+        else:
+            return f'<{self.squares[0]}+{self.squares[1]}!={self.non_total}>'
+
+
+class NonConsecutiveFeature(AdjacentRelationshipFeature):
+    def __init__(self, squares: Tuple[Square]):
+        super().__init__(f'{squares[0]}/{squares[1]}', squares)
+
+    def match(self, digit1: int, digit2: int) -> bool:
+        return abs(digit1 - digit2) != 1
+
+    def draw(self, context: dict) -> None:
+        pass
+
+    @staticmethod
+    def setup() -> Sequence[Features]:
+        features = []
+        features.extend(NonConsecutiveFeature(((row, column), (row, column + 1)))
+                        for row, column in itertools.product(range(1, 10), range(1, 9)))
+        features.extend(NonConsecutiveFeature(((row, column), (row + 1, column)))
+                        for row, column in itertools.product(range(1, 9), range(1, 10)))
+        return features
+
+
+
 
 
 

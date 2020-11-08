@@ -1,3 +1,4 @@
+import datetime
 import functools
 import itertools
 import math
@@ -41,6 +42,7 @@ def make_puzzle_table() -> Dict[Tuple[int, int], Sequence[int]]:
             if value != fmin:  # not a prime
                 result[length, fmax - fmin].append(value)
     return result
+
 
 GRID = """
 X...xxx..x....x
@@ -204,7 +206,6 @@ class Solver213(ConstraintSolver):
                 draw_heavy(*clue.locations[0], 'left')
                 draw_heavy(*clue.locations[-1], 'right')
             elif clue.name.endswith("h"):
-                row, column = clue.locations[0]
                 draw_heavy(*clue.locations[0], ('bottom', 'right'))
                 draw_heavy(*clue.locations[-1], ('left', 'top'))
             elif clue.name.endswith("p"):
@@ -231,27 +232,27 @@ def foobar(x) -> None:
 
 
 def hanoi() -> None:
-    x = [1, 2, 3, 4]
     count = 0
     piles = [[7], [6, 5, 4, 3, 2, 1], []]
     result = Counter()
 
-    def move(n: int, start: int, end: int) -> None:
+    def move(stone: int, start: int, end: int) -> None:
         nonlocal count
-        assert n == piles[start][-1]
-        assert n < (piles[end][-1] if piles[end] else 1000)
+        assert stone == piles[start][-1]
+        assert stone < (piles[end][-1] if piles[end] else 1000)
         piles[start].pop()
-        if n == 1:
+        if stone == 1:
             temp = 3 - start - end
-            piles[temp].append(n)
+            piles[temp].append(stone)
             favorite = max(pile[-1] for pile in piles if pile)
             piles[temp].pop()
             result[favorite] += 1
         else:
             favorite = None
-        piles[end].append(n)
+        piles[end].append(stone)
         count += 1
-        show_pile(count, piles, favorite)
+        print(f'{count:3}: {stone}:{start+1}->{end+1}:    '
+              f'{xx(piles[0]):7} {xx(piles[1]):7}  {xx(piles[2]):7} {favorite}')
 
     def internal(count: int, start: int, end: int) -> None:
         temp = 3 - start - end
@@ -261,24 +262,35 @@ def hanoi() -> None:
         if count > 1:
             internal(count - 1, temp, end)
 
-    def show_pile(count, piles, favorite):
-        def xx(pile):
-            return ''.join(str(x) for x in sorted(pile, reverse=True))
-
-        print(f'{count:3}:  {xx(piles[0]):7} {xx(piles[1]):7}  {xx(piles[2]):7} {favorite}')
+    def xx(pile: Sequence[int]) -> str:
+        return ''.join(str(x) for x in sorted(pile, reverse=True))
 
     move(7, 0, 2)
     internal(6, 1, 2)
     internal(6, 2, 0)
     print(result)
 
+"""
+Generator: 0:00:00.055020; List: 0:00:00.092192
+Generator: 0:00:12.039189; List: 0:00:00.363289
+
+"""
+def sum_with_list():
+    return sum([i * i for i in range(1, 1_000_000)])
+
+def sum_with_generator():
+    return sum(i * i for i in range(1, 1_000_000))
+
+def test():
+    time1 = datetime.datetime.now()
+    print(sum_with_generator())
+    time2 = datetime.datetime.now()
+    print(sum_with_list())
+    time3 = datetime.datetime.now()
+    print(f'Generator: {time2 - time1}; List: {time3 - time2}')
 
 if __name__ == '__main__':
-    # hanoi()
-    # Solver213.run()
-    foobar(258333)
-    foobar(665661)
-    foobar(666624)
+    test()
 
 
 

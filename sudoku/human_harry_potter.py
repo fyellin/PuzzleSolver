@@ -1,5 +1,4 @@
 import datetime
-import functools
 import itertools
 import math
 from typing import Sequence, Tuple, List, Mapping, Iterable, Set, Optional
@@ -8,16 +7,15 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import FancyBboxPatch
 
 from cell import Cell, House
-from grid import Grid
-from human_sudoku import Sudoku
+from feature import Feature, Square
 from features import KnightsMoveFeature, PossibilitiesFeature, MagicSquareFeature, \
     AdjacentRelationshipFeature, AllValuesPresentFeature, ThermometerFeature, SnakeFeature, LimitedValuesFeature, \
     SameValueAsExactlyOneMateFeature, SameValueAsMateFeature, LittlePrincessFeature, \
     AlternativeBoxesFeature, SlowThermometerFeature, SandwichFeature, KingsMoveFeature, \
-    QueensMoveFeature, SandwichXboxFeature, PalindromeFeature, XVFeature
-from feature import Feature, Square
+    QueensMoveFeature, SandwichXboxFeature, PalindromeFeature, XVFeature, NonConsecutiveFeature
+from grid import Grid
+from human_sudoku import Sudoku
 from skyscraper_feature import SkyscraperFeature
-from solver.generators import phi
 
 
 class MalvoloRingFeature(Feature):
@@ -963,10 +961,15 @@ def puzzle_09_21(*, show: bool = False) -> None:
     ]
     Sudoku().solve(puzzle, features=features, show=show)
 
+def puzzle_10_17(*, show: bool = False) -> None:
+    puzzle = "XXXXX3.9.4.1.6.9.4.5.3.8.7.6.5.4X".replace("X","---").replace("-", "...")
+    features = NonConsecutiveFeature.setup()
+    Sudoku().solve(puzzle, features=features, show=show)
+
 
 
 if __name__ == '__main__':
     start = datetime.datetime.now()
-    puzzle_09_21(show=False)
+    puzzle_10_17(show=False)
     end = datetime.datetime.now()
     print(end - start)

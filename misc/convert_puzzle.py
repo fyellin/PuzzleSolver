@@ -165,7 +165,6 @@ def main(arguments: Optional[List[str]] = None) -> None:
     args.is_nyt = False
     convert_grid(args.input_file_name, **vars(args))
 
-
 if __name__ == '__main__':
     pass
     # main(["/Users/fy/Desktop/Listener4263.pdf"])
