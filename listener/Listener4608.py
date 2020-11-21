@@ -1,6 +1,6 @@
 import itertools
 import math
-from typing import Sequence, Optional, Iterator, Set, Callable, Dict, Any
+from typing import Sequence, Optional, Iterator, Set, Callable, Dict, Any, List
 
 from solver import Clue, generators, ClueValue
 from solver import ConstraintSolver

@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 from collections import deque
 from enum import Enum
-from typing import Tuple, Sequence
+from typing import Tuple, Sequence, NamedTuple
 
 from matplotlib import pyplot as plt
 
@@ -191,18 +191,25 @@ class DancingDots:
         plt.show()
 
 
+class foo(NamedTuple):
+    x: int
+
 PUZZLE = """
-X..O.X....
-........X.
-..O.....O.
-.O..O.X...
-..X.......
-...OO.....
-.X....XX..
-O...O.X..O
-..O..X....
-XX........
+.XX..X.O.X
+..X......X
+......O...
+O.X......O
+O.X....O..
+.......O.X
+.X..O.....
+.X...X...X
+.......O..
+.....X....
 """
 
 if __name__ == '__main__':
-    DancingDots().solve2(PUZZLE)
+
+    'abc'.match
+    x = q_class()
+    x.put("hello")
+    #  DancingDots().solve2(PUZZLE)

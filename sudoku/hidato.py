@@ -93,6 +93,7 @@ class Hidato:
                 square_to_values[square].add(value)
         self.draw_grid(square_to_values)
 
+
     def solve2(self) -> None:
         def neighbors(location: Square) -> Sequence[Square]:
             r, c = location
@@ -457,13 +458,36 @@ XX XX .. .. 43 .. .. ..
 XX XX XX .. .. 42 46 
 """
 
+PUZZLE_11_11 = """
+39 .. 01 .. .. .. .. 06
+.. 37 .. 35 03 31 .. ..
+41 42 62 29 .. .. .. ..
+45 .. .. .. .. .. .. XX
+XX 46 47 27 .. .. 14 ..
+.. .. .. 59 .. .. .. 13
+52 55 .. 58 .. 22 20 17
+54 .. .. 57 .. 23 .. 18
+"""
+
+PUZZLE_11_14 = """
+.. 13 15 .. .. .. 22 .. .. ..
+.. 12 .. 16 17 34 .. 31 30 ..
+09 .. 05 .. .. .. .. .. .. ..
+08 06 .. 36 02 XX XX XX XX XX
+40 39 38 .. 01 .. .. .. .. ..
+.. .. .. .. .. 48 49 53 .. ..
+XX XX XX XX XX .. .. 57 85 83
+.. 66 .. .. .. 75 .. .. .. 81
+.. 65 72 61 .. .. .. 77 .. ..
+.. .. .. 73 .. 90 .. .. .. ..
+"""
+
+
 def hidato_run() -> None:
-    hidato = Hidato(PUZZLE_10_07)
+    hidato = Hidato(PUZZLE_11_14)
     start = datetime.datetime.now()
     hidato.solve2()
     end = datetime.datetime.now()
     print(end - start)
-
-if __name__ == '__main__':
-    hidato_run()
+    itertools.co
 

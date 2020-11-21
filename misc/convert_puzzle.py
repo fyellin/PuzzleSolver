@@ -165,10 +165,22 @@ def main(arguments: Optional[List[str]] = None) -> None:
     args.is_nyt = False
     convert_grid(args.input_file_name, **vars(args))
 
+class Foo:
+    def Bar(self):
+        self.dict = self.create_dictionary()
+        print("hello world")
+
+    @staticmethod
+    def create_dictionary():
+        return {23: Foo.Bar}
+
+
+
 if __name__ == '__main__':
     pass
     # main(["/Users/fy/Desktop/Listener4263.pdf"])
     main(["/Users/fy/Desktop/SATURDAY STUMPER.pdf", "--puzzle"])
     # main(["/Users/fy/Desktop/NYT.png", "--puzzle"])
+    x = Foo()
 
 
