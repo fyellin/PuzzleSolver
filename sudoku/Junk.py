@@ -1,37 +1,29 @@
-import concurrent.futures
+import functools
+import multiprocessing as mp
 
-# Object class
-from collections import Counter
-
-
-class obj:
-    def __init__(self, tup):
-        self.tup = tup
+import numpy as np
 
 
-# Dictionary full of instances of obj above
-dic = {'a': obj(1),
-       'b': obj(2),
-       'c': obj(3),
-       'd': obj(4),
-       'e': obj(5),
-       'f': obj(6),
-       }
+def test(name, t_dict):
+    t_dict = t_dict.copy()
+    t_dict['a'] = name
+    return t_dict
 
-
-def get_new_value(dictionary_item):
-    key, value = dictionary_item
-    return key, 'work_' + str(value.tup)
+def mp_func(func, iterator ,**kwargs):
+    f_args = functools.partial(func, **kwargs)
+    pool = mp.Pool(mp.cpu_count())
+    res = pool.map(f_args, iterator)
+    pool.close()
+    return res
 
 def go():
-    x = Counter()
-  with concurrent.futures.ProcessPoolExecutor() as executor:
-    for key, new_value in executor.map(get_new_value, dic.items()):
-        dic[key].new = new_value
-  # Make sure it really worked!
-  for key, value in dic.items():
-      print(key, value.new)
+    mod =dict()
 
+    m =33
+    res = mp_func(func=test, iterator=np.arange(m), t_dict=mod)
+    for di in res:
+        print(di['a'])
 
 if __name__ == '__main__':
     go()
+

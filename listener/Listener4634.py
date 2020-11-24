@@ -1,6 +1,6 @@
 import itertools
 from collections import defaultdict, Counter
-from typing import Sequence, Dict, List, Tuple, Any, cast
+from typing import Sequence, Dict, Tuple, Any, cast, Optional
 
 from solver import Clue, generators
 from solver import ConstraintSolver
@@ -50,26 +50,23 @@ PRIME_TO_ROMAN_TABLE, ROMAN_TO_INT_TABLE = build_table()
 
 
 class Listener4634(ConstraintSolver):
-    all_results: List[Sequence[int]]
-
     @staticmethod
     def run():
         solver = Listener4634()
         solver.verify_is_180_symmetric()
         solver.solve(debug=True)
-        print('SOLUTIONS = [')
-        for line in solver.all_results:
-            print(f'    {line},')
-        print(']')
 
     def __init__(self,) -> None:
-        super().__init__(self.get_clue_list())
-        self.all_results = []
+        super().__init__(self.make_clue_list())
         self.add_my_constraints()
 
-    def get_clue_list(self) -> [Clue]:
+    def make_clue_list(self) -> [Clue]:
+        counter = 0
+
         def make(name: str, length: int, base_location: Location) -> 'Clue':
-            return Clue(name, name.isupper(), base_location, length, generator=self.my_generator)
+            nonlocal counter
+            counter += 1
+            return Clue(str(counter), name.isupper(), base_location, length, generator=self.my_generator)
 
         return (
             make('A', 5, (1, 1)),
@@ -148,9 +145,10 @@ class Listener4634(ConstraintSolver):
         if temp['M'] != 1 or temp['D'] != 2:
             return False
 
-        return self.check_all_constraints(known_clues)
+        return bool(self.check_all_constraints(known_clues))
 
-    def check_all_constraints(self, known_clues):
+    @staticmethod
+    def check_all_constraints(known_clues: KnownClueDict) -> Optional[Dict[str, int]]:
         """
         In the equations below, lower-case letters stand for distinct grid entries, of the
         following lengths: a, b (2); c (3); d, e, f, g, h, k (4); m (5); n, p (6); q, r (7); s, t (9).
@@ -164,35 +162,42 @@ class Listener4634(ConstraintSolver):
         """
         answers = defaultdict(list)
         for roman in known_clues.values():
-            answers[len(roman)].append(roman)
-        for a, b in itertools.permutations(answers[2], 2):
-            for c in answers[3]:
-                for d in answers[4]:
-                    temp = set(answers[4])
-                    temp.remove(d)
-                    e, f, g, h, k = list(temp)
-                    for m in answers[5]:
-                        for n, p in itertools.permutations(answers[6], 2):
-                            for q, r in itertools.permutations(answers[7], 2):
-                                for s, t in itertools.permutations(answers[9], 2):
-                                    if (d.as_int == 5 * t.as_int + c.as_int + n.as_int
-                                            and e.as_int + f.as_int + g.as_int + h.as_int + k.as_int + 7
-                                                == s.as_int + m.as_int
-                                            and m.as_int + 4 == s.as_int + 2 * a.as_int
-                                            and 2 * n.as_int == 2 * p.as_int + a.as_int + 3
-                                            and q.as_int + 15 == 4 * r.as_int
-                                            and s.as_int + b.as_int == t.as_int + a.as_int):
-                                        print(a, b, c, d, e, f, g, h, k, m, n, p, q, r, s, t)
-                                        return True
-        return False
+            answers[len(roman)].append(cast(RomanString, roman))
 
-    def show_solution(self, known_clues: KnownClueDict) -> None:
-        values = [known_clues[clue]for clue in self._clue_list]
-        self.all_results.append(values)
-        super().show_solution(known_clues)
+        dtcn = [(d, t, c, n) for d, t, c, n in itertools.product(answers[4], answers[9], answers[3], answers[6])
+                if d.as_int == 5 * t.as_int + c.as_int + n.as_int]
+        dsm = [(d, s, m) for d, s, m in itertools.product(answers[4], answers[9], answers[5])
+               for e, f, g, h, k in [sorted(set(answers[4]) - {d})]
+               if e.as_int + f.as_int + g.as_int + h.as_int + k.as_int + 7 == s.as_int + m.as_int]
+        msa = [(m, s, a) for m, s, a in itertools.product(answers[5], answers[9], answers[2])
+               if m.as_int + 4 == s.as_int + 2 * a.as_int]
+        npa = [(n, p, a) for (n, p), a in itertools.product(itertools.permutations(answers[6], 2), answers[2])
+               if 2 * n.as_int == 2 * p.as_int + a.as_int + 3]
+        qr = [(q, r) for q, r in itertools.permutations(answers[7], 2)
+              if q.as_int + 15 == 4 * r.as_int]
+        sbta = [(s, b, t, a)
+                for s, t in itertools.permutations(answers[9], 2)
+                for a, b in itertools.permutations(answers[2], 2)
+                if s.as_int + b.as_int == t.as_int + a.as_int]
+
+        for (d, t, c, n), (d2, s, m), (m2, s2, a), (n, p, a2), (q, r), (s3, b, t, a3) \
+                in itertools.product(dtcn, dsm, msa, npa, qr, sbta):
+            if d == d2 and a == a2 == a3 and m == m2 and s == s2 == s3:
+                e, f, g, h, k = sorted(set(answers[4]) - {d})
+                my_dict = {letter: value for letter, value in zip("abcdefghkmnpqrst",
+                                                                  (a, b, c, d, e, f, g, h, k, m, n, p, q, r, s, t))}
+                return my_dict
+
+        return None
 
     def draw_grid(self, **args: Any) -> None:
-        args['location_to_clue_numbers'].clear()
+        location_to_clue_numbers = defaultdict(list)
+        clue_values: KnownClueDict = args['clue_values']
+        for letter, value in self.check_all_constraints(clue_values).items():
+            clue = next(clue for clue in self._clue_list if clue_values[clue] == value)
+            pointer = '→' if clue.is_across else '↓'
+            location_to_clue_numbers[clue.location(0)].append(letter + pointer)
+        args['location_to_clue_numbers'] = location_to_clue_numbers
         super().draw_grid(**args)
 
 
