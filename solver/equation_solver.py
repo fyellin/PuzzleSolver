@@ -2,7 +2,8 @@ import itertools
 from collections import Counter
 from datetime import datetime
 from operator import itemgetter
-from typing import Dict, NamedTuple, Sequence, Callable, Pattern, Any, List, Iterable, Set, Tuple, Union, Optional
+from typing import Dict, NamedTuple, Sequence, Callable, Pattern, Any, List, Iterable, Set, Tuple, Union, Optional, \
+    Iterator
 
 from .base_solver import BaseSolver
 from .clue import Clue
@@ -91,11 +92,15 @@ class EquationSolver(BaseSolver):
                 self._step_count += 1
                 for letter, value in zip(clue_letters, next_letter_values):
                     self._known_letters[letter] = value
-                clue_value = evaluator(self._known_letters)
+                clue_values = self.evaluate(evaluator)
                 if twin_value:
-                    if clue_value != twin_value:
+                    if twin_value not in clue_values:
                         continue
-                else:
+                    print(f'{" | " * current_index} {clue.name} TWIN {clue_letters} '
+                          f'{next_letter_values} {twin_value} ({clue.length}): -->')
+                    self._solve(current_index + 1)
+                    return
+                for clue_value in clue_values:
                     if not (clue_value and pattern.fullmatch(clue_value)):
                         continue
                     self._known_clues.pop(clue, None)
@@ -104,18 +109,19 @@ class EquationSolver(BaseSolver):
                     self._known_clues[clue] = clue_value
                     if not all(constraint() for constraint in constraints):
                         continue
-
-                if self._debug:
-                    print(f'{" | " * current_index} {clue.name} {clue_letters} '
-                          f'{next_letter_values} {clue_value} ({clue.length}): -->')
-
-                self._solve(current_index + 1)
+                    if self._debug:
+                        print(f'{" | " * current_index} {clue.name} {"".join(clue_letters)} '
+                              f'{next_letter_values} {clue_value} ({clue.length}): -->')
+                    self._solve(current_index + 1)
 
         finally:
             for letter in clue_letters:
                 self._known_letters.pop(letter, None)
             if not twin_value:
                 self._known_clues.pop(clue, None)
+
+    def evaluate(self, evaluator: Evaluator) -> Iterator[ClueValue]:
+        return evaluator(self._known_letters),
 
     def _get_solving_order(self) -> Sequence[SolvingStep]:
         """Figures out the best order to solve the various clues."""

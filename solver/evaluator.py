@@ -35,9 +35,12 @@ class Evaluator (NamedTuple):
         def result(value_dict):
             ({", ".join(variables)}) = ({", ".join(f'value_dict["{v}"]' for v in variables)})
             {importation}
-            rvalue = {expression}
-            ivalue = int(rvalue)
-            return ClueValue(str(ivalue)) if ivalue == rvalue > 0  else None
+            try:
+                rvalue = {expression}
+                ivalue = int(rvalue)
+            except ArithmeticError:
+                return None
+            return ClueValue(str(ivalue)) if rvalue == ivalue > 0 else None
         """
         namespace: Dict[str, Any] = {}
         exec(textwrap.dedent(code), None, namespace)
