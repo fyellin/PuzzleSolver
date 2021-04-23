@@ -92,7 +92,7 @@ class EquationSolver(BaseSolver):
                 self._step_count += 1
                 for letter, value in zip(clue_letters, next_letter_values):
                     self._known_letters[letter] = value
-                clue_values = self.evaluate(evaluator)
+                clue_values = self.evaluate(clue, evaluator)
                 if twin_value:
                     if twin_value not in clue_values:
                         continue
@@ -120,7 +120,7 @@ class EquationSolver(BaseSolver):
             if not twin_value:
                 self._known_clues.pop(clue, None)
 
-    def evaluate(self, evaluator: Evaluator) -> Iterator[ClueValue]:
+    def evaluate(self, clue, evaluator: Evaluator) -> Iterator[ClueValue]:
         return evaluator(self._known_letters),
 
     def _get_solving_order(self) -> Sequence[SolvingStep]:

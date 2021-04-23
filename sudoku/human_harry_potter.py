@@ -966,10 +966,20 @@ def puzzle_10_17(*, show: bool = False) -> None:
     features = NonConsecutiveFeature.setup()
     Sudoku().solve(puzzle, features=features, show=show)
 
+def puzzle_2021_01_21(*, show: bool = False) -> None:
+    puzzle = "1..4..6...2..5..9...3..6..87..1..9...9..2..4...4..3..55..8..2...8..7..3...7..9..1"
+    features = ()
+    Sudoku().solve(puzzle, features=features, show=show)
+
+def puzzle_2021_03_15(*, show: bool = False) -> None:
+    puzzle = "...........3.1.4..1..5.9.......2.65.35.....89.79.3.......2.3..8..4.6.2..........."
+    features = ()
+    Sudoku().solve(puzzle, features=features, show=show)
+
 
 
 if __name__ == '__main__':
     start = datetime.datetime.now()
-    puzzle_10_17(show=False)
+    puzzle_2021_03_15(show=False)
     end = datetime.datetime.now()
     print(end - start)

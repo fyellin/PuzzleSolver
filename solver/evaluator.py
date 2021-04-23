@@ -19,22 +19,25 @@ def result(var_dict: Dict[Letter, int]) -> Optional[ClueValue]:
 class Evaluator (NamedTuple):
     callable: Callable[[Dict[Letter, int]], Optional[ClueValue]]
     vars: Sequence[Letter]
+    expression: str
 
     @classmethod
-    def make(cls, expression: str) -> Evaluator:
-        return cls.make1(expression)
+    def make(cls, expression: str, user_globals: Optional[Dict[str, Any]] = None) -> Evaluator:
+        return cls.make1(expression, user_globals or globals())
 
     @classmethod
-    def make1(cls, expression: str) -> Evaluator:
+    def make1(cls, expression: str, user_globals: Dict[str, Any]) -> Evaluator:
         expression_ast: Any = ast.parse(expression.strip(), mode='eval')
         variables = sorted({Letter(node.id) for node in ast.walk(expression_ast)
                             if isinstance(node, ast.Name) and len(node.id) == 1
                             })
         importation = "import math" if 'math' in expression else ""
         code = f"""
+
         def result(value_dict):
-            ({", ".join(variables)}) = ({", ".join(f'value_dict["{v}"]' for v in variables)})
             {importation}
+            from solver import ClueValue
+            ({", ".join(variables)}) = ({", ".join(f'value_dict["{v}"]' for v in variables)})
             try:
                 rvalue = {expression}
                 ivalue = int(rvalue)
@@ -43,11 +46,11 @@ class Evaluator (NamedTuple):
             return ClueValue(str(ivalue)) if rvalue == ivalue > 0 else None
         """
         namespace: Dict[str, Any] = {}
-        exec(textwrap.dedent(code), None, namespace)
-        return Evaluator(namespace['result'], variables)
+        exec(textwrap.dedent(code), user_globals, namespace)
+        return Evaluator(namespace['result'], variables, expression)
 
     @classmethod
-    def make2(cls, expression: str) -> Evaluator:
+    def make2(cls, expression: str, user_globals: Dict[str, Any]) -> Evaluator:
         expression_ast: Any = ast.parse(expression.strip(), mode='eval')
         variables = sorted({Letter(node.id) for node in ast.walk(expression_ast) if isinstance(node, ast.Name)})
 
@@ -72,8 +75,8 @@ class Evaluator (NamedTuple):
         ast.fix_missing_locations(module_def)
         code = compile(module_def, "", mode='exec')
         namespace: Dict[str, Any] = {}
-        eval(code, None, namespace)
-        return Evaluator(namespace['result'], variables)
+        eval(code, user_globals, namespace)
+        return Evaluator(namespace['result'], variables, expression)
 
     @classmethod
     def __assignment_left(cls, variables: Sequence[Letter]) -> Any:

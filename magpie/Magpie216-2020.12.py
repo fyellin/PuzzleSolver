@@ -48,7 +48,7 @@ class MySolver(EquationSolver):
         solver = MySolver(clue_list, items=(range(-10, 11)))
         solver.solve(debug=True)
 
-    def evaluate(self, evaluator: Evaluator) -> Iterator[ClueValue]:
+    def evaluate(self, clue, evaluator: Evaluator) -> Iterator[ClueValue]:
         for cubed_letter in evaluator.vars:
             temp = self._known_letters[cubed_letter]
             self._known_letters[cubed_letter] = temp ** 3
@@ -56,7 +56,6 @@ class MySolver(EquationSolver):
             self._known_letters[cubed_letter] = temp
             yield result
 
-
-
 if __name__ == '__main__':
-    MySolver.run()
+    # MySolver.run()
+    pass

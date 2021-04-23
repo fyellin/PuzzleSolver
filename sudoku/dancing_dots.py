@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 from collections import deque
 from enum import Enum
-from typing import Tuple, Sequence, NamedTuple
+from typing import Tuple, Sequence
 
 from matplotlib import pyplot as plt
 
@@ -66,7 +66,7 @@ class DancingDots:
                                  if self.is_possible_solution(row_or_column, index, solution)]
                 new_length = len(new_solutions)
                 info[row_or_column, index] = new_solutions
-                assert new_solutions
+                assert new_solutions, f'Problem on {row_or_column} {index}'
                 old_line = ''.join(self.grid[row][column] for row, column in slots)
                 for j, (row, column) in enumerate(slots):
                     expected = self.grid[row][column]
@@ -191,25 +191,18 @@ class DancingDots:
         plt.show()
 
 
-class foo(NamedTuple):
-    x: int
-
 PUZZLE = """
-.XX..X.O.X
-..X......X
-......O...
-O.X......O
-O.X....O..
-.......O.X
-.X..O.....
-.X...X...X
-.......O..
-.....X....
+XOOXOXXOOX
+OXXOXOXOXO
+OXXOOXOXOX
+XOOXXOXXOX
+XXOXOXOOXO
+OXXOXOXXOO
+.O...XOOXX
+X.....XOOX
+...X..OXXO
+.OXOX.OXXO
 """
 
 if __name__ == '__main__':
-
-    'abc'.match
-    x = q_class()
-    x.put("hello")
-    #  DancingDots().solve2(PUZZLE)
+    DancingDots().solve2(PUZZLE)

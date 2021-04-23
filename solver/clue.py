@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable, Optional, Any, FrozenSet, Sequence, Callable, Union
+from collections import deque
+from typing import Iterable, Optional, Any, FrozenSet, Sequence, Callable, Union, Dict
 
 from .clue_types import Location
 from .evaluator import Evaluator
@@ -60,13 +61,61 @@ class Clue:
         expression = expression.replace("–", "-")   # magpie use a strange minus sign
         expression = expression.replace('−', '-')   # Listener uses a different strange minus sign
         expression = expression.replace("^", "**")  # Replace exponentiation with proper one
+
+        quotes = {}
+        while (index := expression.find('"')) >= 0:
+            index2 = expression.find('"', index + 1)
+            temp = chr(ord("ℵ") + len(quotes))
+            quotes[temp] = expression[index + 1:index2]
+            expression = expression[:index] + temp + expression[index2 + 1:]
+
+        for _ in range(2):
+            # ), letter, or digit followed by (, letter, or digit needs an * in between, except when we have
+            # two digits in a row with no space between them.  Note negative lookahead below.
+            expression = re.sub(r'(?!\d\d)([\w)])\s*([(\w])', r'\1*\2', expression, flags=re.ASCII)
+        if '!' in expression:
+            expression = re.sub(r'(\w)!', r'math.factorial(\1)', expression)
+
+        for letter, replacement in quotes.items():
+            expression = expression.replace(letter, replacement)
+
+        return expression.split('=')
+
+    @staticmethod
+    def __convert_expression_to_python2(expression: str) -> Sequence[str]:
+        expression = expression.replace("–", "-")   # magpie use a strange minus sign
+        expression = expression.replace('−', '-')   # Listener uses a different strange minus sign
+        expression = expression.replace("^", "**")  # Replace exponentiation with proper one
+
+        info = deque(expression)
+        info.append('$$')
+        while info[0] != '$$':
+            if info[0] == '"':
+                pass
+            elif info[0] in '+-*/%':
+                pass
+            elif info[0].isalpha():
+                pass
+            elif info[0].isdigit():
+                pass
+        length = len(expression)
+        expression += "  "
+
         for _ in range(2):
             # ), letter, or digit followed by (, letter, or digit needs an * in between, except when we have
             # two digits in a row with no space between them.  Note negative lookahead below.
             expression = re.sub(r'(?!\d\d)([\w)])\s*([(\w])', r'\1*\2', expression)
         if '!' in expression:
             expression = re.sub(r'(\w)!', r'math.factorial(\1)', expression)
+        if '~' in expression:
+            expression = expression.replace("~", 'foo')
         return expression.split('=')
+
+    @staticmethod
+    def create_evaluator(expression: str, user_globals: Optional[Dict[str, Any]] = None) -> Evaluator:
+        python_pieces = Clue.__convert_expression_to_python(expression)
+        assert len(python_pieces) == 1
+        return Evaluator.make(python_pieces[0], user_globals)
 
     def __hash__(self) -> int:
         return id(self)

@@ -17,7 +17,6 @@ def allvalues(clue: Clue) -> Iterable[int]:
     min_value, max_value = get_min_max(clue)
     return iter(range(min_value, max_value))
 
-
 def filtering(predicate) -> Callable[[Clue], Iterable[int]]:
     def result(clue: Clue) -> Iterator[int]:
         min_value, max_value = get_min_max(clue)

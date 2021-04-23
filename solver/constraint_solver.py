@@ -152,7 +152,6 @@ class ConstraintSolver(BaseSolver):
         return cast(Dict[Clue, Sequence[Tuple[Clue, Sequence[Intersection]]]], result)
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        """Overridden by subclasses that need to confirm a solution."""
         return True
 
     def show_solution(self, known_clues: KnownClueDict) -> None:
