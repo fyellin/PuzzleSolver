@@ -1,6 +1,7 @@
-import heapq
+import functools
 import collections
 import copy
+import functools
 import heapq
 import itertools
 import math
@@ -8,7 +9,7 @@ import operator
 import random
 from idlelib.tree import TreeNode
 from typing import List, Tuple, Set, Optional, Dict, Iterable, Callable, Sequence, TypeVar, Hashable, Generic, Any, \
-    Mapping
+    Mapping, Iterator
 
 ArrayType = TypeVar("ArrayType")
 class FakeArray(collections.abc.Sequence, Generic[ArrayType]):
@@ -593,54 +594,67 @@ class Trie:
                 return word
         return word
 
-from sortedcontainers import SortedSet
 
-class Solution:
-    def avoidFlood(self, rains: List[int]) -> List[int]:
-        rain_days = collections.defaultdict(list)
-        for index, lake in enumerate(rains):
-            if lake != 0:
-                rain_days[lake].append(index)
-
-        todo = SortedSet()
-
-        result = [-1] * len(rains)
-
-        for index, lake in enumerate(rains):
-            print(index, lake, todo)
-            if todo and todo[0][0] <= index:
-                return []
-            if lake != 0:
-                temp = rain_days[lake].pop(0)
-                assert temp == index
-                if rain_days[lake]:
-                    todo.add((rain_days[lake][0], lake))
-            elif todo:
-                _deadline, lake = todo.pop(0)
-                result[index] = lake
+def palindrome(length) -> Iterator[str]:
+    """Returns palindromes"""
+    half_length = (length + 1) // 2
+    is_even = (length & 1) == 0
+    multiplier = 10 ** (length // 2)
+    for i in range(10 ** (half_length - 1), 10 ** half_length):
+        left = str(i)
+        right = left[::-1]
+        j = int(right if is_even else right[1:] if length > 1 else '0')
+        value = i * multiplier + j
+        value2 = value * value
+        temp = str(value2)
+        if temp == temp[::-1]:
+            yield value2
 
 
 class Solution:
-    def makeLargestSpecial(self, S: str) -> str:
-        x = collections.Counter()
-        itertools.
-        def inner(left, right):
-            count = 0
-            result = []
-            for index in range(left, right):
-                count += 1 if S[index] == '1' else -1
-                if count == 0:
-                    result.append('1' + inner(left + 1, index) + '0')
-                    left = index + 1
-            assert count == 0
-            print(left, right, result)
-            result.sort(reverse=True)
-            print(left, right, result, ''.join(result))
-            return ''.join(result)
+    def shortestSuperstring(self, A):
+        length = len(A)
+        final_mask = (1 << length) - 1
 
-        return inner(0, len(S))
+        @functools.lru_cache(None)
+        def connect(w1, w2):
+            for i in reversed(range(0, min(len(w1), len(w2)))):
+                if i == 0 or w2[:i] == w1[-i:]:
+                    print(w1, w2, w2[i:])
+                    return w2[i:]
 
+        @functools.lru_cache(None)
+        def dp(mask, last):
+            if mask == final_mask:
+                return ""
+            return min((connect(A[last], A[i]) + dp(mask | 1<<i, i) for i in range(length) if not mask & 1<<i), key = len)
+
+        return min((A[i] + dp(1 << i, i) for i in range(length)), key=len)
+
+
+class Solution:
+    def isInterleave(self, s1: str, s2: str, s3: str) -> bool:
+        len1, len2, len3 = len(s1), len(s2), len(s3)
+
+        @functools.lru_cache(None)
+        def inner(i1, i2):
+            if i1 == len1:
+                remaining = len2 - i2
+                return s2[-remaining:] == s3[-remaining:]
+            if i2 == len2:
+                remaining = len1 - i1
+                return s1[-remaining:] == s3[-remaining:]
+            char = s3[i1 + i2]
+            return (char == s1[i1] and inner(i1 + 1, i2)) or (char == s2[i2] and inner(i1, i2 + 1))
+        return inner(0, 0)
 
 if __name__ == '__main__':
-    temp = Solution().makeLargestSpecial("11011000")
+    # s1 = "aabcc"; s2 = "dbbca"; s3 = "aadbbcbcac"
+    # s1 = "aabcc"; s2 = "dbbca"; s3 = "aadbbbaccc"
+    s1 = "cbcccbabbccbbcccbbbcabbbabcababbbbbbaccaccbabbaacbaabbbc"
+    s2 = "abcbbcaababccacbaaaccbabaabbaaabcbababbcccbbabbbcbbb"
+    s3 = "abcbcccbacbbbbccbcbcacacbbbbacabbbabbcacbcaabcbaaacbcbbbabbbaacacbbaaaabccbcbaabbbaaabbcccbcbabababbbcbbbcbb"
+
+    temp = Solution().isInterleave(s1, s2, s3)
     print(temp)
+

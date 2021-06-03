@@ -68,7 +68,7 @@ class Solver220(ConstraintSolver):
         solver = Solver220()
         solver.verify_is_180_symmetric()
         solver.add_all_constraints()
-        solver.solve(debug=10)
+        solver.solve(debug=0)
 
     def __init__(self) -> None:
         super().__init__(self.get_clue_list())

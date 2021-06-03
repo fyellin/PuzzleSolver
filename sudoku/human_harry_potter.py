@@ -976,10 +976,23 @@ def puzzle_2021_03_15(*, show: bool = False) -> None:
     features = ()
     Sudoku().solve(puzzle, features=features, show=show)
 
+def puzzle_2021_05_12(*, show: bool = False) -> None:
+    puzzle = "4.......2..5.829...2.....3...8.1....56..9..78....6.5...1.....6...615.7..3.......4"
+    features = ()
+    Sudoku().solve(puzzle, features=features, show=show)
 
+
+def puzzle_2021_05_24(*, show: bool = False) -> None:
+    lines = ["1,1,E", "1,3,SW", "1,6,S", "1,7,E", "2,3,NE", "2,5,N", "2,9,N", "3,1,N", "3,3,NE", "3,4,SE", "3,5,SE",
+             "3,6,NE", "3,7,SE", "3,8,SE", "3,9,NW", "4,1,E", "4,3,NW", "4,7,SW", "5,1,E", "5,3,NE", "5,7,SW", "5,9,W",
+             "6,3,NE", "6,4,NE", "6,7,SE", "6,9,W", "7,1,SE", "7,2,NW", "7,3,NW", "7,4,SW", "7,6,W", "7,7,SW", "7,9,S",
+             "8,1,S", "8,7,SW", "9,3,W", "9,4,N", "9,5,N", "9,7,NE", "9,9,W"]
+    thermometers = [ThermometerFeature(f'Thermo#{i}', Feature.parse_line(line))
+                    for i, line in enumerate(lines, start=1)]
+    Sudoku().solve(' ' * 81, features=thermometers, show=show)
 
 if __name__ == '__main__':
     start = datetime.datetime.now()
-    puzzle_2021_03_15(show=False)
+    puzzle_2021_05_24(show=False)
     end = datetime.datetime.now()
     print(end - start)

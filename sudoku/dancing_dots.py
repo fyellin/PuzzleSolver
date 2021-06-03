@@ -191,17 +191,18 @@ class DancingDots:
         plt.show()
 
 
-PUZZLE = """
-XOOXOXXOOX
-OXXOXOXOXO
-OXXOOXOXOX
-XOOXXOXXOX
-XXOXOXOOXO
-OXXOXOXXOO
-.O...XOOXX
-X.....XOOX
-...X..OXXO
-.OXOX.OXXO
+PUZZLE =\
+    """
+XOXOOX....
+OXXOXOXO..
+XOOXXO.X..
+OXOXOXXO..
+OXXOOXOOXX
+XOXOXOOX..
+XOOX..X...
+OXXO.....X
+XOOXXO..XO
+XXOXOXO..O
 """
 
 if __name__ == '__main__':

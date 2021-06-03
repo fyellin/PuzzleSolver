@@ -3,7 +3,7 @@ import itertools
 import os
 import sys
 import tempfile
-from contextlib import ExitStack, contextmanager
+from contextlib import ExitStack
 from typing import Optional, List, Any, Set, Tuple
 
 import cv2
@@ -200,7 +200,6 @@ def _parse_clue_file(clue_file: str, across_clues: Set[Tuple[int, int]], down_cl
                 result.append(next(lines).strip())
     return result
 
-@contextmanager
 def main(arguments: Optional[List[str]] = None) -> None:
     parser = argparse.ArgumentParser(description='Process log files.')
     parser.add_argument(action="store", dest="input_file_name", help="file to convert")
@@ -218,7 +217,6 @@ def main(arguments: Optional[List[str]] = None) -> None:
         print(f"Writing output to {args.output_file_name}")
     args.is_nyt = False
     convert_grid(args.input_file_name, **vars(args))
-
 
 
 if __name__ == '__main__':

@@ -541,14 +541,23 @@ XX XX XX 17 .. .. 23 36 .. ..
 61 .. .. .. 08 .. XX XX XX ..
 .. .. .. .. .. .. ..
 XX .. 59 79 01 02 03 ..
+"""
 
-
-
+PUZZLE_2021_06_28 = """
+51 .. .. 46 .. .. .. 75 76
+.. .. 48 45 .. 56 .. .. 74
+.. 01 .. .. .. 39 .. 41 ..
+.. 02 .. 36 XX .. .. .. ..
+.. 06 .. XX XX XX 70 .. ..
+08 .. 33 .. XX .. .. 69 ..
+.. 11 .. .. .. 66 68 .. ..
+10 .. 16 .. .. .. .. .. 25
+.. 15 .. .. 19 21 27 23 ..
 """
 
 
 def hidato_run() -> None:
-    hidato = Hidato(PUZZLE_2021_03_05)
+    hidato = Hidato(PUZZLE_2021_06_28)
     start = datetime.datetime.now()
     hidato.solve2()
     end = datetime.datetime.now()
