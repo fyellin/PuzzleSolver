@@ -1,7 +1,6 @@
 import itertools
-import itertools
 import math
-from typing import Sequence, Iterator
+from typing import Sequence, Iterator, List
 
 from solver import ConstraintSolver, Clues, Clue
 from solver.constraint_solver import KnownClueDict
@@ -13,6 +12,7 @@ X....
 ..X..
 X..X.
 """
+
 
 class Property:
     @staticmethod
@@ -35,14 +35,16 @@ class Property:
     def with_length(cls, length) -> Iterator[int]:
         return cls.within_bounds(10 ** (length - 1), 10 ** length)
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.items = set(self.within_bounds(10, 100_000))
 
-    def __contains__(self, item):
+    def __contains__(self, item: int) -> bool:
         return item in self.items
 
-def digits(value):
+
+def digits(value: int) -> List[int]:
     return [int(x) for x in str(value)]
+
 
 PROPERTY = Property()
 
@@ -51,36 +53,44 @@ def handle1a(clue: Clue) -> Iterator[int]:
     return (value for value in PROPERTY.with_length(clue.length)
             if math.prod(digits(value)) == 18)
 
+
 def handle3a(clue: Clue) -> Iterator[int]:
     return (value for value in PROPERTY.with_length(clue.length)
             if math.prod(digits(value)) in PROPERTY)
 
-def handle5a(clue: Clue) -> Iterator[int]:
+
+def handle5a(_clue: Clue) -> Iterator[int]:
     generator = PROPERTY.generator()
     return itertools.islice(generator, 26, 27)
+
 
 def handle7a(clue: Clue) -> Iterator[int]:
     return PROPERTY.with_length(clue.length)
 
+
 def handle8a(clue: Clue) -> Iterator[int]:
     generator = PROPERTY.with_length(clue.length)
     return itertools.islice(generator, 1)
+
 
 def handle9a(clue: Clue) -> Iterator[int]:
     return (value for value in PROPERTY.with_length(clue.length)
             if sum(digits(value)) == 19
             if str(value) == str(value)[::-1])
 
+
 def handle10a(clue: Clue) -> Iterator[int]:
     return (value for value in PROPERTY.with_length(clue.length)
             for d in [digits(value)]
             if sum(d) > math.prod(d))
 
-def handle2d(clue: Clue) -> Iterator[int]:
+
+def handle2d(_clue: Clue) -> Iterator[int]:
     triangles = [x * (x + 1) // 2 for x in range(1, 150)]
     temp1 = {x + y for x, y in itertools.combinations_with_replacement(triangles, 2)}
     temp2 = [x for x in temp1 if 1000 <= x <= 9999 and x in PROPERTY]
     return sorted(temp2)
+
 
 def handle3d(clue: Clue) -> Iterator[int]:
     for value in PROPERTY.with_length(clue.length):
@@ -88,17 +98,20 @@ def handle3d(clue: Clue) -> Iterator[int]:
         if tens < ones:
             yield value
 
+
 def handle4d(clue: Clue) -> Iterator[int]:
     for value in PROPERTY.with_length(clue.length):
         if math.prod(digits(value)) in PROPERTY:
             if (value2 := int(str(value)[::-1])) in PROPERTY and value2 != value:
                 yield value
 
+
 def handle6d(clue: Clue) -> Iterator[int]:
     for value in PROPERTY.with_length(clue.length):
         d = digits(value)
         if math.prod(d) == 0 and sum(d) in (1, 4, 9, 16, 25, 36, 49, 64):
             yield value
+
 
 def handle7d(clue: Clue) -> Iterator[int]:
     for value in PROPERTY.with_length(clue.length):
@@ -110,8 +123,10 @@ def handle7d(clue: Clue) -> Iterator[int]:
             if any(x != value and x in PROPERTY for x in (value1, value2)):
                 yield value
 
+
 def handle8d(clue: Clue) -> Iterator[int]:
     yield from handle3d(clue)
+
 
 class Solver221(ConstraintSolver):
     @staticmethod
@@ -122,12 +137,13 @@ class Solver221(ConstraintSolver):
         solver.show_solution({})
         solver.solve(debug=True)
 
-    def __init__(self):
+    def __init__(self) -> None:
         clues = self.get_clue_list()
         super().__init__(clues)
         self.a8 = self.clue_named("8a")
 
-    def get_clue_list(self) -> Sequence[Clue]:
+    @staticmethod
+    def get_clue_list() -> Sequence[Clue]:
         grid_locations = [(-1, -1)] + Clues.get_locations_from_grid(GRID)
 
         across = ((1, 2, handle1a),
@@ -160,6 +176,7 @@ class Solver221(ConstraintSolver):
         actual_total = sum(locations.values())
         expected_total = int(known_clues[self.a8])
         return actual_total == expected_total
+
 
 if __name__ == '__main__':
     Solver221.run()

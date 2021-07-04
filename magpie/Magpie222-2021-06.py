@@ -8,8 +8,6 @@ from solver.constraint_solver import KnownClueDict
 def digit_sum(number: int) -> int:
     return sum(int(x) for x in str(number))
 
-
-
 def generate_if(generator, test: Callable[[str], bool]):
     def result(clue: Clue):
         return [x for x in generator(clue) if test(x)]
@@ -73,17 +71,17 @@ DOWNS = [
     (15, 3, generators.triangular)
 ]
 
-def is_anagram(a, b):
+def is_anagram(a: str, b: str):
     a, b = str(a), str(b)
     return a != b and sorted(a) == sorted(b)
 
-def is_multiple(a, b):
+
+def is_multiple(a: str, b: str):
     a, b = int(a), int(b)
     return a != b and a % b == 0
 
 
 from matplotlib import pyplot as plt
-
 
 
 class Magpie221 (ConstraintSolver):

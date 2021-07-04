@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import itertools
+from itertools import product, combinations, permutations, groupby
 from collections import deque, defaultdict
 from operator import attrgetter
 from typing import Set, Sequence, Mapping, Iterable, Tuple, Dict, FrozenSet
@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 
 from cell import House, Cell, CellValue
 from chain import Chains
+from draw_context import DrawContext
 from feature import Feature
 from grid import Grid
 from hard_medusa import HardMedusa
@@ -24,7 +25,7 @@ class Sudoku:
         self.grid = grid = Grid(features)
         grid.reset()
         self.initial_grid = {(row, column): int(letter)
-                             for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), puzzle)
+                             for (row, column), letter in zip(product(range(1, 10), repeat=2), puzzle)
                              if '1' <= letter <= '9'}
 
         for square, value in self.initial_grid.items():
@@ -56,11 +57,12 @@ class Sudoku:
                 continue
             # if self.check_intersection_removal_double():
             #     continue
+            self.grid.print()
+            self.draw_grid()
+
             if any(feature.check_special() for feature in self.features):
                 continue
 
-            self.grid.print()
-            self.draw_grid()
             if self.check_fish() or self.check_xy_sword() or self.check_xyz_sword() or self.check_tower():
                 continue
             if self.check_xy_chain(81):
@@ -112,7 +114,7 @@ class Sudoku:
                                    for value in cell.possible_values]
         all_unknown_cell_values.sort(key=attrgetter("value"))
         result = False
-        for value, iterator in itertools.groupby(all_unknown_cell_values, attrgetter("value")):
+        for value, iterator in groupby(all_unknown_cell_values, attrgetter("value")):
             cell_values = tuple(iterator)
             if len(cell_values) == 1:
                 cell = cell_values[0].cell
@@ -174,7 +176,7 @@ class Sudoku:
                    # Look at each house
                    for house in self.grid.houses if len(house.unknown_values) > count
                    # Look at each subset of size "count" of the unknown values of that house
-                   for values in itertools.combinations(house.unknown_values, count))
+                   for values in combinations(house.unknown_values, count))
 
     @staticmethod
     def __check_tuples(house: House, values: Set[int]) -> bool:
@@ -251,7 +253,7 @@ class Sudoku:
             # Look for a fish between any two House types on the specified value
             # noinspection PyTypeChecker
             house_types = (House.Type.COLUMN, House.Type.ROW, House.Type.BOX)
-            for this_house_type, that_house_type in itertools.permutations(house_types, 2):
+            for this_house_type, that_house_type in permutations(house_types, 2):
                 if self.__check_fish(value, empty_houses, empty_house_to_cell, this_house_type, that_house_type):
                     return True
         return False
@@ -273,7 +275,7 @@ class Sudoku:
         #     max_rows_to_choose = min(2, max_rows_to_choose)
         # Look at all subsets of the rows, but do small subsets before doing large subsets
         for number_rows_to_choose in range(2, max_rows_to_choose + 1):
-            for rows in itertools.combinations(these_unknown_houses, number_rows_to_choose):
+            for rows in combinations(these_unknown_houses, number_rows_to_choose):
                 # Find all the possible cells in those rows
                 row_cells = {cell for house in rows for cell in empty_house_to_cell[house]}
                 # Find the columns that those cells belong to
@@ -360,7 +362,7 @@ class Sudoku:
             if len(triple.possible_values) == 3:
                 possibilities = [cell for cell in triple.neighbors
                                  if len(cell.possible_values) == 2 and cell.possible_values <= triple.possible_values]
-                for pair1, pair2 in itertools.combinations(possibilities, 2):
+                for pair1, pair2 in combinations(possibilities, 2):
                     if pair1.possible_values != pair2.possible_values:
                         common = pair1.possible_values.intersection(pair2.possible_values).pop()
                         fixers = [cell for cell in pair1.joint_neighbors(pair2)
@@ -415,9 +417,11 @@ class Sudoku:
         axes.axis('equal')
         axes.axis('off')
         figure.tight_layout()
+        _plt = plt
 
+        context = DrawContext(axes)
         for feature in self.features:
-            feature.draw(dict())
+            feature.draw(context)
 
         # Draw the bold outline
         for x in range(1, 11):

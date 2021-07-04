@@ -151,11 +151,18 @@ def handle_nyt_puzzle(no_columns, no_rows, indices,
                       clue_file: str, **_args: Any) -> None:
     # squares = {(row, column) for (column, row) in indices}
     squares = {(row, column) for (row, column) in indices}
+
+    squares.add((14, 11))
+
     print(f"Grid is {no_rows} rows by {no_columns} columns.")
     print(f"There are {no_rows * no_columns - len(squares)} black squares.")
-    is_symmetric = all(((row, column) in squares) == ((no_rows - row - 1, no_columns - column - 1) in squares)
-                       for row in range(no_rows) for column in range(no_columns))
-    print(f"The grid is {'' if is_symmetric else 'not '}180º symmetric")
+    assymetric = [(row, column) for row in range(no_rows) for column in range(no_columns)
+                  if ((row, column) in squares) != ((no_rows - row - 1, no_columns - column - 1) in squares)]
+    if not assymetric:
+        print(f"The grid is 180º symmetric")
+    else:
+        for (row, column) in assymetric:
+            print(f'({row} {column}) -> {(row, column) in squares}')
     down_clues = {(row, column) for (row, column) in squares if (row - 1, column) not in squares}
     across_clues = {(row, column) for (row, column) in squares if (row, column - 1) not in squares}
     print(f"There are {len(across_clues)} across clues and {len(down_clues)} down clues.")
@@ -223,7 +230,8 @@ if __name__ == '__main__':
     pass
     # main(["/Users/fy/Desktop/Listener4263.pdf"])
 
-    main(["/Users/fy/Desktop/THEMELESS SATURDAY.pdf", "--puzzle", "--clues", "/Users/fy/Desktop/lines.txt"])
-    # main(["/Users/fy/Desktop/foobar.pdf", "--puzzle", ])
+    main(["/Users/fy/Desktop/THEMELESS SATURDAY.pdf", "--puzzle",
+          "--clues", "/Users/fy/Desktop/lines.txt"
+          ])
 
     # main(["/Users/fy/Desktop/NYT.png", "--puzzle"])

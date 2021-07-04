@@ -1,13 +1,17 @@
 import abc
-from typing import Iterable, Tuple, Sequence, Any, List
+from collections import defaultdict
+from typing import Iterable, Tuple, Sequence, Any, List, Dict, ClassVar, Union, Set, Sequence, Callable
 
 import numpy as np
-from matplotlib import pyplot as plt
+from draw_context import DrawContext
 
 from cell import Cell, House
 from grid import Grid
+import atexit
 
 Square = Tuple[int, int]
+CheckFunction = Callable[['Feature'], bool]
+
 
 class Feature(abc.ABC):
     def initialize(self, grid: Grid) -> None:
@@ -28,11 +32,14 @@ class Feature(abc.ABC):
     def check_special(self) -> bool:
         return False
 
-    def draw(self, context: dict) -> None:
+    def draw(self, context: DrawContext) -> None:
         pass
 
+    def __str__(self) -> str:
+        return f'<{self.__class__.__name__}>'
+
     @staticmethod
-    def neighbors_from_offsets(grid: Grid, cell: Cell, offsets: Iterable[Tuple[int, int]]) -> Iterable[Cell]:
+    def neighbors_from_offsets(grid: Grid, cell: Cell, offsets: Iterable[Square]) -> Iterable[Cell]:
         row, column = cell.index
         for dr, dc in offsets:
             if 1 <= row + dr <= 9 and 1 <= column + dc <= 9:
@@ -41,7 +48,7 @@ class Feature(abc.ABC):
     __DESCRIPTORS = dict(N=(-1, 0), S=(1, 0), E=(0, 1), W=(0, -1), NE=(-1, 1), NW=(-1, -1), SE=(1, 1), SW=(1, -1))
 
     @staticmethod
-    def parse_line(descriptor: str) -> Sequence[Tuple[int, int]]:
+    def parse_line(descriptor: str) -> Sequence[Square]:
         descriptors = Feature.__DESCRIPTORS
         pieces = descriptor.split(',')
         last_piece_row, last_piece_column = int(pieces[0]), int(pieces[1])
@@ -54,43 +61,40 @@ class Feature(abc.ABC):
         return squares
 
     @staticmethod
-    def draw_line(points: Sequence[Tuple[int, int]], *, closed: bool = False, **kwargs: Any) -> None:
-        ys = [row + .5 for row, _ in points]
-        xs = [column + .5 for _, column in points]
-        if closed:
-            ys.append(ys[0])
-            xs.append(xs[0])
-        plt.plot(xs, ys, **{'color': 'black', **kwargs})
+    def box_for_square(square) -> Tuple:
+        row, column = square
+        return ((row - 1) // 3, (column - 1) // 3)
+
+    class_count: ClassVar[Dict[Any, int]] = defaultdict(int)
+
+    def get_default_feature_name(self):
+        klass = self.__class__
+        Feature.class_count[klass] += 1
+        return f'{klass.__name__} #{Feature.class_count[klass]}'
 
     @staticmethod
-    def draw_rectangles(points: Sequence[Tuple[int, int]], **args: Any):
-        args = {'color': 'lightgrey', 'fill': True, **args}
-        axis = plt.gca()
-        for row, column in points:
-            axis.add_patch(plt.Rectangle((column, row), width=1, height=1, **args))
-
-    @staticmethod
-    def draw_outside(value: Any, htype: House.Type, row_or_column: int, *,
+    def draw_outside(context: DrawContext, value: Any, htype: House.Type, row_or_column: int, *,
                      is_right: bool = False, padding: float = 0, **args: Any):
         args = {'fontsize': 20, 'weight': 'bold', **args}
 
         if htype == House.Type.ROW:
             if not is_right:
-                plt.text(.9 - padding, row_or_column + .5, str(value),
-                         verticalalignment='center', horizontalalignment='right', **args)
+                context.draw_text(.9 - padding, row_or_column + .5, str(value),
+                                  verticalalignment='center', horizontalalignment='right', **args)
             else:
-                plt.text(10.1 + padding, row_or_column + .5, str(value),
-                         verticalalignment='center', horizontalalignment='left', **args)
+                context.draw_text(10.1 + padding, row_or_column + .5, str(value),
+                                  verticalalignment='center', horizontalalignment='left', **args)
         else:
             if not is_right:
-                plt.text(row_or_column + .5, .9 - padding, str(value),
-                         verticalalignment='bottom', horizontalalignment='center', **args)
+                context.draw_text(row_or_column + .5, .9 - padding, str(value),
+                                  verticalalignment='bottom', horizontalalignment='center', **args)
             else:
-                plt.text(row_or_column + .5, 10.1 + padding, str(value),
-                         verticalalignment='top', horizontalalignment='center', **args)
+                context.draw_text(row_or_column + .5, 10.1 + padding, str(value),
+                                  verticalalignment='top', horizontalalignment='center', **args)
 
     @staticmethod
-    def draw_outline(squares: Sequence[Tuple[int, int]], *, inset: float = .1, **args: Any) -> None:
+    def draw_outline(context, squares: Sequence[Square], *,
+                     inset: float = .1, **args: Any) -> None:
         args = {'color': 'black', 'linewidth': 2, 'linestyle': "dotted", **args}
         squares_set = set(squares)
 
@@ -140,7 +144,7 @@ class Feature(abc.ABC):
 
             points.append(points[0])
             pts = np.vstack(points)
-            plt.plot(pts[:, 1], pts[:, 0], **args)
+            context.plot(pts[:, 1], pts[:, 0], **args)
 
     @staticmethod
     def get_row_or_column(htype, row_column):
@@ -149,3 +153,28 @@ class Feature(abc.ABC):
         else:
             squares = [(i, row_column) for i in range(1, 10)]
         return squares
+
+    good_count: ClassVar[int] = 0
+    bad_count: ClassVar[int] = 0
+
+
+    @staticmethod
+    def check_only_if_changed(checker: CheckFunction) -> CheckFunction:
+        saved_info: Dict[Feature, Sequence[Union[int, Set[int]]]] = {}
+
+        def called_function(self: Feature) -> bool:
+            if self in saved_info:
+                generator = (cell.known_value if cell.is_known else cell.possible_values for cell in self.cells)
+                if all(x == y for x, y in zip(saved_info[self], generator)):
+                    Feature.good_count += 1
+                    return False
+            saved_info[self] = [cell.known_value if cell.is_known else cell.possible_values.copy()
+                                for cell in self.cells]
+            Feature.bad_count += 1
+            return checker(self)
+        return called_function
+
+
+@atexit.register
+def print_counters():
+    print(f'{Feature.good_count=} {Feature.bad_count=}')

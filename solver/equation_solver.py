@@ -243,10 +243,6 @@ class EquationSolver(BaseSolver):
         """
         return True
 
-    def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
-        self.plot_board(known_clues)
-        self.show_letter_values(known_letters)
-
     @staticmethod
     def show_letter_values(known_letters: KnownLetterDict) -> None:
         max_length = max(len(str(i)) for i in known_letters.values())

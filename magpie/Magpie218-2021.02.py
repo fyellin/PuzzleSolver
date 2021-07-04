@@ -30,7 +30,7 @@ class PrimeFactorFeature(PossibilitiesFeature):
         if not PrimeFactorFeature.TABLE:
             PrimeFactorFeature.TABLE = self.generate_table()
 
-        super().__init__(name, squares, compressed=True)
+        super().__init__(squares, name=name, compressed=True)
 
     def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
         return self._get_possibilities(self.count)
@@ -41,7 +41,7 @@ class PrimeFactorFeature(PossibilitiesFeature):
         return list(cls.fix_possibilities(cls.TABLE[count]))
 
     def draw(self, context: dict) -> None:
-        self.draw_outside(self.count, self.htype, self.row_column, is_right=True, fontsize=15)
+        self.draw_outside(context, self.count, self.htype, self.row_column, is_right=True, fontsize=15)
 
     @staticmethod
     def generate_table() -> Dict[int, Sequence[Tuple[int, ...]]]:

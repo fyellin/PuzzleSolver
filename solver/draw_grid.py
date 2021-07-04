@@ -1,5 +1,5 @@
 import itertools
-from typing import Set, Dict, Any, cast, Sequence
+from typing import Set, Dict, Any, cast, Sequence, Optional
 
 from matplotlib import pyplot as plt, patches
 from matplotlib.axes import Axes
@@ -16,6 +16,7 @@ def draw_grid(*, max_row: int, max_column: int,
               shading: Dict[Location, str] = {},
               rotation: Dict[Location, str] = {},
               circles: Set[Location] = set(),
+              subtext: Optional[str] = None,
               **args: Any) -> None:
 
     _axes = args.get('axes')
@@ -66,6 +67,11 @@ def draw_grid(*, max_row: int, max_column: int,
                   fontsize=points_per_data/2, fontweight='bold', fontfamily="sans-serif",
                   verticalalignment='center', horizontalalignment='center',
                   rotation=rotation.get((row, column), 0))
+
+    if subtext is not None:
+        axes.text((max_column + 1) / 2, max_row + .5, subtext,
+                 fontsize=points_per_data / 2, fontweight='bold', fontfamily="sans-serif",
+                 verticalalignment='center', horizontalalignment='center')
 
 
     # Fill in the clue numbers

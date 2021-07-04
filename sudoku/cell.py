@@ -40,8 +40,12 @@ class House:
         return self.house_type.name.title()[:3] + " " + str(self.index)
 
     def set_value_to(self, cell: Cell, value: int) -> None:
-        self.unknown_cells.remove(cell)
-        self.unknown_values.remove(value)
+        try:
+            self.unknown_cells.remove(cell)
+            self.unknown_values.remove(value)
+        except:
+            print(f'Cannot remove {value} from {cell} in {self}')
+            raise
 
     def __lt__(self, other: 'House') -> bool:
         return (self.house_type, self.index) < (other.house_type, other.index)

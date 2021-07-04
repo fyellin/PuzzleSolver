@@ -3,15 +3,14 @@ from __future__ import annotations
 import abc
 import datetime
 import functools
-import itertools
+from itertools import permutations, combinations, product, tee, groupby
 from collections import deque, defaultdict
-from typing import Iterable, Tuple, Sequence, Set, List, Optional, ClassVar, Mapping, Dict
-
-from matplotlib import pyplot as plt
+from typing import Iterable, Tuple, Sequence, Set, List, Optional, ClassVar, Mapping, Dict, Any, Union
 
 from cell import Cell, House
-from feature import Feature
+from feature import Feature, Square
 from grid import Grid
+from draw_context import DrawContext
 
 
 class KnightsMoveFeature(Feature):
@@ -27,7 +26,7 @@ class KnightsMoveFeature(Feature):
 
 
 class KingsMoveFeature(Feature):
-    """No two pieces within a king's move of eachother can have the same value."""
+    """No two pieces within a king's move of each other can have the same value."""
     OFFSETS = [(dr, dc) for dr in (-1, 1) for dc in (-1, 1)]
     grid: Grid
 
@@ -93,11 +92,11 @@ class PossibilitiesFeature(Feature, abc.ABC):
     handle_neighbors: bool
     compressed: bool
 
-    def __init__(self, name: str, squares: Union(Sequence[Square], str), *,
-                 neighbors: bool = False, compressed: bool = False) -> None:
+    def __init__(self, squares: Union[Sequence[Square], str], *,
+                 name: Optional[str] = None, neighbors: bool = False, compressed: bool = False) -> None:
         if isinstance(squares, str):
             squares = self.parse_line(squares)
-        self.name = name
+        self.name = name or self.get_default_feature_name()
         self.squares = squares
         self.handle_neighbors = neighbors
         self.compressed = compressed
@@ -117,6 +116,7 @@ class PossibilitiesFeature(Feature, abc.ABC):
             self.possibilities = self.__fix_possibilities_for_neighbors(self.possibilities)
         self.__update_for_possibilities(False)
 
+    @Feature.check_only_if_changed
     def check(self) -> bool:
         old_length = len(self.possibilities)
         if old_length == 1:
@@ -130,7 +130,7 @@ class PossibilitiesFeature(Feature, abc.ABC):
             if self.compressed:
                 open_choices = [choice for choice, cell in zip(choices, self.cells) if not cell.is_known]
                 for length in range(2, len(open_choices)):
-                    for subset in itertools.combinations(open_choices, length):
+                    for subset in combinations(open_choices, length):
                         if len(set.union(*subset)) < length:
                             return False
             return True
@@ -163,11 +163,12 @@ class PossibilitiesFeature(Feature, abc.ABC):
     def fix_possibilities(possibilities: Iterable[Tuple[int, ...]]) -> Iterable[Tuple[Set[int], ...]]:
         return map(PossibilitiesFeature.fix_possibility, possibilities)
 
-    def __is_possibile(self, possibility: Tuple[Set[int], ...]) -> bool:
+    def __is_possible(self, possibility: Tuple[Set[int], ...]) -> bool:
         return all(value.intersection(square.possible_values) for (value, square) in zip(possibility, self.cells))
 
-    def __fix_possibilities_for_neighbors(self, possibilities: Sequence[Tuple[Set[int], ...]]) -> Sequence[Tuple[Set[int], ...]] :
-        for (index1, cell1), (index2, cell2) in itertools.combinations(enumerate(self.cells), 2):
+    def __fix_possibilities_for_neighbors(self, possibilities: Sequence[Tuple[Set[int], ...]]
+                                          ) -> List[Tuple[Set[int], ...]]:
+        for (index1, cell1), (index2, cell2) in combinations(enumerate(self.cells), 2):
             if cell1.is_neighbor(cell2):
                 possibilities = [p for p in possibilities if len(p[index1]) > 1 or p[index1] != p[index2]]
             elif cell1.index == cell2.index:
@@ -176,47 +177,28 @@ class PossibilitiesFeature(Feature, abc.ABC):
         return possibilities
 
 
-class MultiPossibilityFeature(PossibilitiesFeature):
-    possibility_features: Sequence[PossibilitiesFeature]
-    def __init__(self, possibility_features: Sequence[PossibilityFeature]):
-        squares = [x for possibility in possibility_features for x in possibility.squares]
-        super().__init__("MultiFeature", squares, neighbors=True, compressed=True)
-        self.possibility_features = possibility_features
-
-    def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
-        possiblity_list_list = [list(possibility.get_possibilities()) for possibility in self.possibility_features]
-        for results in itertools.product(*possiblity_list_list):
-            temp = tuple(x for result in results for x in result)
-            yield temp
-
-    def draw(self, context: dict):
-        for possibility in self.possibility_features:
-            possibility.draw(dict())
-
-
 class MagicSquareFeature(PossibilitiesFeature):
     """There is a magic square within the grid"""
-    POSSIBILITES = ((2, 7, 6, 9, 5, 1, 4, 3, 8), (2, 9, 4, 7, 5, 3, 6, 1, 8),
-                    (8, 3, 4, 1, 5, 9, 6, 7, 2), (8, 1, 6, 3, 5, 7, 4, 9, 2),
-                    (4, 3, 8, 9, 5, 1, 2, 7, 6), (6, 1, 8, 7, 5, 3, 2, 9, 4),
-                    (6, 7, 2, 1, 5, 9, 8, 3, 4), (4, 9, 2, 3, 5, 7, 8, 1, 6),)
+    POSSIBILITIES = ((2, 7, 6, 9, 5, 1, 4, 3, 8), (2, 9, 4, 7, 5, 3, 6, 1, 8),
+                     (8, 3, 4, 1, 5, 9, 6, 7, 2), (8, 1, 6, 3, 5, 7, 4, 9, 2),
+                     (4, 3, 8, 9, 5, 1, 2, 7, 6), (6, 1, 8, 7, 5, 3, 2, 9, 4),
+                     (6, 7, 2, 1, 5, 9, 8, 3, 4), (4, 9, 2, 3, 5, 7, 8, 1, 6),)
 
     center: Square
     color: str
 
     def __init__(self, center: Square = (5, 5), *, dr: int = 1, dc: int = 1, color: str = 'lightblue'):
         center_x, center_y = center
-        squares = [(center_x + dr * dx, center_y + dc * dy) for dx, dy in itertools.product((-1, 0, 1), repeat=2)]
-        super().__init__(f'magic square at {center}', squares)
+        squares = [(center_x + dr * dx, center_y + dc * dy) for dx, dy in product((-1, 0, 1), repeat=2)]
+        super().__init__(squares, name=f'magic square at {center}')
         self.color = color
         self.center = center
 
     def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
-        return self.fix_possibilities(self.POSSIBILITES)
+        return self.fix_possibilities(self.POSSIBILITIES)
 
-    def draw(self, context: dict) -> None:
-        axes = plt.gca()
-        self.draw_rectangles(self.squares, facecolor=self.color)
+    def draw(self, context: DrawContext) -> None:
+        context.draw_rectangles(self.squares, facecolor=self.color)
 
 
 class AdjacentRelationshipFeature(Feature, abc.ABC):
@@ -232,11 +214,11 @@ class AdjacentRelationshipFeature(Feature, abc.ABC):
     handle_reset: bool
 
     triples: Sequence[Tuple[Optional[Cell], Cell, Optional[Cell]]]
-    color: str
+    color: Optional[str]
 
-    def __init__(self, name: str, squares: Union[Sequence[Square], str], *,
-                 cyclic: bool = False, reset: bool = False, color: str = 'gold'):
-        self.name = name
+    def __init__(self, squares: Union[Sequence[Square], str], *,
+                 name: Optional[str] = None, cyclic: bool = False, reset: bool = False, color: Optional[str] = 'gold'):
+        self.name = name or self.get_default_feature_name()
         self.squares = self.parse_line(squares) if isinstance(squares, str) else squares
         self.cyclic = cyclic
         self.handle_reset = reset
@@ -257,6 +239,7 @@ class AdjacentRelationshipFeature(Feature, abc.ABC):
     @abc.abstractmethod
     def match(self, digit1: int, digit2: int) -> bool: ...
 
+    @Feature.check_only_if_changed
     def check(self, show: bool = True) -> bool:
         for previous_cell, cell, next_cell in self.triples:
             if cell.is_known:
@@ -288,8 +271,9 @@ class AdjacentRelationshipFeature(Feature, abc.ABC):
             return True
         return False
 
-    def draw(self, context: dict) -> None:
-        self.draw_line(self.squares, closed=self.cyclic, color=self.color, linewidth=5)
+    def draw(self, context: DrawContext) -> None:
+        if self.color:
+            context.draw_line(self.squares, closed=self.cyclic, color=self.color, linewidth=5)
 
 
 class AllValuesPresentFeature(Feature):
@@ -324,29 +308,30 @@ class AllValuesPresentFeature(Feature):
         return result
 
 
-def _draw_thermometer(feature: Feature, squares: Sequence[Square], color: str) -> None:
-    feature.draw_line(squares, color=color, linewidth=10)
+def _draw_thermometer(squares: Sequence[Square], color: str, context: DrawContext) -> None:
+    context.draw_line(squares, color=color, linewidth=10)
     row, column = squares[0]
-    plt.gca().add_patch(plt.Circle((column + .5, row + .5), radius=.3, fill=True, facecolor=color))
+    context.draw_circle((column + .5, row + .5), radius=.3, fill=True, facecolor=color)
 
 
 class Thermometer1Feature(AdjacentRelationshipFeature):
     """
-    A sequence of squares that must monotomically increase.
+    A sequence of squares that must monotonically increase.
 
     If slow is set, then this is a "slow" thermometer, and two adjacent numbers can be the same.  Typically,
     thermometers must be strictly monotonic.
 
     This implementation uses "adjacency"
     """
-    def __init__(self, name: str, thermometer: Union[Sequence[Square], str], *, color: str = 'lightgrey') -> None:
-        super().__init__(name, thermometer, reset=True, color=color)
+    def __init__(self, thermometer: Union[Sequence[Square], str], *,
+                 name: Optional[str] = None, color: str = 'lightgrey') -> None:
+        super().__init__(thermometer, name=name, reset=True, color=color)
 
     def match(self, digit1: int, digit2: int) -> bool:
         return digit1 < digit2
 
-    def draw(self, context: dict) -> None:
-        _draw_thermometer(self, self.squares, self.color)
+    def draw(self, context: DrawContext) -> None:
+        _draw_thermometer(self.squares, self.color, context)
 
 
 class Thermometer2Feature(PossibilitiesFeature):
@@ -356,15 +341,16 @@ class Thermometer2Feature(PossibilitiesFeature):
     """
     color: str
 
-    def __init__(self, name: str, thermometer: Union[Sequence[Square], str],  *, color: str = 'lightgrey'):
-        super().__init__(name, thermometer)
+    def __init__(self, thermometer: Union[Sequence[Square], str], *,
+                 name: Optional[str] = None, color: str = 'lightgrey'):
+        super().__init__(thermometer, name=name)
         self.color = color
 
-    def draw(self, context: dict) -> None:
-        _draw_thermometer(self, self.squares, self.color)
+    def draw(self, context: DrawContext) -> None:
+        _draw_thermometer(self.squares, self.color, context)
 
     def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
-        return self.fix_possibilities(itertools.combinations(range(1, 10), len(self.squares)))
+        return self.fix_possibilities(combinations(range(1, 10), len(self.squares)))
 
 
 class Thermometer3Feature(PossibilitiesFeature):
@@ -374,17 +360,18 @@ class Thermometer3Feature(PossibilitiesFeature):
     """
     color: str
 
-    def __init__(self, name: str, thermometer: Union[Sequence[Square], str], color: str = 'lightgrey'):
-        super().__init__(name, thermometer)
+    def __init__(self, thermometer: Union[Sequence[Square], str],
+                 name: Optional[str] = None, color: str = 'lightgrey'):
+        super().__init__(thermometer, name=name)
         self.color = color
 
-    def draw(self, context: dict) -> None:
-        _draw_thermometer(self, self.squares, self.color)
+    def draw(self, context: DrawContext) -> None:
+        _draw_thermometer(self.squares, self.color, context)
 
     def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
         length = len(self.squares)
         if length > 2:
-            for permutation in itertools.combinations(range(2, 9), length - 2):
+            for permutation in combinations(range(2, 9), length - 2):
                 yield (set(range(1, permutation[0])),
                        *self.fix_possibility(permutation),
                        set(range(permutation[-1] + 1, 10)))
@@ -405,16 +392,18 @@ class SlowThermometerFeature(Thermometer1Feature):
 class SnakeFeature(Feature):
     count: ClassVar[int] = 0
     my_number: int
+    show: bool
     line: bool
 
     """A set of nine squares where each number is used exactly once."""
     squares: Sequence[Square]
 
-    def __init__(self, squares: Sequence[Square], *, line: bool = True):
+    def __init__(self, squares: Sequence[Square], *, show: bool = True, line: bool = True):
         SnakeFeature.count += 1
         assert len(squares) == 9
         self.my_number = SnakeFeature.count
         self.squares = squares
+        self.show = show
         self.line = line
 
     @staticmethod
@@ -425,16 +414,23 @@ class SnakeFeature(Feature):
     def minor_diagonal() -> SnakeFeature:
         return SnakeFeature([(10 - i, i) for i in range(1, 10)])
 
+    @staticmethod
+    def disjoint_groups() -> Sequence[SnakeFeature]:
+        return [SnakeFeature(list((r + dr, c + dc) for dr in (0, 3, 6) for dc in (0, 3, 6)), show=False)
+                for r in (1, 2, 3) for c in (1, 2, 3)]
+
     def initialize(self, grid: Grid) -> None:
         cells = [grid.matrix[square] for square in self.squares]
         grid.houses.append(House(House.Type.EXTRA, 0, cells))
 
-    def draw(self, context: dict) -> None:
+    def draw(self, context: DrawContext) -> None:
+        if not self.show:
+            return
         if self.line:
-            self.draw_line(self.squares, color='lightgrey', linewidth=5)
+            context.draw_line(self.squares, color='lightgrey', linewidth=5)
         else:
             for row, column in self.squares:
-                plt.gca().add_patch(plt.Circle((column + .5, row + .5), radius=.1, fill=True, facecolor='blue'))
+                context.draw_circle((column + .5, row + .5), radius=.1, fill=True, facecolor='blue')
 
 
 class LimitedValuesFeature(Feature):
@@ -453,9 +449,30 @@ class LimitedValuesFeature(Feature):
         cells = [grid.matrix[x] for x in self.squares]
         Cell.keep_values_for_cell(cells, set(self.values), show=False)
 
-    def draw(self, context: dict) -> None:
+    def draw(self, context: DrawContext) -> None:
         if self.color:
-            self.draw_rectangles(self.squares, color=self.color)
+            context.draw_rectangles(self.squares, color=self.color)
+
+
+class OddsAndEvensFeature(Feature):
+    odds: Sequence[Square]
+    evens: Sequence[Square]
+
+    def __init__(self, odds: Sequence[Square], evens: Sequence[Square]):
+        self.odds = odds
+        self.evens = evens
+
+    def reset(self, grid: Grid) -> None:
+        odd_cells = [grid.matrix[x] for x in self.odds]
+        even_cells = [grid.matrix[x] for x in self.evens]
+        Cell.keep_values_for_cell(odd_cells, {1, 3, 5, 7, 9}, show=False)
+        Cell.keep_values_for_cell(even_cells, {2, 4, 6, 8}, show=False)
+
+    def draw(self, context: DrawContext) -> None:
+        for row, column in self.evens:
+            context.draw_rectangle((column + .1, row + .1), width=.8, height=.8, color='lightgray', fill=True)
+        for row, column in self.odds:
+            context.draw_circle((column + .5, row + .5), radius=.4, color='lightgray', fill=True)
 
 
 class AbstractMateFeature(Feature, abc.ABC):
@@ -520,7 +537,7 @@ class SameValueAsExactlyOneMateFeature(AbstractMateFeature):
             if count >= 2 or (count == 0 and not mates):
                 impossible_values.add(value)
         if impossible_values:
-            print(f'Cell {self.this_cell} must have a matable value')
+            print(f'Cell {self.this_cell} must have a mate value')
             Cell.remove_values_from_cells([self.this_cell], impossible_values)
             return True
         return False
@@ -573,7 +590,7 @@ class AlternativeBoxesFeature(Feature):
     def __init__(self, pattern: str) -> None:
         assert len(pattern) == 81
         info: Sequence[List[Square]] = [list() for _ in range(10)]
-        for (row, column), letter in zip(itertools.product(range(1, 10), repeat=2), pattern):
+        for (row, column), letter in zip(product(range(1, 10), repeat=2), pattern):
             assert '1' <= letter <= '9'
             info[int(letter)].append((row, column))
         for i in range(1, 10):
@@ -587,11 +604,11 @@ class AlternativeBoxesFeature(Feature):
                  for i in range(len(self.squares))]
         grid.houses.extend(boxes)
 
-    def draw(self, context: dict) -> None:
+    def draw(self, context: DrawContext) -> None:
         colors = ('lightcoral', "violet", "bisque", "lightgreen", "lightgray", "yellow", "skyblue",
                   "pink", "purple")
-        for squarex, color in zip(self.squares, colors):
-            self.draw_outline(squarex, color=color, inset=.1)
+        for square, color in zip(self.squares, colors):
+            self.draw_outline(context, square, inset=.1, color=color)
 
 
 class SandwichFeature(PossibilitiesFeature):
@@ -601,8 +618,8 @@ class SandwichFeature(PossibilitiesFeature):
     grid: Grid
 
     @staticmethod
-    def all(htype: House.Type, totals: Sequence[int]) -> Sequence[SandwichFeature]:
-        return [SandwichFeature(htype, rc, total) for rc, total in enumerate(totals, start=1)]
+    def all(htype: House.Type, totals: Sequence[Optional[int]]) -> Sequence[SandwichFeature]:
+        return [SandwichFeature(htype, rc, total) for rc, total in enumerate(totals, start=1) if total is not None]
 
     def __init__(self, htype: House.Type, row_column: int, total: int):
         name = f'Sandwich {htype.name.title()} #{row_column}'
@@ -610,7 +627,7 @@ class SandwichFeature(PossibilitiesFeature):
         self.htype = htype
         self.row_column = row_column
         self.total = total
-        super().__init__(name, squares, compressed=True)
+        super().__init__(squares, name=name, compressed=True)
 
     def initialize(self, grid: Grid) -> None:
         self.grid = grid
@@ -622,7 +639,7 @@ class SandwichFeature(PossibilitiesFeature):
     @classmethod
     def _get_possibilities(cls, total: int) -> Iterable[Tuple[Set[int], ...]]:
         for length in range(0, 8):
-            for values in itertools.combinations((2, 3, 4, 5, 6, 7, 8), length):
+            for values in combinations((2, 3, 4, 5, 6, 7, 8), length):
                 if sum(values) == total:
                     non_values = set(range(2, 9)) - set(values)
                     non_values_length = 7 - length
@@ -631,12 +648,13 @@ class SandwichFeature(PossibilitiesFeature):
                         yield tuple(temp)
                         temp.rotate(1)
 
-    def draw(self, context: dict) -> None:
-        self.draw_outside(self.total, self.htype, self.row_column, fontsize=20, weight='bold')
+    def draw(self, context: DrawContext) -> None:
+        self.draw_outside(context, self.total, self.htype, self.row_column, fontsize=20, weight='bold')
         if not context.get(self.__class__):
             context[self.__class__] = True
             special = [cell.index for cell in self.grid.cells if cell.possible_values.isdisjoint({1, 9})]
-            self.draw_rectangles(special, color='lightgreen')
+            context.draw_rectangles(special, color='lightgreen')
+
 
 class SandwichXboxFeature(PossibilitiesFeature):
     htype: House.Type
@@ -651,7 +669,7 @@ class SandwichXboxFeature(PossibilitiesFeature):
         self.row_column = row_column
         self.value = value
         self.is_right = right
-        super().__init__(name, squares)
+        super().__init__(squares, name=name)
 
     def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
         result = self._get_all_possibilities()[self.value]
@@ -665,7 +683,7 @@ class SandwichXboxFeature(PossibilitiesFeature):
     def _get_all_possibilities() -> Mapping[int, Sequence[Tuple[int, ...]]]:
         result: Dict[int, List[Tuple[int, ...]]] = defaultdict(list)
         start = datetime.datetime.now()
-        for values in itertools.permutations(range(1, 10)):
+        for values in permutations(range(1, 10)):
             index1 = values.index(1)
             index2 = values.index(9)
             if index2 < index1:
@@ -678,16 +696,17 @@ class SandwichXboxFeature(PossibilitiesFeature):
         print(f'Initialization = {end - start}.')
         return result
 
-    def draw(self, context: dict) -> None:
+    def draw(self, context: DrawContext) -> None:
         args = dict(fontsize=20, weight='bold')
-        self.draw_outside(self.value, self.htype, self.row_column, is_right=self.is_right, **args)
+        self.draw_outside(context, self.value, self.htype, self.row_column, is_right=self.is_right, **args)
+
 
 class PalindromeFeature(Feature):
     squares: Sequence[Square]
     cells: Sequence[Cell]
     color: str
 
-    def __init__(self, squares: Union[Tuple[Square], str], color: str):
+    def __init__(self, squares: Union[Sequence[Square], str], color: str):
         if isinstance(squares, str):
             squares = self.parse_line(squares)
         self.squares = squares
@@ -696,13 +715,15 @@ class PalindromeFeature(Feature):
     def initialize(self, grid: Grid) -> None:
         self.cells = [grid.matrix[square] for square in self.squares]
 
+    @Feature.check_only_if_changed
     def check(self) -> bool:
         changed = False
         pairs = len(self.cells) // 2
         for cell1, cell2 in zip(self.cells[:pairs], self.cells[::-1]):
             if cell1.possible_values != cell2.possible_values:
                 changed = True
-                print(f'{cell1.index} and {cell2.index} must have the same values {cell1.possible_values} {cell2.possible_values}')
+                print(f'{cell1.index} and {cell2.index} must have the same values' 
+                      ' {cell1.possible_values} {cell2.possible_values}')
                 values = cell1.possible_values.intersection(cell2.possible_values)
                 for a, b in ((cell1, cell2), (cell2, cell1)):
                     if a.possible_values != values:
@@ -712,17 +733,17 @@ class PalindromeFeature(Feature):
                             Cell.keep_values_for_cell([a], values)
         return changed
 
-    def draw(self, context: dict) -> None:
-        self.draw_line(self.squares, color=self.color)
+    def draw(self, context: DrawContext) -> None:
+        context.draw_line(self.squares, color=self.color)
 
 
 class XVFeature(AdjacentRelationshipFeature):
     total: Optional[int]
     non_total: Optional[Set[int]]
 
-    def __init__(self, squares: Tuple[Square], *,
+    def __init__(self, squares: Tuple[Square, Square], *,
                  total: Optional[int] = None, non_total: Optional[Set[int]] = None):
-        super().__init__(f'{squares[0]}/{squares[1]}', squares)
+        super().__init__(squares, name=f'{squares[0]}/{squares[1]}')
         self.total = total
         self.non_total = non_total
 
@@ -732,18 +753,18 @@ class XVFeature(AdjacentRelationshipFeature):
         else:
             return digit1 + digit2 not in self.non_total
 
-    def draw(self, context: dict) -> None:
+    def draw(self, context: DrawContext) -> None:
         if self.total:
             args = {}
             (r1, c1), (r2, c2) = self.squares
             character = 'X' if self.total == 10 else 'XV' if self.total == 15 else 'V'
-            plt.text((c1 + c2 + 1) / 2, (r1 + r2 + 1) / 2, character,
-                     verticalalignment='center', horizontalalignment='center', **args)
+            context.draw_text((c1 + c2 + 1) / 2, (r1 + r2 + 1) / 2, character,
+                              verticalalignment='center', horizontalalignment='center', **args)
 
     @staticmethod
     def setup(*, across: Mapping[int, Sequence[Square]], down: Mapping[int, Sequence[Square]],
               all_listed: bool = True,
-              all_values: Optional[Set[int]] = None) -> Sequence[Features]:
+              all_values: Optional[Set[int]] = None) -> Sequence[Feature]:
         features = []
         features.extend(XVFeature(((row, column), (row, column + 1)), total=total)
                         for total, squares in across.items()
@@ -757,50 +778,251 @@ class XVFeature(AdjacentRelationshipFeature):
             acrosses_seen = {square for total, squares in across.items() for square in squares}
             downs_seen = {square for total, squares in down.items() for square in squares}
             features.extend(XVFeature(((row, column), (row, column + 1)), non_total=all_values)
-                            for row, column in itertools.product(range(1, 10), range(1, 9))
+                            for row, column in product(range(1, 10), range(1, 9))
                             if (row, column) not in acrosses_seen)
             features.extend(XVFeature(((row, column), (row + 1, column)), non_total=all_values)
-                            for row, column in itertools.product(range(1, 9), range(1, 10))
+                            for row, column in product(range(1, 9), range(1, 10))
                             if (row, column) not in downs_seen)
         return features
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.total:
             return f'<{self.squares[0]}+{self.squares[1]}={self.total}>'
         else:
             return f'<{self.squares[0]}+{self.squares[1]}!={self.non_total}>'
 
 
+class KropkeDotFeature:
+    class _InternalFeature(PossibilitiesFeature):
+        is_black: bool
+
+        def __init__(self, squares: [Tuple[Square]], *, black) -> None:
+            super().__init__(squares, name=f'Kropke {squares[0]}/{squares[-1]}')
+            self.is_black = black
+
+        def get_possibilities(self) -> List[Tuple[Set[int], ...]]:
+            count = len(self.squares)
+            assert count >= 2
+            if not self.is_black or count >= 3:
+                items = (1, 2, 4, 8) if self.is_black else list(range(1, 10))
+                for i in range(len(items) - count + 1):
+                    yield self.fix_possibility(items[i:i + count])
+                    yield self.fix_possibility(items[i:i + count][::-1])
+            else:
+                for i in (1, 2, 3, 4):
+                    yield self.fix_possibility((i, 2 * i))
+                    yield self.fix_possibility((2 * i, i))
+
+        def draw(self, context: DrawContext) -> None:
+            (iter1, iter2) = tee(self.squares)
+            next(iter2, None)
+            for (y1, x1), (y2, x2) in zip(iter1, iter2):
+                context.draw_circle(((x1 + x2 + 1) / 2, (y1 + y2 + 1) / 2),
+                                    radius=.2, fill=self.is_black, color='black')
+
+    @classmethod
+    def setup(cls, squares: Union[str, Tuple[Square]], *, color: str) -> Sequence[KropkeDotFeature]:
+        assert color == 'white' or color == 'black'
+        is_black = color == 'black'
+        if isinstance(squares, str):
+            squares = Feature.parse_line(squares)
+        chunks = [tuple(items) for _, items in groupby(squares, Feature.box_for_square)]
+        prev = None
+        features = []
+        for chunk in chunks:
+            if prev:
+                features.append(cls._InternalFeature((prev, chunk[0]), black=is_black))
+            if len(chunk) > 1:
+                features.append(cls._InternalFeature(chunk, black=is_black))
+
+            prev = chunk[-1]
+        return features
+
+
 class NonConsecutiveFeature(AdjacentRelationshipFeature):
-    def __init__(self, squares: Tuple[Square]):
-        super().__init__(f'{squares[0]}/{squares[1]}', squares)
+    def __init__(self, squares: Sequence[Square], *, name: str):
+        # color = None so we don't need to override draw
+        super().__init__(squares, name=name, color=None)
 
     def match(self, digit1: int, digit2: int) -> bool:
         return abs(digit1 - digit2) != 1
 
-    def draw(self, context: dict) -> None:
-        pass
+    @staticmethod
+    def setup() -> Sequence[Feature]:
+        return [
+            # Treat each row and each column as a change
+            *[NonConsecutiveFeature([(row, column) for column in range(1, 10)], name=f'Row {row}')
+              for row in range(1, 10)],
+            *[NonConsecutiveFeature([(row, column) for row in range(1, 10)], name=f'Column {column}')
+              for column in range(1, 10)]
+        ]
+
+    def __str__(self):
+        return f'<{self.__class__.__name__} {self.name}>'
+
+
+class KillerCageFeature(PossibilitiesFeature):
+    """The values in the cage must all be different.  They must sum to the total"""
+    total: int
+
+    def __init__(self, total: int, squares: Sequence[Square]):
+        self.total = total
+        super().__init__(squares)
+
+    def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
+        count = len(self.squares)
+        for values in permutations(range(1, 10), count - 1):
+            last_value = self.total - sum(values)
+            if 1 <= last_value <= 9 and last_value not in values:
+                result = (*values, last_value)
+                yield self.fix_possibility(result)
+
+    def draw(self, context: DrawContext) -> None:
+        self.draw_outline(context, self.squares)
+        row, column = min(self.squares)
+        context.draw_text(column + .2, row + .2, str(self.total),
+                          verticalalignment='top', horizontalalignment='left', fontsize=10, weight='bold')
+
+
+class ArrowFeature(PossibilitiesFeature):
+    """The sum of the values in the arrow must equal the digit in the head of the array"""
+    def __init__(self, squares: Union[Sequence[Square], str]):
+        super().__init__(squares)
+
+    def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
+        count = len(self.squares) - 1
+        for values in permutations(range(1, 10), count):
+            total = sum(values)
+            if total < 10:
+                yield self.fix_possibility((total, *values))
+
+    def draw(self, context: DrawContext) -> None:
+        y, x = self.squares[0]
+        context.draw_circle((x + .5, y+.5), radius=.5, fill=False, color='black')
+        context.draw_line(self.squares)
+
+
+class BetweenLineFeature(PossibilitiesFeature):
+    """The values in the middle of the arrow must be strictly in between the values of the two endpoints"""
+    def __init__(self, squares: Union[Sequence[Square], str]):
+        super().__init__(squares)
+
+    def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
+        clumps = [list(squares)
+                  for box, squares in groupby(self.squares[1:-1], key=self.box_for_square)]
+        count = len(self.squares) - 2
+        max_clump_length = max(len(clump) for clump in clumps)
+        for low, high in combinations(range(1, 10), 2):
+            if high > low + max_clump_length:
+                middle = set(range(low + 1, high))
+                yield [{low}, *([middle] * count), {high}]
+                yield [{high}, *([middle] * count), {low}]
+
+    def draw(self, context: DrawContext) -> None:
+        y0, x0 = self.squares[0]
+        y1, x1 = self.squares[-1]
+        context.draw_circle((x0 + .5, y0+.5), radius=.5, fill=False, color='black')
+        context.draw_circle((x1 + .5, y1+.5), radius=.5, fill=False, color='black')
+        context.draw_line(self.squares)
+
+
+class ExtremesFeature(Feature):
+    """Reds must be larger than all of its neighbors.  Greens must be smaller than all of its neighbors"""
+    class _Drawer(Feature):
+        reds: Sequence[Square]
+        greens: Sequence[Square]
+
+        def __init__(self, *, reds: Sequence[Square] = (), greens: Sequence[Square] = ()):
+            self.reds = reds
+            self.greens = greens
+
+        def draw(self, context: DrawContext) -> None:
+            for color, squares in (('#FCA0A0', self.reds), ('#B0FEB0', self.greens)):
+                for y, x in squares:
+                    context.draw_rectangle((x, y), width=1, height=1, color=color, fill=True)
+
+    class _Comparer(AdjacentRelationshipFeature):
+        def __init__(self, small: Square, large: Square):
+            super().__init__([small, large], color=None)
+
+        def match(self, digit1: int, digit2: int) -> bool:
+            return digit1 < digit2
 
     @staticmethod
-    def setup() -> Sequence[Features]:
-        features = []
-        features.extend(NonConsecutiveFeature(((row, column), (row, column + 1)))
-                        for row, column in itertools.product(range(1, 10), range(1, 9)))
-        features.extend(NonConsecutiveFeature(((row, column), (row + 1, column)))
-                        for row, column in itertools.product(range(1, 9), range(1, 10)))
-        return features
+    def _orthogonal_neighbors(square):
+        row, column = square
+        for r, c in ((row + 1, column), (row - 1, column), (row, column + 1), (row, column - 1)):
+            if 1 <= r <= 9 and 1 <= c <= 9:
+                yield r, c
+
+    @classmethod
+    def setup(cls, *, reds: Union[str, Sequence[Square]] = (), greens: Union[str, Sequence[Square]] = ()
+              ) -> Sequence[Feature]:
+        if isinstance(reds, str):
+            reds = Feature.parse_line(reds)
+        if isinstance(greens, str):
+            greens = Feature.parse_line(greens)
+        result = [
+            cls._Drawer(reds=reds, greens=greens),
+            *[cls._Comparer(neighbor, red) for red in reds for neighbor in cls._orthogonal_neighbors(red)],
+            *[cls._Comparer(green, neighbor) for green in greens for neighbor in cls._orthogonal_neighbors(green)],
+        ]
+        return result
 
 
+class LittleKillerFeature(PossibilitiesFeature):
+    """Typically done via a diagonal.  The sum of the diagonal must total a specific value"""
+    ranges: ClassVar[Sequence[range]] = (None, range(1, 9 + 1), range(3, 17 + 1), range(6, 24 + 1))
+    ranges_dict: ClassVar[Any] = None
+    total: int
+    start: Square
+    direction: Square
 
+    def __init__(self, total: int, start: Square, direction: Square):
+        self.total = total
+        self.start = start
+        self.direction = direction
+        row, column = start
+        dr, dc = direction
+        squares = []
+        while 1 <= row <= 9 and 1 <= column <= 9:
+            squares.append((row, column))
+            row, column = row + dr, column + dc
+        if not self.ranges_dict:
+            ranges_dict = defaultdict(list)
+            for count in (1, 2, 3):
+                for values in permutations(range(1, 10), count):
+                    ranges_dict[count, sum(values)].append(values)
+            self.ranges_dict = ranges_dict
 
+        super().__init__(squares)
 
+    def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
+        # Find the clumps, where clumps are the squares that are in a single box
+        clumps = [list(squares)
+                  for box, squares in groupby(self.squares, key=self.box_for_square)]
+        length = len(clumps)
+        # Possible values that each clump can have
+        values = [self.ranges[len(clump)] for clump in clumps]
+        left_values, right_values = values[0:length // 2], values[length // 2:]
 
+        right_map = defaultdict(list)
+        for right_value_list in product(*right_values):
+            right_map[sum(right_value_list)].append(right_value_list)
 
+        for left_value_list in product(*left_values):
+            for right_value_list in right_map[self.total - sum(left_value_list)]:
+                value_list = [*left_value_list, *right_value_list]
+                value_items = [self.ranges_dict[len(clump), value] for clump, value in zip(clumps, value_list)]
+                for list_of_list in product(*value_items):
+                    possibility = tuple(x for lst in list_of_list for x in lst)
+                    yield self.fix_possibility(possibility)
 
-
-
-
-
-
-
-
+    def draw(self, context: DrawContext) -> None:
+        (y, x), (dy, dx) = self.start, self.direction
+        context.draw_text(x - dx + .5, y - dy + .5, str(self.total),
+                          verticalalignment='center', horizontalalignment='center',
+                          fontsize=25, color='black', weight='light')
+        context.arrow(x - dx + .5, y - dy + .5, .5 * dx, .5 * dy,
+                      length_includes_head=True,
+                      head_width  =.2, head_length=.2)

@@ -2,6 +2,7 @@ import itertools
 from typing import Optional, Sequence, Tuple, Iterable, Set, List, cast
 
 from cell import House
+from draw_context import DrawContext
 from features import PossibilitiesFeature
 
 
@@ -17,7 +18,7 @@ class SkyscraperFeature(PossibilitiesFeature):
                  *, basement: Sequence[Tuple[int, int]] = ()):
         name = f'Skyscraper {htype.name.title()} #{row_column}'
         squares = [square for square in self.get_row_or_column(htype, row_column) if square not in basement]
-        super().__init__(name, squares)
+        super().__init__(squares, name=name)
         self.htype = htype
         self.row_column = row_column
         self.left = left
@@ -79,18 +80,18 @@ class SkyscraperFeature(PossibilitiesFeature):
                     result.insert(0, this_group)
                     yield result
 
-        inner(0, 0)
+        return inner(0, 0)
 
-    def draw(self, context) -> None:
+    def draw(self, context: DrawContext) -> None:
         args = dict(fontsize=20, weight='bold')
         if self.left:
-            self.draw_outside(self.left, self.htype, self.row_column, **args)
+            self.draw_outside(context, self.left, self.htype, self.row_column, **args)
         if self.right:
-            self.draw_outside(self.right, self.htype, self.row_column, is_right=True, **args)
-        self.draw_rectangles(self.basement, facecolor="lightgrey")
+            self.draw_outside(context, self.right, self.htype, self.row_column, is_right=True, **args)
+        context.draw_rectangles(self.basement, facecolor="lightgrey")
 
 
-def main():
+def main() -> None:
     basement = ((1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9))
     temp = SkyscraperFeature(House.Type.ROW, 1, 5, 2, basement=basement[0:0])
     count = 0

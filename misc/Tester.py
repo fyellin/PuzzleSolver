@@ -7,7 +7,7 @@ import itertools
 import math
 import operator
 import random
-from idlelib.tree import TreeNode
+from collections import deque, defaultdict
 from typing import List, Tuple, Set, Optional, Dict, Iterable, Callable, Sequence, TypeVar, Hashable, Generic, Any, \
     Mapping, Iterator
 
@@ -303,6 +303,60 @@ class Dijkstra(Generic[State]):
         print("# ❌ FAILURE")
         return this_distance - 1, None
 
+State = TypeVar('State')
+class FastDijkstra(Generic[State]):
+    start: State
+
+    def __init__(self, start: State):
+        self.start = start
+
+    def neighbor(self, state: State) -> Iterable[State]:
+        ...
+
+    def is_done(self, state: State) -> bool:
+        ...
+
+    def run(self, verbose: int = 0) -> Tuple[int, Optional[State]]:
+        minimum_map = dict([(self.start, 0)])
+        queue: deque[tuple[int, int, State]] = deque([(0, 0, self.start)])
+        seen = added = ignored = 0
+        previous_distance = -1
+
+        while queue:
+            this_distance, _, this_state = queue.popleft()
+            seen += 1
+            if verbose >= 1 and previous_distance < this_distance:
+                print(f"# Distance is now {this_distance}")
+                previous_distance = this_distance
+            if minimum_map[this_state] < this_distance:
+                # We've already seen this state with a smaller distance.  No use reprocessing
+                ignored += 1
+                if verbose >= 2:
+                    print(f"#    ❌ Already saw {this_state} (distance={minimum_map[this_state]})")
+                continue
+            if verbose >= 2:
+                print(f"#     ✔ Looking at {this_state}")
+            if self.is_done(this_state):
+                print(f"# ✔ {this_state} distance={this_distance} "
+                      f"seen={seen} added={added}, ignored={ignored}")
+                return this_distance, this_state
+
+            for new_state in self.neighbor(this_state):
+                new_distance = this_distance + 1
+                # new_distance = max(this_distance, distance)
+                if new_distance < minimum_map.get(new_state, math.inf):
+                    minimum_map[new_state] = new_distance
+                    added += 1
+                    queue.append((new_distance, added, new_state))
+                    if verbose >= 3:
+                        print(f"#       + {new_state} at {new_distance} = {this_distance} + 1")
+                else:
+                    if verbose >= 3:
+                        print(f"#       - {new_state} at {new_distance} = "
+                              f"{this_distance} + 1 > {minimum_map[new_state]}")
+        print("# ❌ FAILURE")
+        return this_distance - 1, None
+
 
 State = TypeVar('State')
 class DijkstraExtended(Generic[State]):
@@ -473,7 +527,7 @@ class TreeNode:
         self.right = right
 
     @staticmethod
-    def fromArray(values: Sequence[Any]) -> TreeNode:
+    def fromArray(values: Sequence[Any]) -> 'TreeNode':
         if not values:
             return None
         iterator = iter(values)
@@ -597,6 +651,7 @@ class Trie:
 
 def palindrome(length) -> Iterator[str]:
     """Returns palindromes"""
+
     half_length = (length + 1) // 2
     is_even = (length & 1) == 0
     multiplier = 10 ** (length // 2)
@@ -612,49 +667,34 @@ def palindrome(length) -> Iterator[str]:
 
 
 class Solution:
-    def shortestSuperstring(self, A):
-        length = len(A)
-        final_mask = (1 << length) - 1
+    def shoppingOffers(self, price: List[int], special: List[List[int]], needs: List[int]) -> int:
 
-        @functools.lru_cache(None)
-        def connect(w1, w2):
-            for i in reversed(range(0, min(len(w1), len(w2)))):
-                if i == 0 or w2[:i] == w1[-i:]:
-                    print(w1, w2, w2[i:])
-                    return w2[i:]
+        def is_good_offer(offer):
+            separate_price = sum(p * off for p, off in zip(price, offer))
+            discount_price = offer[-1]
+            return discount_price < separate_price
 
-        @functools.lru_cache(None)
-        def dp(mask, last):
-            if mask == final_mask:
-                return ""
-            return min((connect(A[last], A[i]) + dp(mask | 1<<i, i) for i in range(length) if not mask & 1<<i), key = len)
+        special = list(filter(is_good_offer, special))
 
-        return min((A[i] + dp(1 << i, i) for i in range(length)), key=len)
+        class MyDijkstra(Dijkstra):
+            def is_done(self, state):
+                return all(x == 0 for x in state)
 
+            def neighbor(self, state: State) -> Iterable[Tuple[State, int]]:
+                for index, value in enumerate(state):
+                    if value > 0:
+                        yield (*state[:index], value - 1, *state[index + 1:]), price[index]
+                    for offer in special:
+                        if all(off <= val for off, val in zip(offer, state)):
+                            new_state = tuple(val - off for off, val in zip(offer, state))
+                            yield new_state, offer[-1]
 
-class Solution:
-    def isInterleave(self, s1: str, s2: str, s3: str) -> bool:
-        len1, len2, len3 = len(s1), len(s2), len(s3)
+        solver = MyDijkstra(tuple(needs))
+        result, state = solver.run()
+        return result
 
-        @functools.lru_cache(None)
-        def inner(i1, i2):
-            if i1 == len1:
-                remaining = len2 - i2
-                return s2[-remaining:] == s3[-remaining:]
-            if i2 == len2:
-                remaining = len1 - i1
-                return s1[-remaining:] == s3[-remaining:]
-            char = s3[i1 + i2]
-            return (char == s1[i1] and inner(i1 + 1, i2)) or (char == s2[i2] and inner(i1, i2 + 1))
-        return inner(0, 0)
 
 if __name__ == '__main__':
-    # s1 = "aabcc"; s2 = "dbbca"; s3 = "aadbbcbcac"
-    # s1 = "aabcc"; s2 = "dbbca"; s3 = "aadbbbaccc"
-    s1 = "cbcccbabbccbbcccbbbcabbbabcababbbbbbaccaccbabbaacbaabbbc"
-    s2 = "abcbbcaababccacbaaaccbabaabbaaabcbababbcccbbabbbcbbb"
-    s3 = "abcbcccbacbbbbccbcbcacacbbbbacabbbabbcacbcaabcbaaacbcbbbabbbaacacbbaaaabccbcbaabbbaaabbcccbcbabababbbcbbbcbb"
+    temp = set()
 
-    temp = Solution().isInterleave(s1, s2, s3)
-    print(temp)
-
+    heapq.merge
