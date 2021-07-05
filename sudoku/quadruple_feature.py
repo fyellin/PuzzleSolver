@@ -18,8 +18,8 @@ class QuadrupleFeature(Feature):
     current_values = Set[int]
     done: bool
 
-    def __init__(self, square: Square, values: Sequence[int]):
-        row, column = square
+    def __init__(self, *, top_left: Square, values: Sequence[int]):
+        row, column = top_left
         self.squares = [(row, column), (row, column + 1), (row + 1, column + 1), (row + 1, column)]
         self.values = set(values)
 

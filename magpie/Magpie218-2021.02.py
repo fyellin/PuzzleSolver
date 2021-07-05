@@ -5,12 +5,12 @@ from functools import lru_cache
 from typing import Dict, Sequence, Iterable, Tuple, Set, ClassVar
 
 from cell import House
-from features import PossibilitiesFeature
+from features import PossibilitiesFeature, SimplePossibilitiesFeature
 from human_sudoku import Sudoku
 from misc.factors import divisor_count, prime_factors, factor_count
 
 
-class PrimeFactorFeature(PossibilitiesFeature):
+class PrimeFactorFeature(SimplePossibilitiesFeature):
     htype: House.Type
     row_column: int
     count: int
@@ -30,15 +30,10 @@ class PrimeFactorFeature(PossibilitiesFeature):
         if not PrimeFactorFeature.TABLE:
             PrimeFactorFeature.TABLE = self.generate_table()
 
-        super().__init__(squares, name=name, compressed=True)
+        super().__init__(squares, name=name)
 
-    def get_possibilities(self) -> Iterable[Tuple[Set[int], ...]]:
-        return self._get_possibilities(self.count)
-
-    @classmethod
-    @lru_cache(None)
-    def _get_possibilities(cls, count: int) -> Iterable[Tuple[Set[int], ...]]:
-        return list(cls.fix_possibilities(cls.TABLE[count]))
+    def get_possibilities(self) -> Iterable[Tuple[int, ...]]:
+        return self.TABLE[self.count]
 
     def draw(self, context: dict) -> None:
         self.draw_outside(context, self.count, self.htype, self.row_column, is_right=True, fontsize=15)

@@ -329,32 +329,34 @@ def puzzle_20_421265171(*, show: bool = False) -> None:
 
     features = [
         DrawCircleFeature(circles),
-        QuadrupleFeature((1, 1), (5, 7, 9)),
-        QuadrupleFeature((1, 8), (1, 2, 3, 4)),
-        QuadrupleFeature((2, 2), (1, 3, 4)),
-        QuadrupleFeature((2, 4), (4, 5)),
-        QuadrupleFeature((3, 3), (7, 8, 9)),
-        QuadrupleFeature((3, 6), (1, 2, 3)),
-        QuadrupleFeature((4, 5), (4, 5, 6)),
-        QuadrupleFeature((4, 8), (1, 4)),
-        QuadrupleFeature((5, 1), (4, 5)),
-        QuadrupleFeature((5, 4), (7, 8, 9)),
-        QuadrupleFeature((6, 3), (1, 2, 3)),
-        QuadrupleFeature((6, 6), (4, 5, 7)),
-        QuadrupleFeature((7, 5), (3, 7)),
-        QuadrupleFeature((7, 7), (1, 8, 9)),
-        QuadrupleFeature((8, 1), (4, 7, 8, 9)),
-        QuadrupleFeature((8, 8), (2, 5, 6)),
+        QuadrupleFeature(top_left=(1, 1), values=(5, 7, 9)),
+        QuadrupleFeature(top_left=(1, 8), values=(1, 2, 3, 4)),
+        QuadrupleFeature(top_left=(2, 2), values=(1, 3, 4)),
+        QuadrupleFeature(top_left=(2, 4), values=(4, 5)),
+        QuadrupleFeature(top_left=(3, 3), values=(7, 8, 9)),
+        QuadrupleFeature(top_left=(3, 6), values=(1, 2, 3)),
+        QuadrupleFeature(top_left=(4, 5), values=(4, 5, 6)),
+        QuadrupleFeature(top_left=(4, 8), values=(1, 4)),
+        QuadrupleFeature(top_left=(5, 1), values=(4, 5)),
+        QuadrupleFeature(top_left=(5, 4), values=(7, 8, 9)),
+        QuadrupleFeature(top_left=(6, 3), values=(1, 2, 3)),
+        QuadrupleFeature(top_left=(6, 6), values=(4, 5, 7)),
+        QuadrupleFeature(top_left=(7, 5), values=(3, 7)),
+        QuadrupleFeature(top_left=(7, 7), values=(1, 8, 9)),
+        QuadrupleFeature(top_left=(8, 1), values=(4, 7, 8, 9)),
+        QuadrupleFeature(top_left=(8, 8), values=(2, 5, 6)),
 
     ]
     Sudoku().solve(' ' * 81, features=features, show=show)
 
 
 def run() -> None:
-    puzzles = [puzzle_1, puzzle_2_366662343, puzzle_3_799745399, puzzle_4_438953586, puzzle_5_192531473,
-               puzzle_6_969231896, puzzle_7_271479371, puzzle_8_867486467, puzzle_9_384937216, puzzle_10_561876789,
-               puzzle_11_521327894, puzzle_12_891914194, puzzle_13_535762978, puzzle_14_385478394, puzzle_15_436768313,
-               puzzle_16_395396854, puzzle_17_272936289, puzzle_18_725978489, puzzle_19_548565193, puzzle_20_421265171]
+    puzzles = [
+         puzzle_1, puzzle_2_366662343, puzzle_3_799745399, puzzle_4_438953586, puzzle_5_192531473,
+         puzzle_6_969231896, puzzle_7_271479371, puzzle_8_867486467, puzzle_9_384937216, puzzle_10_561876789,
+         # puzzle_11_521327894, puzzle_12_891914194, puzzle_13_535762978, puzzle_14_385478394, puzzle_15_436768313,
+         # puzzle_16_395396854, puzzle_17_272936289, puzzle_18_725978489, puzzle_19_548565193, puzzle_20_421265171
+    ]
     # puzzles = [puzzle_20_421265171]
     for puzzle in puzzles:
         puzzle(show=False)
