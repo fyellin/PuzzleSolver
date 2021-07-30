@@ -1,13 +1,11 @@
-import functools
 import collections
 import copy
-import functools
 import heapq
 import itertools
 import math
 import operator
 import random
-from collections import deque, defaultdict
+from collections import deque
 from typing import List, Tuple, Set, Optional, Dict, Iterable, Callable, Sequence, TypeVar, Hashable, Generic, Any, \
     Mapping, Iterator
 

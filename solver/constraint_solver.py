@@ -83,7 +83,7 @@ class ConstraintSolver(BaseSolver):
         try:
             self._step_count += len(values)
             for i, value in enumerate(sorted(values)):
-                is_duplicate = not self._allow_duplicates and value in seen_values
+                is_duplicate = not self._allow_duplicates and value in seen_values and len(value) > 1
                 if depth < self._max_debug_depth:
                     print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: {value.__repr__()} --> '
                           f'{"dup" if is_duplicate else ""}')
