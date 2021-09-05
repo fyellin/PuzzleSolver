@@ -1,9 +1,9 @@
 import itertools
 import math
-from typing import Sequence, Iterable
+from collections.abc import Sequence, Iterable
 
 from solver import Clue, ConstraintSolver, generators, Location, ClueValue
-from solver.constraint_solver import KnownClueDict
+from solver.constraint_solver import Constraint, KnownClueDict
 
 
 def digit_sum(value: ClueValue) -> int:
@@ -13,24 +13,15 @@ def digit_sum(value: ClueValue) -> int:
 def digit_product(value: ClueValue) -> int:
     return math.prod(int(x) for x in str(value))
 
-
 def triangular_permutation(clue: Clue):
     for value in generators.triangular(clue):
         for digits in itertools.permutations(str(value)):
             if digits[0] != '0' and ''.join(digits) != str(value):
                 yield ''.join(digits)
 
-
 def non_decreasing(clue: Clue) -> Iterable[str]:
     for digits in itertools.combinations_with_replacement('123456789', clue.length):
         yield ''.join(digits)
-
-
-def non_decreasing_x(_clue: Clue) -> Iterable[str]:
-    for value in range(1000, 10_000):
-        temp = str(value)
-        if temp[0] <= temp[1] <= temp[3] or temp[0] <= temp[2] <= temp[3]:
-            yield temp
 
 
 CLUE_INFO = [
@@ -63,7 +54,6 @@ GENERATORS = {
     'ce': generators.not_prime,
     'db': generators.prime,
     'dj': generators.square,
-    'dk': non_decreasing_x,
     'if': triangular_permutation,
     'jg': generators.triangular,
     'kl': generators.prime,
@@ -123,9 +113,9 @@ class Magpie224 (ConstraintSolver):
 
     def __init__(self) -> None:
         clues = self.get_clues()
+        constraints = self.get_constraints()
         self.real_start_locations = {(loc0, 1) for _name, loc0, *_loc in CLUE_INFO}
-        super().__init__(clues)
-        self.add_all_constraints()
+        super().__init__(clues, constraints=constraints)
 
     @staticmethod
     def get_clues() -> Sequence[Clue]:
@@ -140,34 +130,43 @@ class Magpie224 (ConstraintSolver):
         ]
         return clues
 
+    def get_constraints(self) -> Sequence[Constraint]:
+        l_and_friends = ('10', '7', '43', '16', '48')
+
+        def check_vertex(*values: str) -> bool:
+            return sum(int(value) for value in values) % len(values) == 0
+
+        return [
+            Constraint(("ba", "ec"), lambda ba, ec: int(ba) < int(ec)),
+            Constraint(('ec', 'xy'), lambda ec, xy: int(ec) % digit_sum(xy) == 0),
+            Constraint(('ln', 'hm'), lambda ln, hm: digit_product(ln) < digit_product(hm)),
+            Constraint(('mh', 'zt'), lambda mh, zt: digit_sum(mh) == digit_sum(zt)),
+            Constraint(('pm', 'pv'), lambda pm, pv: int(pm) > int(pv)),
+            Constraint(('pu', 'zt'), lambda pu, zt: digit_product(pu) == digit_product(zt)),
+            Constraint(('pv', 'bd'), lambda pv, bd: int(bd) % int(pv) == 0 and int(bd) > int(pv)),
+            Constraint(('qo', 'vu'), lambda qo, vu: int(vu) % int(qo) == 0 and int(vu) > int(qo)),
+            *[
+                Constraint(tuple(str(vertex) for vertex in vertices), check_vertex,
+                           name=','.join(str(vertex) for vertex in vertices))
+                for vertices in VERTICES
+            ],
+            Constraint(('yz', *l_and_friends), lambda a, *b: int(a) == math.prod(int(x) for x in b), name="JJJ"),
+            # These aren't really necessary, but they speed up the program just a tad.
+            # Any subset of the multipliers must be a divisor of yz.
+            *[
+                Constraint(('yz', *vertices), lambda a, *b: int(a) % math.prod(int(x) for x in b) == 0)
+                for count in range(1, 5)
+                for vertices in itertools.combinations(l_and_friends, count)
+            ],
+            Constraint(('dk',), lambda value: value[0] <= value[1] <= value[3] or value[0] <= value[2] <= value[3]),
+        ]
+
     def show_solution(self, known_clues: KnownClueDict) -> None:
         items = [(clue.name, known_clues[clue]) for clue in self._clue_list]
         print(', '.join(f'{name}:{value}' for name, value in items))
 
     def add_all_constraints(self) -> None:
-        def check_vertex(*values: str) -> bool:
-            return sum(int(value) for value in values) % len(values) == 0
-
-        for vertices in VERTICES:
-            self.add_constraint(tuple(str(vertex) for vertex in vertices), check_vertex,
-                                name=','.join(str(vertex) for vertex in vertices))
-
-        self.add_constraint(("ba", "ec"), lambda ba, ec: int(ba) < int(ec))
-        self.add_constraint(('ec', 'xy'), lambda ec, xy: int(ec) % digit_sum(xy) == 0)
-        self.add_constraint(('ln', 'hm'), lambda ln, hm: digit_product(ln) < digit_product(hm))
-        self.add_constraint(('mh', 'zt'), lambda mh, zt: digit_sum(mh) == digit_sum(zt))
-        self.add_constraint(('pm', 'pv'), lambda pm, pv: int(pm) > int(pv))
-        self.add_constraint(('pu', 'zt'), lambda pu, zt: digit_product(pu) == digit_product(zt))
-        self.add_constraint(('pv', 'bd'), lambda pv, bd: int(bd) % int(pv) == 0 and int(bd) > int(pv))
-        self.add_constraint(('qo', 'vu'), lambda qo, vu: int(vu) % int(qo) == 0 and int(vu) > int(qo))
-
-        l_and_friends = ('10', '7', '43', '16', '48')
-        self.add_constraint(('yz', *l_and_friends), lambda a, *b: int(a) == math.prod(int(x) for x in b), name="JJJ")
-        # These aren't really necessary, but they speed up the program just a tad.  Any subset of the multipliers must
-        # be a divisor of yz.
-        for count in range(1, 5):
-            for vertices in itertools.combinations(l_and_friends, count):
-                self.add_constraint(('yz', *vertices), lambda a, *b: int(a) % math.prod(int(x) for x in b) == 0)
+        pass
 
 
     def get_allowed_regexp(self, location: Location) -> str:

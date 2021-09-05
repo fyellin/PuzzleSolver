@@ -57,9 +57,7 @@ def draw_grid(*, max_row: int, max_column: int,
         circle = plt.Circle((column + .5, row + .5), radius=.4, linewidth=2, fill=False, facecolor='black')
         axes.add_patch(circle)
 
-    scaled_box = Bbox.unit().transformed(axes.transData - axes.figure.dpi_scale_trans)
-    inches_per_data = min(abs(scaled_box.width), abs(scaled_box.height))
-    points_per_data = 72 * inches_per_data
+    points_per_data = 60
 
     # Fill in the values
     for (row, column), entry in location_to_entry.items():
@@ -72,7 +70,6 @@ def draw_grid(*, max_row: int, max_column: int,
         axes.text((max_column + 1) / 2, max_row + .5, subtext,
                  fontsize=points_per_data / 2, fontweight='bold', fontfamily="sans-serif",
                  verticalalignment='center', horizontalalignment='center')
-
 
     # Fill in the clue numbers
     for (row, column), clue_numbers in location_to_clue_numbers.items():
