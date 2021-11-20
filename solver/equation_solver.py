@@ -236,10 +236,6 @@ class EquationSolver(BaseSolver):
         """
         Called when we have a tentative solution.  You should override this method if additional checking
         is required.
-
-        :param _known_clues: A dictionary giving the value of each of the clues.  Clue -> ClueValue
-        :param _known_letters: A dictionary giving the value of each equation letter.  Letter -> int
-        :return: True if this solution is correct; false otherwise
         """
         return True
 

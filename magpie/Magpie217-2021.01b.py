@@ -119,7 +119,7 @@ class PrettyPrinter (ConstraintSolver):
         for row in range(1, rows):
             axes.plot([1, columns], [row + .5, row + .5], 'gray', linewidth=1)
         for column in range(1, columns):
-            axes.plot([column + .5, column +  .5], [1, rows], 'gray', linewidth=1)
+            axes.plot([column + .5, column + .5], [1, rows], 'gray', linewidth=1)
 
         x, y = 17, 19
         axes.add_patch(patches.Rectangle((x / 2, y / 2), 0.5, 0.5, facecolor='lightblue', linewidth=0))
@@ -133,14 +133,8 @@ class PrettyPrinter (ConstraintSolver):
 
 
         plt.plot(())
-
-
-
-
-
-
-
         plt.show()
+
 
 if __name__ == '__main__':
     PrettyPrinter.run()

@@ -3,9 +3,12 @@ import copy
 import heapq
 import itertools
 import math
+import multiprocessing
 import operator
 import random
+import subprocess
 from collections import deque
+from multiprocessing import Array, Process
 from typing import List, Tuple, Set, Optional, Dict, Iterable, Callable, Sequence, TypeVar, Hashable, Generic, Any, \
     Mapping, Iterator
 
@@ -42,7 +45,7 @@ class MaxHeap(MinHeap):
 
 def get_d1(s, length):
     d1 = {}
-    l = 0;
+    l = 0
     r = -1
     for i in range(length):
         k = 1 if i > r else min(d1[l + r - i], r - i + 1)
@@ -210,6 +213,7 @@ def find_lt(a, x):
     if i:
         return a[i-1]
     raise ValueError
+
 
 def find_le(a, x):
     'Find rightmost value less than or equal to x'
@@ -597,8 +601,6 @@ class Link:
         return str(self)
 
 
-
-
 def apd(A, n: int):
     from numpy import array
     """Compute the shortest-paths lengths."""
@@ -663,36 +665,25 @@ def palindrome(length) -> Iterator[str]:
         if temp == temp[::-1]:
             yield value2
 
+def foobar():
+    import logging
+    def init_logger(log_file: str = "info.log"):
+        """
+        Initialize logger.
+        """
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s", datefmt="%Y-%m-%d,%H:%M:%S"))
+        file_handler = logging.FileHandler(filename=log_file)
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s", datefmt="%Y-%m-%d,%H:%M:%S"))
+        logger.addHandler(stream_handler)
+        logger.addHandler(file_handler)
+        return logger
 
-class Solution:
-    def shoppingOffers(self, price: List[int], special: List[List[int]], needs: List[int]) -> int:
-
-        def is_good_offer(offer):
-            separate_price = sum(p * off for p, off in zip(price, offer))
-            discount_price = offer[-1]
-            return discount_price < separate_price
-
-        special = list(filter(is_good_offer, special))
-
-        class MyDijkstra(Dijkstra):
-            def is_done(self, state):
-                return all(x == 0 for x in state)
-
-            def neighbor(self, state: State) -> Iterable[Tuple[State, int]]:
-                for index, value in enumerate(state):
-                    if value > 0:
-                        yield (*state[:index], value - 1, *state[index + 1:]), price[index]
-                    for offer in special:
-                        if all(off <= val for off, val in zip(offer, state)):
-                            new_state = tuple(val - off for off, val in zip(offer, state))
-                            yield new_state, offer[-1]
-
-        solver = MyDijkstra(tuple(needs))
-        result, state = solver.run()
-        return result
+    logger = init_logger()
+    logger.info("Today is a good day")
 
 
 if __name__ == '__main__':
-    temp = set()
-
-    heapq.merge
+    foobar()

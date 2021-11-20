@@ -28,6 +28,6 @@ class Clues:
                 assert match
                 number = int(match.group(1))
                 location = locations[number - 1]
-                clue = Clue(f'{number}{letter}', is_across, location, int(match.group(3)), expression=match.group(2))
+                clue = Clue(f'{number}{letter}', is_across, location, int(match.group(3)), expression=match.group(2).strip())
                 result.append(clue)
         return result

@@ -1,11 +1,10 @@
 import functools
-import functools
 import itertools
 import math
 import operator
 from collections import Counter
 from fractions import Fraction
-from typing import Tuple, Sequence, Any, Iterable
+from typing import Any, Iterable, Sequence, Tuple
 
 from misc.primes import PRIMES, PRIMES_LIMIT
 
@@ -93,8 +92,10 @@ def sum_factors(value: int):
     except:
         print("huh")
 
+
 def digit_sum(value: int) -> int:
     return sum(int(x) for x in str(value))
+
 
 def continued_fraction_sqrt(n: int) -> Iterable[int]:
     cache = {}
@@ -289,13 +290,6 @@ def foobar():
             else:
                 total += prime
     return total
-
-def foobar():
-    from sympy.parsing.sympy_parser import parse_expr
-    from sympy.parsing.sympy_parser import standard_transformations, implicit_multiplication_application
-    transformations = (standard_transformations + (implicit_multiplication_application,))
-    print(parse_expr("xy", transformations=transformations))
-
 
 if __name__ == '__main__':
     foobar()
