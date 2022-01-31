@@ -1,8 +1,9 @@
 import itertools
 import re
-from typing import Dict, Tuple, Set, Sequence, Any
+from collections.abc import Iterable
+from typing import Sequence, Any
 
-from solver import EquationSolver, Evaluator, Clue
+from solver import ClueValue, EquationSolver, Evaluator, Clue, Letter
 
 EQUATIONS = """
 1 A – B + BOT                , ((ANY – O)(N + E))**2
@@ -25,7 +26,7 @@ EQUATIONS = """
 
 
 class Magpie217 (EquationSolver):
-    graph: Dict[str, Set[str]]
+    graph: dict[str, set[str]]
 
     @staticmethod
     def run() -> None:
@@ -45,26 +46,28 @@ class Magpie217 (EquationSolver):
             cc = 2 * (i % 4) + 2
             locations = [(rr, cc), (rr - 1, cc - 1), (rr - 1, cc), (rr - 1, cc + 1), (rr, cc + 1), (rr + 1, cc + 1),
                          (rr + 1, cc), (rr + 1, cc - 1), (rr, cc - 1)]
-            evaluator1 = Clue.create_evaluator(equation1, user_globals=globals())
-            evaluator2 = Clue.create_evaluator(equation2, user_globals=globals())
+            clue = Clue(str(i + 1), True, (rr, cc), 9, expression=f'{equation1} + {equation2}', locations=locations)
 
-            clue = Clue(str(i + 1), True, (rr, cc), 9, expression=f'{equation1} + {equation2}',
-                        locations=locations, context=(evaluator1, evaluator2))
+            clue.evaluators = self.get_special_evaluator(clue, equation1, equation2)
             clues.append(clue)
         return clues
 
+    def get_special_evaluator(self, clue: Clue, equation1: str, equation2: str):
+        evaluator1 = Clue.create_evaluator(equation1)
+        evaluator2 = Clue.create_evaluator(equation2)
 
-    def evaluate(self, clue, evaluator: Evaluator) -> Sequence[str]:
-        ev1, ev2 = clue.context
-        v1 = ev1(self._known_letters)
-        if v1 not in self.graph:
-            return []
-        v2 = ev2(self._known_letters)
-        if v2 not in self.graph[v1]:
-            return []
-        digits = v1 + v2
-        missing = next(x for x in '123456789' if x not in digits)
-        return [missing + digits[i:] + digits[:i] for i in range(8)]
+        def my_evaluator(_evaluator: Evaluator, values: dict[Letter, int]) -> Iterable[ClueValue]:
+            values1 = list(evaluator1(values))
+            if not values1 or (v1 := values1[0]) not in self.graph:
+                return ()
+            values2 = list(evaluator2(values))
+            if not values2 or (v2 := values2[0]) not in self.graph[v1]:
+                return ()
+            digits = v1 + v2
+            missing = next(x for x in '123456789' if x not in digits)
+            return [ClueValue(missing + digits[i:] + digits[:i]) for i in range(8)]
+
+        return clue.evaluators[0].with_alt_wrapper(my_evaluator),
 
     def draw_grid(self, **args: Any) -> None:
         left_bars = []
@@ -80,7 +83,7 @@ class Magpie217 (EquationSolver):
         super().draw_grid(**args)
 
     @staticmethod
-    def get_graph() -> Dict[str, Set[str]]:
+    def get_graph() -> dict[str, set[str]]:
         result = {}
         digits = set("123456789")
         for a, b, c in itertools.combinations('123456789', 3):
@@ -91,7 +94,7 @@ class Magpie217 (EquationSolver):
         return result
 
     @staticmethod
-    def read_equations() -> Dict[int, Tuple[str, str]]:
+    def read_equations() -> dict[int, tuple[str, str]]:
         result = {}
         lines = EQUATIONS.splitlines()
         lines = [line for line in lines if line]

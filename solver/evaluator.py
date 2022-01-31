@@ -1,39 +1,43 @@
 from __future__ import annotations
 
 import ast
-import textwrap
-from typing import Any, Callable, Dict, NamedTuple, Optional, Sequence
-
+import math
+from collections.abc import Iterable, Sequence
+from typing import Any, Callable, NamedTuple, Optional
 from .clue_types import ClueValue, Letter
 
 
 class Evaluator (NamedTuple):
-    callable: Callable[[Dict[Letter, int]], Optional[ClueValue]]
+    wrapper: Callable[[Evaluator, dict[Letter, int]], Iterable[ClueValue]]
+    callable: Callable[[dict[Letter, int]], Optional[ClueValue]]
     vars: Sequence[Letter]
     expression: str
 
     @classmethod
     def make(cls, expression: str, *,
-             user_globals: Optional[Dict[str, Any]] = None) -> Evaluator:
+             user_globals: Optional[dict[str, Any]] = None) -> Evaluator:
         variables = cls._get_variables(expression)
-        code = cls._get_code(expression, variables)
-        compiled_code = cls._get_compiled_code(code, user_globals)
-        return Evaluator(compiled_code, variables, expression)
+        code = f"lambda {', '.join(variables)}: {expression}"
 
-    def with_alt_code_generator(self, code: str):
-        variables = self.vars
-        wrapped_code = f"""
-            def result(value_dict):
-                ({", ".join(variables)}) = ({", ".join(f'value_dict["{v}"]' for v in variables)})
-                from solver import ClueValue
-                try:
-{textwrap.indent(textwrap.dedent(code), ' ' * 20)}
-                except ArithmeticError:
-                    return None
-            """
-        wrapped_code = textwrap.dedent(wrapped_code)
-        compiled_code = self._get_compiled_code(wrapped_code, None)
-        return self._replace(callable=compiled_code)
+        my_globals = (user_globals or globals()).copy()
+        my_globals['math'] = math
+        namespace = {}
+        compiled_code = eval(code, my_globals, namespace)
+        return Evaluator(cls.standard_wrapper, compiled_code, variables, expression)
+
+    @staticmethod
+    def standard_wrapper(evaluator: Evaluator, value_dict: dict[Letter, int]) -> Iterable[ClueValue]:
+        try:
+            result = evaluator.callable(*(value_dict[x] for x in evaluator.vars))
+            int_result = int(result)
+            if result == int_result > 0:
+                return ClueValue(str(int_result)),
+            return ()
+        except ArithmeticError:
+            return ()
+
+    def with_alt_wrapper(self, wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]]) -> Evaluator:
+        return self._replace(wrapper=wrapper)
 
     @staticmethod
     def _get_variables(expression):
@@ -43,35 +47,15 @@ class Evaluator (NamedTuple):
                             })
         return variables
 
-    @classmethod
-    def _get_code(cls, expression, variables):
-        importation = "import math" if 'math' in expression else ""
+    def __str__(self):
+        return '<' + self.expression + '>'
 
-        code = f"""
-        def result(value_dict):
-            ({", ".join(variables)}) = ({", ".join(f'value_dict["{v}"]' for v in variables)})
-            {importation}
-            from solver import ClueValue
-            try:
-                value = {expression}
-                int_value = int(value)
-                return ClueValue(str(int_value)) if value == int_value > 0 else None
-            except ArithmeticError:
-                return None
-        """
-        return textwrap.dedent(code)
+    def __repr__(self):
+        return str(self)
 
-    @classmethod
-    def _get_compiled_code(cls, code, user_globals: Optional[Dict[str, Any]]):
-        my_globals = user_globals or globals()
-        namespace: Dict[str, Any] = {}
-        exec(code, my_globals, namespace)
-        compiled_code = namespace['result']
-        return compiled_code
-
-    def __call__(self, arg: Dict[Letter, int]) -> Optional[ClueValue]:
-        t = self.callable(arg)
-        return t
+    def __call__(self, arg: dict[Letter, int]) -> Iterable[ClueValue]:
+        return self.wrapper(self, arg)
 
     def __hash__(self) -> int:
         return id(self.callable)
+

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Any, Iterator, Optional, cast
+from typing import Any, Iterable, Iterator, Optional, cast
 
 from solver import ClueValue, Clues, EquationSolver, Evaluator
 
@@ -114,17 +114,21 @@ class Magpie230 (EquationSolver):
         grid = Clues.get_locations_from_grid(GRID)
         clues = Clues.create_from_text(ACROSSES, DOWNS, grid)
 
-        def alt_code(evaluator: Evaluator) -> Evaluator:
-            return evaluator.with_alt_code_generator(f'return {evaluator.expression}')
+        def my_wrapper(evaluator: Evaluator, value_dict: dict) -> Iterable[ClueValue]:
+            try:
+                # All of our arguments should be MultiValue.  Hence the result of what looks like a simple
+                # calculation will also be a MultiValue.  So we just need to convert the MultiValue to a list
+                # of values.  No filtering is necessary since we toss out all negative numbers in the - operator.
+                result = evaluator.callable(*(value_dict[x] for x in evaluator.vars))
+                return (ClueValue(str(x)) for x in cast(MultiValue, result).values if x > 0)
+            except ArithmeticError:
+                return ()
 
         for clue in clues:
-            clue.evaluators = tuple(map(alt_code, clue.evaluators))
+            clue.evaluators = tuple(x.with_alt_wrapper(my_wrapper) for x in clue.evaluators)
+
         # This cast is a bald-faced lie.  But it works.
         super().__init__(clues, items=cast(tuple[int], MultiValue.make_all()))
-
-    def evaluate(self, clue, evaluator: Evaluator) -> Iterator[ClueValue]:
-        result = cast(MultiValue, evaluator(self._known_letters))
-        return (ClueValue(str(x)) for x in result.values)
 
     def draw_grid(self, **args: Any) -> None:
         super().draw_grid(font_multiplier=.8, **args)

@@ -121,7 +121,7 @@ class EquationSolver(BaseSolver):
                 self._known_clues.pop(clue, None)
 
     def evaluate(self, clue, evaluator: Evaluator) -> Iterator[ClueValue]:
-        return evaluator(self._known_letters),
+        return evaluator(self._known_letters)
 
     def _get_solving_order(self) -> Sequence[SolvingStep]:
         """Figures out the best order to solve the various clues."""

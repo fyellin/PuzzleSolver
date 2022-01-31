@@ -1,6 +1,7 @@
+from collections.abc import Iterable
 from typing import Iterator
 
-from solver import Clues, EquationSolver, ClueValue, Evaluator
+from solver import Clues, EquationSolver, ClueValue, Evaluator, Letter
 
 GRID = """
 X.XXXX
@@ -40,22 +41,30 @@ DOWN = """
 """
 
 
-class MySolver(EquationSolver):
+class Magpie216(EquationSolver):
     @staticmethod
     def run() -> None:
-        locations = Clues.get_locations_from_grid(GRID)
-        clue_list = Clues.create_from_text(ACROSS, DOWN, locations)
-        solver = MySolver(clue_list, items=(range(-10, 11)))
+        solver = Magpie216()
         solver.solve(debug=True)
 
-    def evaluate(self, clue, evaluator: Evaluator) -> Iterator[ClueValue]:
-        for cubed_letter in evaluator.vars:
-            temp = self._known_letters[cubed_letter]
-            self._known_letters[cubed_letter] = temp ** 3
-            result = evaluator(self._known_letters)
-            self._known_letters[cubed_letter] = temp
-            yield result
+    def __init__(self):
+        locations = Clues.get_locations_from_grid(GRID)
+        clue_list = Clues.create_from_text(ACROSS, DOWN, locations)
+
+        def my_wrapper(evaluator: Evaluator, value_dict: dict[Letter, int]) -> Iterable[ClueValue]:
+            for cubed_letter in evaluator.vars:
+                temp = self._known_letters[cubed_letter]
+                self._known_letters[cubed_letter] = temp ** 3
+                results = list(Evaluator.standard_wrapper(evaluator, value_dict))
+                self._known_letters[cubed_letter] = temp
+                yield from results
+
+        for clue in clue_list:
+            clue.evaluators = tuple(x.with_alt_wrapper(my_wrapper) for x in clue.evaluators)
+
+        super().__init__(clue_list, items=(range(-10, 11)))
+
 
 if __name__ == '__main__':
-    # MySolver.run()
+    Magpie216.run()
     pass
