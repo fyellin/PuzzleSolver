@@ -1,19 +1,10 @@
 from __future__ import annotations
 
 import ast
-import copy
 import textwrap
-from typing import NamedTuple, Callable, Dict, Optional, Sequence, Any
+from typing import Any, Callable, Dict, NamedTuple, Optional, Sequence
 
 from .clue_types import ClueValue, Letter
-
-BASIC_MODULE_DEF: Any = ast.parse(textwrap.dedent("""
-def result(var_dict: Dict[Letter, int]) -> Optional[ClueValue]:
-    __LEFT__ = __RIGHT__
-    rvalue = __EXPRESSION__
-    ivalue = int(rvalue)
-    return ClueValue(str(ivalue)) if ivalue == rvalue > 0 else None
-"""))
 
 
 class Evaluator (NamedTuple):
@@ -22,79 +13,65 @@ class Evaluator (NamedTuple):
     expression: str
 
     @classmethod
-    def make(cls, expression: str, user_globals: Optional[Dict[str, Any]] = None) -> Evaluator:
-        return cls.make1(expression, user_globals or globals())
+    def make(cls, expression: str, *,
+             user_globals: Optional[Dict[str, Any]] = None) -> Evaluator:
+        variables = cls._get_variables(expression)
+        code = cls._get_code(expression, variables)
+        compiled_code = cls._get_compiled_code(code, user_globals)
+        return Evaluator(compiled_code, variables, expression)
 
-    @classmethod
-    def make1(cls, expression: str, user_globals: Dict[str, Any]) -> Evaluator:
+    def with_alt_code_generator(self, code: str):
+        variables = self.vars
+        wrapped_code = f"""
+            def result(value_dict):
+                ({", ".join(variables)}) = ({", ".join(f'value_dict["{v}"]' for v in variables)})
+                from solver import ClueValue
+                try:
+{textwrap.indent(textwrap.dedent(code), ' ' * 20)}
+                except ArithmeticError:
+                    return None
+            """
+        wrapped_code = textwrap.dedent(wrapped_code)
+        compiled_code = self._get_compiled_code(wrapped_code, None)
+        return self._replace(callable=compiled_code)
+
+    @staticmethod
+    def _get_variables(expression):
         expression_ast: Any = ast.parse(expression.strip(), mode='eval')
         variables = sorted({Letter(node.id) for node in ast.walk(expression_ast)
                             if isinstance(node, ast.Name) and len(node.id) == 1
                             })
-        importation = "import math" if 'math' in expression else ""
-        code = f"""
+        return variables
 
+    @classmethod
+    def _get_code(cls, expression, variables):
+        importation = "import math" if 'math' in expression else ""
+
+        code = f"""
         def result(value_dict):
+            ({", ".join(variables)}) = ({", ".join(f'value_dict["{v}"]' for v in variables)})
             {importation}
             from solver import ClueValue
-            ({", ".join(variables)}) = ({", ".join(f'value_dict["{v}"]' for v in variables)})
             try:
-                rvalue = {expression}
-                ivalue = int(rvalue)
+                value = {expression}
+                int_value = int(value)
+                return ClueValue(str(int_value)) if value == int_value > 0 else None
             except ArithmeticError:
                 return None
-            return ClueValue(str(ivalue)) if rvalue == ivalue > 0 else None
         """
+        return textwrap.dedent(code)
+
+    @classmethod
+    def _get_compiled_code(cls, code, user_globals: Optional[Dict[str, Any]]):
+        my_globals = user_globals or globals()
         namespace: Dict[str, Any] = {}
-        exec(textwrap.dedent(code), user_globals, namespace)
-        return Evaluator(namespace['result'], variables, expression)
-
-    @classmethod
-    def make2(cls, expression: str, user_globals: Dict[str, Any]) -> Evaluator:
-        expression_ast: Any = ast.parse(expression.strip(), mode='eval')
-        variables = sorted({Letter(node.id) for node in ast.walk(expression_ast) if isinstance(node, ast.Name)})
-
-        module_def = copy.deepcopy(BASIC_MODULE_DEF)
-        function_def = module_def.body[0]
-        argument_name = function_def.args.args[0].arg
-
-        # Change __LEFT__, __RIGHT__, and __EXPRESSION__ to their proper values
-        id_map = {"__LEFT__":       cls.__assignment_left(variables),
-                  "__RIGHT__":      cls.__assignment_right(variables, argument_name),
-                  "__EXPRESSION__": expression_ast.body}
-
-        # noinspection PyPep8Naming
-        # noinspection PyMethodMayBeStatic
-        class ReWriter(ast.NodeTransformer):
-            def visit_Name(self, node: ast.Name) -> Any:
-                return id_map.get(node.id, node)
-
-        module_def = ReWriter().visit(module_def)
-
-        # Convert the module_def into a callable function
-        ast.fix_missing_locations(module_def)
-        code = compile(module_def, "", mode='exec')
-        namespace: Dict[str, Any] = {}
-        eval(code, user_globals, namespace)
-        return Evaluator(namespace['result'], variables, expression)
-
-    @classmethod
-    def __assignment_left(cls, variables: Sequence[Letter]) -> Any:
-        return ast.Tuple(
-            elts=[ast.Name(id=var, ctx=ast.Store()) for var in variables],
-            ctx=ast.Store())
-
-    @classmethod
-    def __assignment_right(cls, variables: Sequence[Letter], argument_name: str) -> Any:
-        return ast.Tuple(
-            elts=[ast.Subscript(slice=ast.Index(value=ast.Str(var)),
-                                value=ast.Name(id=argument_name, ctx=ast.Load()),
-                                ctx=ast.Load())
-                  for var in variables],
-            ctx=ast.Load())
+        exec(code, my_globals, namespace)
+        compiled_code = namespace['result']
+        return compiled_code
 
     def __call__(self, arg: Dict[Letter, int]) -> Optional[ClueValue]:
-        return self.callable(arg)
+        t = self.callable(arg)
+        return t
 
     def __hash__(self) -> int:
         return id(self.callable)

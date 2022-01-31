@@ -93,5 +93,5 @@ def foobar2():
             print(value, value**3, value2, value2**3)
 
 if __name__ == '__main__':
-    # Magpie226.run()
-    foobar2()
+    Magpie226.run()
+    # foobar2()

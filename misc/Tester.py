@@ -3,14 +3,11 @@ import copy
 import heapq
 import itertools
 import math
-import multiprocessing
 import operator
 import random
-import subprocess
 from collections import deque
-from multiprocessing import Array, Process
-from typing import List, Tuple, Set, Optional, Dict, Iterable, Callable, Sequence, TypeVar, Hashable, Generic, Any, \
-    Mapping, Iterator
+from collections.abc import Hashable, Iterable, Iterator, Mapping, Sequence
+from typing import Any, Callable, Generic,  Optional, TypeVar
 
 ArrayType = TypeVar("ArrayType")
 class FakeArray(collections.abc.Sequence, Generic[ArrayType]):
@@ -78,15 +75,15 @@ def get_d2(s, length):
 Row = TypeVar('Row', bound=Hashable)
 Constraint = TypeVar('Constraint', bound=Hashable)
 class DancingLinks(Generic[Row, Constraint]):
-    row_to_constraints: Dict[Row, List[Constraint]]
-    optional_constraints: Set[Constraint]
-    inclusive_contraints: Set[Constraint]
-    constraint_to_rows: Dict[Constraint, Set[Row]]
-    solutions: List[List[Row]]
+    row_to_constraints: dict[Row, list[Constraint]]
+    optional_constraints: set[Constraint]
+    inclusive_contraints: set[Constraint]
+    constraint_to_rows: dict[Constraint, set[Row]]
+    solutions: list[list[Row]]
 
-    def __init__(self, constraints: Dict[Row, List[Constraint]], *,
-                 optional_constraints: Optional[Set[Constraint]] = None,
-                 inclusive_constraints: Optional[Set[Constraint]] = None):
+    def __init__(self, constraints: dict[Row, list[Constraint]], *,
+                 optional_constraints: Optional[set[Constraint]] = None,
+                 inclusive_constraints: Optional[set[Constraint]] = None):
         """The entry to the Dancing Links code.  constraints should be a dictionary.  Each key
         is the name of the row (something meaningful to the user).  The value should
         be a list/tuple of the row_to_constraints satisfied by this row.
@@ -98,9 +95,9 @@ class DancingLinks(Generic[Row, Constraint]):
         self.optional_constraints = optional_constraints or set()
         self.inclusive_constraints = inclusive_constraints or set()
 
-    def solve(self) -> List[List[Row]]:
+    def solve(self) -> list[list[Row]]:
         # Create the cross reference giving the rows in which each constraint appears
-        constraint_to_rows: Dict[Constraint, Set[Row]] = collections.defaultdict(set)
+        constraint_to_rows: dict[Constraint, set[Row]] = collections.defaultdict(set)
         for row, constraints in self.row_to_constraints.items():
             for constraint in constraints:
                 constraint_to_rows[constraint].add(row)
@@ -121,7 +118,7 @@ class DancingLinks(Generic[Row, Constraint]):
 
     def __solve_constraints_iterative(self) -> int:
         # Note that "depth" is meaningful only when debugging.
-        stack: List[Tuple[Callable[..., None], Sequence[Any]]] = []
+        stack: list[tuple[Callable[..., None], Sequence[Any]]] = []
 
         def run():
             stack.append((find_minimum_constraint, (0,)))
@@ -165,16 +162,16 @@ class DancingLinks(Generic[Row, Constraint]):
             stack.append((row_cleanup, (cleanups, row)))
             stack.append((find_minimum_constraint, (depth + (count > 1),)))
 
-        def row_cleanup(cleanups: List[Tuple[Constraint, Set[Row]]], _row: Row, ) -> None:
+        def row_cleanup(cleanups: list[tuple[Constraint, set[Row]]], _row: Row, ) -> None:
             for constraint, rows in reversed(cleanups):
                 self.__uncover_constraint(constraint, rows)
 
-        def constraint_cleanup(constraint: Constraint, rows: Set[Row]) -> None:
+        def constraint_cleanup(constraint: Constraint, rows: set[Row]) -> None:
             self.__uncover_constraint(constraint, rows)
 
         return run()
 
-    def __cover_constraint(self, constraint: Constraint) -> Set[Row]:
+    def __cover_constraint(self, constraint: Constraint) -> set[Row]:
         rows = self.constraint_to_rows.pop(constraint)
         for row in rows:
             # For each constraint in this row about to be deleted
@@ -185,7 +182,7 @@ class DancingLinks(Generic[Row, Constraint]):
                     self.constraint_to_rows[row_constraint].remove(row)
         return rows
 
-    def __uncover_constraint(self, constraint: Constraint, rows: Set[Row]) -> None:
+    def __uncover_constraint(self, constraint: Constraint, rows: set[Row]) -> None:
         for row in rows:
             for row_constraint in self.row_to_constraints[row]:
                 if row_constraint != constraint:
@@ -236,7 +233,7 @@ def find_ge(a, x):
         return a[i]
     raise ValueError
 
-def reverse_in_place(node: 'ListNode') -> Tuple['ListNode', 'ListNode']:
+def reverse_in_place(node: 'listNode') -> tuple['listNode', 'listNode']:
     previous = None
     last = current = node
     following = current.next
@@ -258,15 +255,15 @@ class Dijkstra(Generic[State]):
     def __init__(self, start: State):
         self.start = start
 
-    def neighbor(self, state: State) -> Iterable[Tuple[State, int]]:
+    def neighbor(self, state: State) -> Iterable[tuple[State, int]]:
         ...
 
     def is_done(self, state: State) -> bool:
         ...
 
-    def run(self, verbose: int = 0) -> Tuple[int, Optional[State]]:
+    def run(self, verbose: int = 0) -> tuple[int, Optional[State]]:
         minimum_map = dict([(self.start, 0)])
-        queue: List[Tuple[int, int, State]] = [(0, 0, self.start)]
+        queue: list[tuple[int, int, State]] = [(0, 0, self.start)]
         seen = added = ignored = 0
         previous_distance = -1
 
@@ -318,7 +315,7 @@ class FastDijkstra(Generic[State]):
     def is_done(self, state: State) -> bool:
         ...
 
-    def run(self, verbose: int = 0) -> Tuple[int, Optional[State]]:
+    def run(self, verbose: int = 0) -> tuple[int, Optional[State]]:
         minimum_map = dict([(self.start, 0)])
         queue: deque[tuple[int, int, State]] = deque([(0, 0, self.start)])
         seen = added = ignored = 0
@@ -367,15 +364,15 @@ class DijkstraExtended(Generic[State]):
     def __init__(self, start: State):
         self.start = start
 
-    def neighbor(self, state: State) -> Iterable[Tuple[State, int]]:
+    def neighbor(self, state: State) -> Iterable[tuple[State, int]]:
         ...
 
     def is_done(self, state: State) -> bool:
         ...
 
-    def run(self, verbose: int = 0) -> Tuple[Optional[State], Sequence[Sequence[State]]]:
+    def run(self, verbose: int = 0) -> tuple[Optional[State], Sequence[Sequence[State]]]:
         minimum_map = dict([(self.start, 0)])
-        queue: List[Tuple[int, int, State]] = [(0, 0, self.start)]
+        queue: list[tuple[int, int, State]] = [(0, 0, self.start)]
         seen = added = ignored = 0
         previous_distance = -1
         whence_map = {}
@@ -418,7 +415,7 @@ class DijkstraExtended(Generic[State]):
         print("# ❌ FAILURE")
         return None, []
 
-    def get_chains(self, state: State, whence_map: Mapping[State, Sequence[State]]) -> List[List[State]]:
+    def get_chains(self, state: State, whence_map: Mapping[State, Sequence[State]]) -> list[list[State]]:
         next_states = whence_map.get(state, None)
         if next_states is None:
             return [[state]]
@@ -430,11 +427,11 @@ class Fenwick:
     #  LSB(X)  is X & -X
     #  X - LSB(X)  is  X & (X - 1)
     #  X + LXB(X + 1) is X | (X + 1)
-    A: List[int]
+    A: list[int]
     length: int
     power_of_two: int
 
-    def __init__(self, A: List[int]) -> None:
+    def __init__(self, A: list[int]) -> None:
         self.A = A
         self.length = length = len(A)
         for i in range(length):
@@ -490,8 +487,8 @@ class Fenwick:
 
 Node = TypeVar('Node', bound=Hashable)
 class UnionFind(Generic[Node]):
-    parent: Dict[Node, Node]
-    rank: Dict[Node, int]
+    parent: dict[Node, Node]
+    rank: dict[Node, int]
 
     def __init__(self):
         self.parent = {}
@@ -664,26 +661,3 @@ def palindrome(length) -> Iterator[str]:
         temp = str(value2)
         if temp == temp[::-1]:
             yield value2
-
-def foobar():
-    import logging
-    def init_logger(log_file: str = "info.log"):
-        """
-        Initialize logger.
-        """
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.INFO)
-        stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s", datefmt="%Y-%m-%d,%H:%M:%S"))
-        file_handler = logging.FileHandler(filename=log_file)
-        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s", datefmt="%Y-%m-%d,%H:%M:%S"))
-        logger.addHandler(stream_handler)
-        logger.addHandler(file_handler)
-        return logger
-
-    logger = init_logger()
-    logger.info("Today is a good day")
-
-
-if __name__ == '__main__':
-    foobar()

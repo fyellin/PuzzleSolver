@@ -9,6 +9,7 @@ from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, gener
 def digit_sum(number: int) -> int:
     return sum(int(x) for x in str(number))
 
+
 def generate_power(clue: Clue) -> Iterator[int]:
     minimum, maximum = generators.get_min_max(clue)
     for i in itertools.count(2):
@@ -21,24 +22,30 @@ def generate_power(clue: Clue) -> Iterator[int]:
             if value >= minimum:
                 yield value
 
+
 DICE = frozenset(("1", "2", "3", "4", "5", "6"))
+
 
 def is_dice(value: ClueValue) -> bool:
     return all(x in DICE for x in str(value))
 
+
 def is_multiple(big: ClueValue, little: ClueValue):
     q, r = divmod(int(big), int(little))
     return r == 0 and q > 1
+
 
 def is_product_of_three_distinct_primes(value: ClueValue):
     factors = prime_factors(int(value))
     return len(factors) == 3 and all(count == 1 for _, count in factors)
 
 
-TRIANGULARS = { i * (i + 1) // 2 for i in range(1000)}
+TRIANGULARS = {i * (i + 1) // 2 for i in range(1000)}
+
 
 def is_triangular(x: Union[int, ClueValue]) -> bool:
     return int(x) in TRIANGULARS
+
 
 def is_square(x: Union[int, ClueValue]) -> bool:
     x = int(x)
@@ -47,8 +54,10 @@ def is_square(x: Union[int, ClueValue]) -> bool:
     y = math.isqrt(x)
     return y * y == x
 
+
 def generate_24a(clue: Clue):
     return generators.within_clue_limits(clue, (i ** 2 + (i + 1) ** 2 for i in itertools.count(2)))
+
 
 GRID = """
 XXX.XXXX
@@ -116,7 +125,6 @@ class Solver4686 (ConstraintSolver):
         solver.verify_is_180_symmetric()
         solver.solve(debug=True)
 
-
     def __init__(self) -> None:
         clues = self.get_clues()
         super().__init__(clues)
@@ -178,12 +186,12 @@ class Solver4686 (ConstraintSolver):
             shading = {square: color for row, color in zip(solution, self.COLORS) for square in row}
         else:
             shading = {}
-        super().draw_grid(location_to_entry=location_to_entry, top_bars=top_bars, left_bars = left_bars,
+        super().draw_grid(location_to_entry=location_to_entry, top_bars=top_bars, left_bars=left_bars,
                           shading=shading, **args)
 
 
-
 Shape = tuple[tuple[int, int], ...]
+
 
 class Part2:
     def __init__(self, location_to_entry, top_bars, left_bars):
@@ -210,15 +218,15 @@ class Part2:
 
     def hunt_for(self, shape: Shape):
         shape_set = set(shape)
-        maxR = max(x for x, _ in shape)
-        maxC = max(x for _, x in shape)
-        for dr in range(1, 11 - maxR):
-            for dc in range(1, 9 - maxC):
+        max_r = max(x for x, _ in shape)
+        max_c = max(x for _, x in shape)
+        for dr in range(1, 11 - max_r):
+            for dc in range(1, 9 - max_c):
                 values = [self.grid[r + dr, c + dc] for r, c in shape]
                 if values[0] != values[1] and values[1] != values[2] and values[0] != values[2]:
                     if values[0] + values[3] == values[1] + values[4] == values[2] + values[5] == 7:
                         if not any((r + dr, c + dc) in shape_set and (r + dr - 1, c + dc) in shape_set
-                            for r, c in self.left_bars):
+                                   for r, c in self.left_bars):
                             if not any((r + dr, c + dc) in shape_set and (r + dr, c + dc - 1) in shape_set
                                        for r, c in self.top_bars):
                                 result = tuple((r + dr, c + dc) for r, c in shape)
@@ -231,9 +239,10 @@ class Part2:
         return self.normalize(tuple((x, -y) for x, y in shape))
 
     def normalize(self, shape: Shape) -> Shape:
-        minX = min(x for x, _ in shape)
-        minY = min(x for _, x in shape)
-        return tuple((x - minX, y - minY) for x, y in shape)
+        min_r = min(x for x, _ in shape)
+        min_c = min(x for _, x in shape)
+        return tuple((x - min_r, y - min_c) for x, y in shape)
+
 
     def solve(self):
         counter = 0
@@ -244,8 +253,7 @@ class Part2:
             nonlocal counter
             counter += 1
             constraint_name = f"Constraint{counter}"
-            results = self.handle_shape(shape)
-            for result in results:
+            for result in self.handle_shape(shape):
                 constraints[result] = [constraint_name]
                 constraints[result].extend(f"R{r}C{c}" for r, c in result)
 
@@ -261,7 +269,6 @@ class Part2:
                           row_printer=lambda x: results.append(x))
         dl.solve(debug=100)
         return results[0]
-
 
 if __name__ == '__main__':
     Solver4686().run()

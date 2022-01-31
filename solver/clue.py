@@ -112,10 +112,11 @@ class Clue:
         return expression.split('=')
 
     @staticmethod
-    def create_evaluator(expression: str, user_globals: Optional[Dict[str, Any]] = None) -> Evaluator:
+    def create_evaluator(expression: str, *,
+                         user_globals: Optional[Dict[str, Any]] = None) -> Evaluator:
         python_pieces = Clue.__convert_expression_to_python(expression)
         assert len(python_pieces) == 1
-        return Evaluator.make(python_pieces[0], user_globals)
+        return Evaluator.make(python_pieces[0], user_globals=user_globals)
 
     def __hash__(self) -> int:
         return id(self)

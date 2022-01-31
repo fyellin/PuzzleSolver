@@ -244,8 +244,7 @@ class EquationSolver(BaseSolver):
         self.show_letter_values(known_letters)
         self.plot_board(known_clues)
 
-    @staticmethod
-    def show_letter_values(known_letters: KnownLetterDict) -> None:
+    def show_letter_values(self, known_letters: KnownLetterDict) -> None:
         max_length = max(len(str(i)) for i in known_letters.values())
         print()
         pairs = [(letter, value) for letter, value in known_letters.items()]

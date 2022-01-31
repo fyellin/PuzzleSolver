@@ -45,8 +45,8 @@ class Magpie217 (EquationSolver):
             cc = 2 * (i % 4) + 2
             locations = [(rr, cc), (rr - 1, cc - 1), (rr - 1, cc), (rr - 1, cc + 1), (rr, cc + 1), (rr + 1, cc + 1),
                          (rr + 1, cc), (rr + 1, cc - 1), (rr, cc - 1)]
-            evaluator1 = Clue.create_evaluator(equation1, globals())
-            evaluator2 = Clue.create_evaluator(equation2, globals())
+            evaluator1 = Clue.create_evaluator(equation1, user_globals=globals())
+            evaluator2 = Clue.create_evaluator(equation2, user_globals=globals())
 
             clue = Clue(str(i + 1), True, (rr, cc), 9, expression=f'{equation1} + {equation2}',
                         locations=locations, context=(evaluator1, evaluator2))

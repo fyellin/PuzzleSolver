@@ -17,6 +17,7 @@ def draw_grid(*, max_row: int, max_column: int,
               rotation: Dict[Location, str] = {},
               circles: Set[Location] = set(),
               subtext: Optional[str] = None,
+              font_multiplier: float = 1.0,
               **args: Any) -> None:
 
     _axes = args.get('axes')
@@ -57,7 +58,7 @@ def draw_grid(*, max_row: int, max_column: int,
         circle = plt.Circle((column + .5, row + .5), radius=.4, linewidth=2, fill=False, facecolor='black')
         axes.add_patch(circle)
 
-    points_per_data = 60
+    points_per_data = 60 * font_multiplier
 
     # Fill in the values
     for (row, column), entry in location_to_entry.items():
