@@ -4,7 +4,6 @@ import itertools
 from typing import Any, Iterator, Optional, cast
 
 from solver import ClueValue, Clues, EquationSolver, Evaluator
-from solver.equation_solver import KnownLetterDict
 
 
 class MultiValue:
@@ -47,6 +46,15 @@ class MultiValue:
 
     def __repr__(self):
         return str(self)
+
+    # These two are quick hacks so that show_letter_values() will work.
+    # Efficiency (especially of __lt__) just doesn't matter
+
+    def __format__(self, _format_spec):
+        return str(self)
+
+    def __lt__(self, other):
+        return min(self.values) < min(other.values)
 
 
 ACROSSES = """
@@ -117,9 +125,6 @@ class Magpie230 (EquationSolver):
     def evaluate(self, clue, evaluator: Evaluator) -> Iterator[ClueValue]:
         result = cast(MultiValue, evaluator(self._known_letters))
         return (ClueValue(str(x)) for x in result.values)
-
-    def show_letter_values(self, known_letters: KnownLetterDict) -> None:
-        pass
 
     def draw_grid(self, **args: Any) -> None:
         super().draw_grid(font_multiplier=.8, **args)
