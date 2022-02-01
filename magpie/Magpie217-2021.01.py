@@ -1,7 +1,7 @@
 import itertools
 import re
-from collections.abc import Iterable
-from typing import Sequence, Any
+from collections.abc import Iterable, Sequence
+from typing import Any
 
 from solver import ClueValue, EquationSolver, Evaluator, Clue, Letter
 

@@ -16,9 +16,11 @@ class Evaluator (NamedTuple):
     @classmethod
     def make(cls, expression: str, *,
              user_globals: Optional[dict[str, Any]] = None) -> Evaluator:
-        variables = cls._get_variables(expression)
+        expression_ast = ast.parse(expression.strip(), mode='eval')
+        variables = sorted({Letter(node.id) for node in ast.walk(expression_ast)
+                            if isinstance(node, ast.Name) and len(node.id) == 1
+                            })
         code = f"lambda {', '.join(variables)}: {expression}"
-
         my_globals = (user_globals or globals()).copy()
         my_globals['math'] = math
         namespace = {}
@@ -39,14 +41,6 @@ class Evaluator (NamedTuple):
     def with_alt_wrapper(self, wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]]) -> Evaluator:
         return self._replace(wrapper=wrapper)
 
-    @staticmethod
-    def _get_variables(expression):
-        expression_ast: Any = ast.parse(expression.strip(), mode='eval')
-        variables = sorted({Letter(node.id) for node in ast.walk(expression_ast)
-                            if isinstance(node, ast.Name) and len(node.id) == 1
-                            })
-        return variables
-
     def __str__(self):
         return '<' + self.expression + '>'
 
@@ -58,4 +52,3 @@ class Evaluator (NamedTuple):
 
     def __hash__(self) -> int:
         return id(self.callable)
-

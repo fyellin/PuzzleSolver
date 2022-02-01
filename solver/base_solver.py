@@ -3,7 +3,8 @@ import re
 import typing
 from abc import ABC, abstractmethod
 from collections import Counter, OrderedDict
-from typing import FrozenSet, Sequence, Any, Dict, Set, Tuple, Mapping, Optional, List
+from collections.abc import Sequence, Mapping
+from typing import Any, Optional
 
 from .clue import Clue
 from .clue import Location
@@ -18,9 +19,9 @@ class BaseSolver(ABC):
     __max_row: int
     __max_column: int
     # The set of all start locations
-    __start_locations: FrozenSet[Location]
+    __start_locations: frozenset[Location]
     # The set of all locations at which two clues intersect
-    __intersections: FrozenSet[Location]
+    __intersections: frozenset[Location]
 
     def __init__(self, clue_list: Sequence[Clue], *, allow_duplicates: bool = False) -> None:
         self._clue_list = clue_list
@@ -89,24 +90,24 @@ class BaseSolver(ABC):
             # Note that across clues rotate to down clues, and vice versa.
             assert ((row2, column2), clue.length, not clue.is_across) in clue_start_set
 
-    def __make_clue_start_set(self) -> Set[Tuple[Location, int, bool]]:
+    def __make_clue_start_set(self) -> set[tuple[Location, int, bool]]:
         """Creates the set of (start-location, length, is-across) tuples for all clues in the puzzle"""
         return {(clue.base_location, clue.length, clue.is_across) for clue in self.__name_to_clue.values()}
 
-    def plot_board(self, clue_values: Optional[Dict[Clue, ClueValue]] = None, **more_args: Any) -> None:
+    def plot_board(self, clue_values: Optional[dict[Clue, ClueValue]] = None, **more_args: Any) -> None:
         """Draws a picture of the grid with the specified clues filled in."""
         max_row = self.__max_row
         max_column = self.__max_column
         clue_values = clue_values or {}
 
         # Locations that are part of some clue, whether we know the answer or not.
-        clued_locations: Set[Location] = set()
+        clued_locations: set[Location] = set()
 
         # A map from location to value to put in that location.
-        location_to_entry: Dict[Location, str] = {}
+        location_to_entry: dict[Location, str] = {}
 
         # A map from location to clue number to put in that location
-        location_to_clue_numbers: Dict[Location, List[str]] = {}
+        location_to_clue_numbers: dict[Location, list[str]] = {}
 
         # Location of squares that have a heavy bar on their left.
         left_bars = set(itertools.product(range(1, max_row), range(2, max_column)))

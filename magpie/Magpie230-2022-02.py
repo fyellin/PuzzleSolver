@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import itertools
-from typing import Any, Iterable, Iterator, Optional, cast
+from collections.abc import Iterable
+from typing import Any, Optional, cast
 
 from solver import ClueValue, Clues, EquationSolver, Evaluator
 
@@ -50,8 +51,8 @@ class MultiValue:
     # These two are quick hacks so that show_letter_values() will work.
     # Efficiency (especially of __lt__) just doesn't matter
 
-    def __format__(self, _format_spec):
-        return str(self)
+    def __format__(self, format_spec: str) -> str:
+        return str(self).__format__(format_spec)
 
     def __lt__(self, other):
         return min(self.values) < min(other.values)
@@ -120,7 +121,7 @@ class Magpie230 (EquationSolver):
                 # calculation will also be a MultiValue.  So we just need to convert the MultiValue to a list
                 # of values.  No filtering is necessary since we toss out all negative numbers in the - operator.
                 result = evaluator.callable(*(value_dict[x] for x in evaluator.vars))
-                return (ClueValue(str(x)) for x in cast(MultiValue, result).values if x > 0)
+                return (ClueValue(str(x)) for x in cast(MultiValue, result).values)
             except ArithmeticError:
                 return ()
 

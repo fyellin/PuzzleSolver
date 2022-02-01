@@ -1,7 +1,6 @@
 from collections.abc import Iterable
-from typing import Iterator
 
-from solver import Clues, EquationSolver, ClueValue, Evaluator, Letter
+from solver import ClueValue, Clues, EquationSolver, Evaluator, Letter
 
 GRID = """
 X.XXXX

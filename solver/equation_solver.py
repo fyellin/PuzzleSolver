@@ -1,26 +1,26 @@
 import itertools
 from collections import Counter
+from collections.abc import Iterable
 from datetime import datetime
 from operator import itemgetter
-from typing import Dict, NamedTuple, Sequence, Callable, Pattern, Any, List, Iterable, Set, Tuple, Union, Optional, \
-    Iterator
+from typing import Any, Callable, NamedTuple, Optional, Pattern, Sequence, Union
 
 from .base_solver import BaseSolver
 from .clue import Clue
-from .clue_types import Letter, ClueValue, Location
+from .clue_types import ClueValue, Letter, Location
 from .evaluator import Evaluator
 from .intersection import Intersection
 
-KnownLetterDict = Dict[Letter, int]
-KnownClueDict = Dict[Clue, ClueValue]
+KnownLetterDict = dict[Letter, int]
+KnownClueDict = dict[Clue, ClueValue]
 
 
 class ClueInfo(NamedTuple):
     clue: Clue
     evaluator: Evaluator
-    unbound_letters: Set[Letter]
-    intersections: List[Intersection]
-    known_locations: Set[Location]
+    unbound_letters: set[Letter]
+    intersections: list[Intersection]
+    known_locations: set[Location]
 
 
 class SolvingStep(NamedTuple):
@@ -35,10 +35,10 @@ class EquationSolver(BaseSolver):
     _step_count: int
     _solution_count: int
     _known_letters: KnownLetterDict
-    _known_clues: Dict[Clue, ClueValue]
+    _known_clues: dict[Clue, ClueValue]
     _solving_order: Sequence[SolvingStep]
     _items: Sequence[int]
-    _all_constraints: List[Tuple[Tuple[Clue, ...], Callable[[], bool]]]
+    _all_constraints: list[tuple[tuple[Clue, ...], Callable[[], bool]]]
     _debug: bool
 
     def __init__(self, clue_list: Sequence[Clue], *, items: Iterable[int] = (), **args: Any) -> None:
@@ -92,7 +92,7 @@ class EquationSolver(BaseSolver):
                 self._step_count += 1
                 for letter, value in zip(clue_letters, next_letter_values):
                     self._known_letters[letter] = value
-                clue_values = self.evaluate(clue, evaluator)
+                clue_values = evaluator(self._known_letters)
                 if twin_value:
                     if twin_value not in clue_values:
                         continue
@@ -120,17 +120,14 @@ class EquationSolver(BaseSolver):
             if not twin_value:
                 self._known_clues.pop(clue, None)
 
-    def evaluate(self, clue, evaluator: Evaluator) -> Iterator[ClueValue]:
-        return evaluator(self._known_letters)
-
     def _get_solving_order(self) -> Sequence[SolvingStep]:
         """Figures out the best order to solve the various clues."""
-        result: List[SolvingStep] = []
+        result: list[SolvingStep] = []
         # The number of times each letter appears
         letter_count = Counter(letter for clue in self._clue_list
                                for evaluator in clue.evaluators
                                for letter in evaluator.vars)
-        not_yet_ordered: Dict[Evaluator, ClueInfo] = {
+        not_yet_ordered: dict[Evaluator, ClueInfo] = {
             evaluator: ClueInfo(clue, evaluator, set(evaluator.vars), [], set())
             for clue in self._clue_list for evaluator in clue.evaluators
         }
@@ -190,7 +187,7 @@ class EquationSolver(BaseSolver):
         return tuple(result)
 
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
-            Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
+            Callable[[dict[Clue, ClueValue]], Pattern[str]]:
         """
         This method takes a clue and the intersections of this clue with other clues whose values are already
         known when we assign a value to this clue.  It returns a function.
