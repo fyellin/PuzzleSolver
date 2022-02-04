@@ -46,31 +46,28 @@ def runner():
                 *tie_constraints]
 
     # noinspection PyTypeChecker
-    solver = DancingLinks(constraints, optional_constraints=optional_constraints, row_printer=my_printer)
+    solver = DancingLinks(constraints, optional_constraints=optional_constraints, row_printer=verify_and_show_grid)
     solver.solve(debug=0)
 
 
-def my_printer(constraint_names: Sequence[tuple[str, int, str, int, ...]]) -> None:
-    filled_cells = set()
-    joins: list[Sequence[tuple[int, int], ...]] = []
-    r_or_c: int
-    for (my_type, r_or_c, string, *ties) in constraint_names:
-        is_row = my_type == 'Row'
-        if is_row:
-            for column, value in enumerate(string):
-                if value == '1':
-                    filled_cells.add((r_or_c, column))
-        for start, end in parse_ties(ties):
+def verify_and_show_grid(constraints: Sequence[tuple[str, int, str, int, ...]]) -> None:
+    def parse_grid_info(constraints) -> tuple[set[tuple[int, int]], list[Sequence[tuple[int, int], ...]]]:
+        filled_cells = set()
+        joins: list[Sequence[tuple[int, int], ...]] = []
+        r_or_c: int
+        for (my_type, r_or_c, string, *ties) in constraints:
+            is_row = my_type == 'Row'
             if is_row:
-                joins.append([(r_or_c, column) for column in range(start, end + 1)])
-            else:
-                joins.append([(row, r_or_c) for row in range(start, end + 1)])
-
-    assert len(filled_cells) == 54
-
-    counter = Counter(len(x) for x in joins)
-    if counter[2] != 14 or counter[4] != 4 or counter[3] != 0 or counter[5] != 0:
-        return
+                for column, value in enumerate(string):
+                    if value == '1':
+                        filled_cells.add((r_or_c, column))
+            for start, end in parse_ties(ties):
+                if is_row:
+                    joins.append([(r_or_c, column) for column in range(start, end + 1)])
+                else:
+                    joins.append([(row, r_or_c) for row in range(start, end + 1)])
+        assert len(filled_cells) == 54
+        return filled_cells, joins
 
     def is_connected(cells):
         todo = cells.copy()
@@ -84,24 +81,26 @@ def my_printer(constraint_names: Sequence[tuple[str, int, str, int, ...]]) -> No
                     queue.append(neighbor)
         return len(todo) == 0
 
-    if not is_connected(filled_cells):
-        return
+    filled_cells, joins = parse_grid_info(constraints)
+    counter = Counter(len(x) for x in joins)
 
+    if counter[2] == 14 and counter[4] == 3 and is_connected(filled_cells):
+        show_grid(filled_cells, joins)
+
+
+def show_grid(filled_cells: set[tuple[int, int]], joins: list[Sequence[tuple[int, int], ...]]) -> None:
     _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
     max_column = 12
     max_row = 13
-
     # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
     axes.axis([0, max_column + 1, max_row + 1, 0])
     axes.axis('equal')
     axes.axis('off')
-
     # draw grid
     for column in range(0, max_column + 1):
         axes.plot([column, column], [0, max_row], color='black')
     for row in range(0, max_row + 1):
         axes.plot([0, max_column], [row, row], 'black')
-
     # draw the numbers
     for row, (holes, count, rings) in enumerate(ROWS):
         axes.text(max_column + .1, row + .5, f'{holes} {count} {rings}',
@@ -111,18 +110,16 @@ def my_printer(constraint_names: Sequence[tuple[str, int, str, int, ...]]) -> No
                   verticalalignment='top', horizontalalignment='center', fontweight='bold', fontsize=20)
 
     bbox_args = dict(boxstyle=(BoxStyle.Round(pad=.4, rounding_size=.4)), fill=False, linewidth=2)
-    for one_join in joins:
-        (start_row, start_col), *_, (end_row, end_col) = one_join
-        filled_cells -= set(one_join)
+    for join in joins:
+        (start_row, start_col), *_, (end_row, end_col) = join
+        filled_cells -= set(join)
         # noinspection PyTypeChecker
         patch = FancyBboxPatch((start_col + .5, start_row + .5), end_col - start_col, end_row - start_row, **bbox_args)
         axes.add_patch(patch)
-
     for (row, column) in filled_cells:
         # noinspection PyTypeChecker
         patch = FancyBboxPatch((column + .5, row + .5), 0, 0, **bbox_args)
         axes.add_patch(patch)
-
     plt.show()
 
 
