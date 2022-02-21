@@ -4,7 +4,7 @@ from collections import defaultdict
 from itertools import permutations
 
 from misc.Pentomino import Pentomino, Tiling, intersection_printer
-from misc.Tester import UnionFind
+from misc.UnionFind import UnionFind
 from solver import DancingLinks
 
 

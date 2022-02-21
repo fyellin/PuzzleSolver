@@ -486,37 +486,6 @@ class Fenwick:
 
 
 Node = TypeVar('Node', bound=Hashable)
-class UnionFind(Generic[Node]):
-    parent: dict[Node, Node]
-    rank: dict[Node, int]
-
-    def __init__(self):
-        self.parent = {}
-        self.rank = {}
-
-    def find(self, x: Node):
-        parent = self.parent
-        parent.setdefault(x, x)
-        root = x
-        while (next := parent[root]) != root:
-            root = next
-        while (next := parent[x]) != root:
-            x, parent[x] = next, root
-        return root
-
-    def union(self, x: Node, y: Node):
-        x = self.find(x)
-        y = self.find(y)
-        if x != y:
-            rankx = self.rank.setdefault(x, 1)
-            ranky = self.rank.setdefault(y, 1)
-            if rankx > ranky:
-                # We dont' swap rankx and ranky because after this, we only care if they're equal
-                x, y = y, x
-            self.parent[x] = y
-            if rankx == ranky:
-                self.ranky = ranky + 1
-
 
 
 class TreeNode:
