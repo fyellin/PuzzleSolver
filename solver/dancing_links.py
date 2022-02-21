@@ -1,32 +1,32 @@
-# -*- coding: utf-8 -*-
-
 import collections
 import copy
 import random
 import sys
-from typing import Optional, Callable, Sequence, Dict, Any, TextIO, Set, Iterator, List, Hashable, \
-    TypeVar, Generic, Tuple
+from collections.abc import Hashable, Sequence, Iterator
+from typing import Optional, Callable, Any, TypeVar, Generic
+
+from typing.io import TextIO
 
 Row = TypeVar('Row', bound=Hashable)
 Constraint = TypeVar('Constraint', bound=Hashable)
 
 
 class DancingLinks(Generic[Row, Constraint]):
-    row_to_constraints: Dict[Row, List[Constraint]]
-    optional_constraints: Set[Constraint]
-    inclusive_contraints: Set[Constraint]
+    row_to_constraints: dict[Row, list[Constraint]]
+    optional_constraints: set[Constraint]
+    inclusive_contraints: set[Constraint]
     row_printer: Any
 
     count: int
     max_debugging_depth: int
     output: TextIO
     debug: int
-    constraint_to_rows: Dict[Constraint, Set[Row]]
+    constraint_to_rows: dict[Constraint, set[Row]]
 
-    def __init__(self, constraints: Dict[Row, List[Constraint]],
+    def __init__(self, constraints: dict[Row, list[Constraint]],
                  *, row_printer: Optional[Callable[[Sequence[Row]], None]] = None,
-                 optional_constraints: Optional[Set[Constraint]] = None,
-                 inclusive_constraints: Optional[Set[Constraint]] = None):
+                 optional_constraints: Optional[set[Constraint]] = None,
+                 inclusive_constraints: Optional[set[Constraint]] = None):
         """The entry to the Dancing Links code.  constraints should be a dictionary.  Each key
         is the name of the row (something meaningful to the user).  The value should
         be a list/tuple of the row_to_constraints satisfied by this row.
@@ -42,7 +42,7 @@ class DancingLinks(Generic[Row, Constraint]):
     def solve(self, output: TextIO = sys.stdout, debug: Optional[int] = None,
               recursive: Optional[bool] = False) -> None:
         # Create the cross reference giving the rows in which each constraint appears
-        constraint_to_rows: Dict[Constraint, Set[Row]] = collections.defaultdict(set)
+        constraint_to_rows: dict[Constraint, set[Row]] = collections.defaultdict(set)
         for row, constraints in self.row_to_constraints.items():
             for constraint in constraints:
                 constraint_to_rows[constraint].add(row)
@@ -85,7 +85,7 @@ class DancingLinks(Generic[Row, Constraint]):
             print("Count =", runner.count, file=output)
             print("Solutions =", solutions_count, file=output)
 
-    def __solve_constraints_recursive(self, depth: int) -> Iterator[List[Row]]:
+    def __solve_constraints_recursive(self, depth: int) -> Iterator[list[Row]]:
         """Returns a set of rows that satisfies the row_to_constraints of constraint_to_rows
         """
         # Note that "depth" is meaningful only when debugging.
@@ -132,7 +132,7 @@ class DancingLinks(Generic[Row, Constraint]):
 
     def __solve_constraints_iterative(self) -> int:
         # Note that "depth" is meaningful only when debugging.
-        stack: List[Tuple[Callable[..., None], Sequence[Any]]] = []
+        stack: list[tuple[Callable[..., None], Sequence[Any]]] = []
         solution_count = 0
 
         def run() -> int:
@@ -187,16 +187,16 @@ class DancingLinks(Generic[Row, Constraint]):
             stack.append((row_cleanup, (cleanups, row)))
             stack.append((find_minimum_constraint, (depth + (count > 1),)))
 
-        def row_cleanup(cleanups: List[Tuple[Constraint, Set[Row]]], _row: Row, ) -> None:
+        def row_cleanup(cleanups: list[tuple[Constraint, set[Row]]], _row: Row, ) -> None:
             for constraint, rows in reversed(cleanups):
                 self.__uncover_constraint(constraint, rows)
 
-        def constraint_cleanup(constraint: Constraint, rows: Set[Row]) -> None:
+        def constraint_cleanup(constraint: Constraint, rows: set[Row]) -> None:
             self.__uncover_constraint(constraint, rows)
 
         return run()
 
-    def __cover_constraint(self, constraint: Constraint) -> Set[Row]:
+    def __cover_constraint(self, constraint: Constraint) -> set[Row]:
         rows = self.constraint_to_rows.pop(constraint)
         for row in rows:
             # For each constraint in this row about to be deleted
@@ -207,7 +207,7 @@ class DancingLinks(Generic[Row, Constraint]):
                     self.constraint_to_rows[row_constraint].remove(row)
         return rows
 
-    def __uncover_constraint(self, constraint: Constraint, rows: Set[Row]) -> None:
+    def __uncover_constraint(self, constraint: Constraint, rows: set[Row]) -> None:
         for row in rows:
             for row_constraint in self.row_to_constraints[row]:
                 if row_constraint != constraint:

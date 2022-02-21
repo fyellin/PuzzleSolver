@@ -1,5 +1,6 @@
 import itertools
 import uuid
+from typing import Optional, TypeGuard
 
 import redis
 import redisbloomfilter
@@ -48,6 +49,7 @@ def print_calendar(d, n):
     print(" " * (3-len(str(date))) + str(date))
     print("xxxx")
 
-if __name__ == "__main__":
-    print_calendar(6, 30)
 
+x = [j for i in range(11) for j in ([1] if i == 0 else [*([0]*i), 1])]
+x = [j for i in range(11) for j in itertools.chain((1,), itertools.repeat(0, i))]
+print(x)
