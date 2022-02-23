@@ -1,23 +1,25 @@
 import itertools
-from typing import Set, Dict, Any, cast, Sequence, Optional
+from collections.abc import Sequence, Callable
+from typing import Any, cast, Optional
 
 from matplotlib import pyplot as plt, patches
 from matplotlib.axes import Axes
-from matplotlib.transforms import Bbox
 
 from .clue_types import Location
 
 
 def draw_grid(*, max_row: int, max_column: int,
-              clued_locations: Set[Location],
-              location_to_entry: Dict[Location, str],
-              location_to_clue_numbers: Dict[Location, Sequence[str]],
-              top_bars: Set[Location], left_bars:  Set[Location],
-              shading: Dict[Location, str] = {},
-              rotation: Dict[Location, str] = {},
-              circles: Set[Location] = set(),
+              clued_locations: set[Location],
+              location_to_entry: dict[Location, str],
+              location_to_clue_numbers: dict[Location, Sequence[str]],
+              top_bars: set[Location], left_bars:  set[Location],
+              shading: dict[Location, str] = {},
+              rotation: dict[Location, str] = {},
+              circles: set[Location] = set(),
               subtext: Optional[str] = None,
               font_multiplier: float = 1.0,
+              blacken_unused: bool = True,
+              extra: Callable[[...], None] = None,
               **args: Any) -> None:
 
     _axes = args.get('axes')
@@ -26,7 +28,7 @@ def draw_grid(*, max_row: int, max_column: int,
     else:
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
 
-    # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
+    # set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
     axes.axis([1, max_column, max_row, 1])
     axes.axis('equal')
     axes.axis('off')
@@ -35,9 +37,12 @@ def draw_grid(*, max_row: int, max_column: int,
     for row, column in itertools.product(range(1, max_row), range(1, max_column)):
         if (row, column) in shading:
             color = shading[row, column]
-            axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor=color, linewidth=0))
-        # elif (row, column) not in clued_locations:
-        #     axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor='black', linewidth=0))
+            axes.add_patch(patches.Rectangle((column, row), 1, 1,
+                                             facecolor=color, linewidth=0))
+        elif (row, column) not in clued_locations:
+            if blacken_unused:
+                axes.add_patch(patches.Rectangle((column, row), 1, 1,
+                                                 facecolor='black', linewidth=0))
 
     for row, column in itertools.product(range(1, max_row + 1), range(1, max_column + 1)):
         this_exists = (row, column) in clued_locations
@@ -69,8 +74,8 @@ def draw_grid(*, max_row: int, max_column: int,
 
     if subtext is not None:
         axes.text((max_column + 1) / 2, max_row + .5, subtext,
-                 fontsize=points_per_data / 2, fontweight='bold', fontfamily="sans-serif",
-                 verticalalignment='center', horizontalalignment='center')
+                  fontsize=points_per_data / 2, fontweight='bold', fontfamily="sans-serif",
+                  verticalalignment='center', horizontalalignment='center')
 
     # Fill in the clue numbers
     for (row, column), clue_numbers in location_to_clue_numbers.items():
@@ -89,5 +94,7 @@ def draw_grid(*, max_row: int, max_column: int,
                 axes.text(column + .95, row + .95, text,
                           verticalalignment='bottom', horizontalalignment='right', **font_info)
 
+    if extra:
+        extra(plt, axes)
     if not _axes:
         plt.show()

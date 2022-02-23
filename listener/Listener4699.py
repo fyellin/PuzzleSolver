@@ -1,17 +1,14 @@
 import itertools
 import re
-from collections import defaultdict
 from itertools import permutations
 
-from misc.Pentomino import Pentomino, Tiling, intersection_printer
-from misc.UnionFind import UnionFind
+from misc.Pentomino import Pentomino, Tiling
 from solver import DancingLinks
 
 
 def find_values():
     primes = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41}
     h, c = 2, 3
-    primes -= {c, h}
 
     pattern3 = re.compile('[1-9]{3}')
     pattern4 = re.compile('[1-9]{4}')
@@ -73,6 +70,10 @@ def find_values():
                       (a, b, c, d, e, f, g, h, j, k, l, m, n))
 
 
+LEFT_BARS = [(3, 4), (4, 1), (4, 5), (5, 3), (5, 7), (6, 4)]
+TOP_BARS = [(1, 5), (3, 4), (4, 3), (4, 6), (5, 5), (7, 4)]
+
+
 def get_main_tiling():
     results = Pentomino.get_all_pentominos(7)
 
@@ -131,6 +132,7 @@ SAFE_TILINGS = (
     Tiling("YYYYFFIZ-YFF-IZZZUFUIWWZUUUIVWWPPPIV-WPP-LVVVLLLL", 7),
 )
 
+
 def update_safe_tilings():
     tilings = [x for x in SAFE_TILINGS
                if x.map[1, 4] == x.map[1, 5]
@@ -140,37 +142,19 @@ def update_safe_tilings():
         print(x)
         # row_printer(x)
     if len(tilings) == 1:
-        tilings[0].show()
+        tilings[0].show(top_bars=TOP_BARS, left_bars=LEFT_BARS)
     else:
-        show_forced_sharing(tilings)
-
-
-def show_forced_sharing(safe_tilings=SAFE_TILINGS):
-    uf = UnionFind()
-    squares = list(safe_tilings[0].map.keys())
-    for s1, s2 in itertools.combinations(squares, 2):
-        if uf.find(s1) != uf.find(s2):
-            if all(tiling.map[s1] == tiling.map[s2] for tiling in safe_tilings):
-                uf.union(s1, s2)
-
-    token_map = defaultdict(list)
-    for square in squares:
-        token_map[uf.find(square)].append(square)
-
-    result = []
-    for items in token_map.values():
-        if len(items) > 1 and (2, 2) not in items:
-            result.append(items)
-
-    intersection_printer(result, 7)
+        Tiling.show_forced_sharing(tilings, top_bars=TOP_BARS, left_bars=LEFT_BARS)
 
 
 def show_solution():
     mapping = dict(U=6, T=5, I=1, Y=7, F=9, L=3, P='8', N='2', V='4')
-    tiling = Tiling("YFFTTTIY-FFT-IYYFUTUIYPPUUUIVPPPNNIV-NNN-LVVVLLLL", 7)
-    tiling.show(mapping=mapping)
-    tiling.show(mapping=mapping, white=True)
+    tiling = Tiling("YFFTTTIY-FFT-IYYFUTUIYPPUUUIVPPPNNIV-NNN-LVVVLLLL", 7, 7)
+    args = dict(top_bars=TOP_BARS, left_bars=LEFT_BARS)
+    tiling.show(mapping=mapping, **args)
+    tiling.show(mapping=mapping, **args, white=True)
 
 
 if __name__ == '__main__':
+    # Tiling.show_forced_sharing(SAFE_TILINGS, top_bars=TOP_BARS, left_bars=LEFT_BARS)
     show_solution()
