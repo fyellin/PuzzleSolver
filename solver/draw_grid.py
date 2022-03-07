@@ -12,13 +12,15 @@ def draw_grid(*, max_row: int, max_column: int,
               clued_locations: set[Location],
               location_to_entry: dict[Location, str],
               location_to_clue_numbers: dict[Location, Sequence[str]],
-              top_bars: set[Location], left_bars:  set[Location],
+              top_bars: set[Location] = set(),
+              left_bars:  set[Location] = set(),
               shading: dict[Location, str] = {},
               rotation: dict[Location, str] = {},
               circles: set[Location] = set(),
               subtext: Optional[str] = None,
               font_multiplier: float = 1.0,
               blacken_unused: bool = True,
+              grid_drawer: Callable[[...], None] = None,
               extra: Callable[[...], None] = None,
               **args: Any) -> None:
 
@@ -44,20 +46,23 @@ def draw_grid(*, max_row: int, max_column: int,
                 axes.add_patch(patches.Rectangle((column, row), 1, 1,
                                                  facecolor='black', linewidth=0))
 
-    for row, column in itertools.product(range(1, max_row + 1), range(1, max_column + 1)):
-        this_exists = (row, column) in clued_locations
-        left_exists = (row, column - 1) in clued_locations
-        above_exists = (row - 1, column) in clued_locations
-        if this_exists or left_exists:
-            width = 5 if this_exists != left_exists or (row, column) in left_bars else None
-            axes.plot([column, column], [row, row + 1], 'black', linewidth=width)
-        if this_exists or above_exists:
-            width = 5 if this_exists != above_exists or (row, column) in top_bars else None
-            axes.plot([column, column + 1], [row, row], 'black', linewidth=width)
+    if grid_drawer is None:
+        for row, column in itertools.product(range(1, max_row + 1), range(1, max_column + 1)):
+            this_exists = (row, column) in clued_locations
+            left_exists = (row, column - 1) in clued_locations
+            above_exists = (row - 1, column) in clued_locations
+            if this_exists or left_exists:
+                width = 5 if this_exists != left_exists or (row, column) in left_bars else None
+                axes.plot([column, column], [row, row + 1], 'black', linewidth=width)
+            if this_exists or above_exists:
+                width = 5 if this_exists != above_exists or (row, column) in top_bars else None
+                axes.plot([column, column + 1], [row, row], 'black', linewidth=width)
 
-        if (row, column) in shading:
-            color = shading[row, column]
-            axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor=color, linewidth=0))
+            if (row, column) in shading:
+                color = shading[row, column]
+                axes.add_patch(patches.Rectangle((column, row), 1, 1, facecolor=color, linewidth=0))
+    else:
+        grid_drawer(plt, axes)
 
     for row, column in circles:
         circle = plt.Circle((column + .5, row + .5), radius=.4, linewidth=2, fill=False, facecolor='black')
