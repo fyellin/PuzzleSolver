@@ -11,7 +11,7 @@ from .clue_types import Location
 def draw_grid(*, max_row: int, max_column: int,
               clued_locations: set[Location],
               location_to_entry: dict[Location, str],
-              location_to_clue_numbers: dict[Location, Sequence[str]],
+              location_to_clue_numbers: dict[Location, Sequence[str]] = {},
               top_bars: set[Location] = set(),
               left_bars:  set[Location] = set(),
               shading: dict[Location, str] = {},
