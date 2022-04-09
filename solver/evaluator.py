@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import math
+import fractions
 from collections.abc import Iterable, Sequence
 from typing import Any, Callable, NamedTuple, Optional
 from .clue_types import ClueValue, Letter
@@ -22,7 +23,8 @@ class Evaluator (NamedTuple):
                             })
         code = f"lambda {', '.join(variables)}: {expression}"
         my_globals = (user_globals or globals()).copy()
-        my_globals['math'] = math
+        my_globals.update((('math', math), ('fractions', fractions)))
+
         namespace = {}
         compiled_code = eval(code, my_globals, namespace)
         return Evaluator(cls.standard_wrapper, compiled_code, variables, expression)
@@ -37,6 +39,17 @@ class Evaluator (NamedTuple):
             return ()
         except ArithmeticError:
             return ()
+
+    @staticmethod
+    def basic(evaluator: Evaluator, value_dict: dict[Letter, int]) -> ClueValue:
+        try:
+            result = evaluator.callable(*(value_dict[x] for x in evaluator.vars))
+            int_result = int(result)
+            if result == int_result > 0:
+                return int_result
+            return None
+        except ArithmeticError:
+            return None
 
     def with_alt_wrapper(self, wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]]) -> Evaluator:
         return self._replace(wrapper=wrapper)

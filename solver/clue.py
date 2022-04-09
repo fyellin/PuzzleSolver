@@ -5,6 +5,7 @@ from collections import deque
 from typing import Iterable, Optional, Any, FrozenSet, Sequence, Callable, Union, Dict
 
 from .clue_types import Location
+from .equation_parser import EquationParser
 from .evaluator import Evaluator
 
 ClueValueGenerator = Callable[['Clue'], Iterable[Union[str, int]]]
@@ -21,6 +22,8 @@ class Clue:
     locations: Sequence[Location]
     location_set:  FrozenSet[Location]
     expression: str
+
+    equation_parser = None
 
     def __init__(self, name: str, is_across: bool, base_location: Location, length: int, *,
                  expression: str = '',
@@ -56,8 +59,14 @@ class Clue:
     def location(self, i: int) -> Location:
         return self.locations[i]
 
+    @classmethod
+    def __convert_expression_to_python(cls, expression: str) -> Sequence[str]:
+        if cls.equation_parser is None:
+            cls.equation_parser = EquationParser();
+        return cls.equation_parser.parse(expression)
+
     @staticmethod
-    def __convert_expression_to_python(expression: str) -> Sequence[str]:
+    def __convert_expression_to_python2(expression: str) -> Sequence[str]:
         expression = expression.replace("–", "-")   # magpie use a strange minus sign
         expression = expression.replace('−', '-')   # Listener uses a different strange minus sign
         expression = expression.replace("^", "**")  # Replace exponentiation with proper one
@@ -81,35 +90,6 @@ class Clue:
 
         return expression.split('=')
 
-    @staticmethod
-    def __convert_expression_to_python2(expression: str) -> Sequence[str]:
-        expression = expression.replace("–", "-")   # magpie use a strange minus sign
-        expression = expression.replace('−', '-')   # Listener uses a different strange minus sign
-        expression = expression.replace("^", "**")  # Replace exponentiation with proper one
-
-        info = deque(expression)
-        info.append('$$')
-        while info[0] != '$$':
-            if info[0] == '"':
-                pass
-            elif info[0] in '+-*/%':
-                pass
-            elif info[0].isalpha():
-                pass
-            elif info[0].isdigit():
-                pass
-        length = len(expression)
-        expression += "  "
-
-        for _ in range(2):
-            # ), letter, or digit followed by (, letter, or digit needs an * in between, except when we have
-            # two digits in a row with no space between them.  Note negative lookahead below.
-            expression = re.sub(r'(?!\d\d)([\w)])\s*([(\w])', r'\1*\2', expression)
-        if '!' in expression:
-            expression = re.sub(r'(\w)!', r'math.factorial(\1)', expression)
-        if '~' in expression:
-            expression = expression.replace("~", 'foo')
-        return expression.split('=')
 
     @staticmethod
     def create_evaluator(expression: str, *,

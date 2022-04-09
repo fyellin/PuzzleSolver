@@ -1,27 +1,39 @@
 import itertools
-import math
 import re
 from collections import defaultdict
+from datetime import datetime
 from typing import Any
+
+from setuptools.logging import _not_warning
 
 from solver import Clue, Clues, ConstraintSolver
 
 CLUES = """
-3d A * R * A * B * L * E [3]
-4d P * L * O * U/(G/H)  [3]
-5d O * (V - U) * M [3]
-6a (M + A) * P * L * E [4]
+3d ARABLE [3]
+4d PLOU/(G/H) [3]
+5d O(V – U)M [3]
+6a (M + A)PLE [4]
 12d Q+U+I+D [3]
-7a J * (E+E)-R [4]
-9a J * E * L * L * Y - P *(E+A+R) [5]
-8d (S+H)**(O+O) +T [3]
-15a E+(X+E) * R * C * I * S * E + S [3]
-11d A + (N* X+I+E*T)Y [3]
-12a M * I * (X - E) * D [4]
-2d -(V-I)**C *  (T+O) + (R+Y)! [3]
-1a (Y+E) * L * L + V**(I+O+L) [3]
-13d (D + R)**(U*G) * (A*B)**(B(R + E) - V) [3]
-14a (W-R)**Y + (N + E + C)/K [4]
+7a J(E+E)–R [4]
+9a JELLY–P(E+A+R) [5]
+8d (S+H)^(O+O) +T [3]
+15a E+(X+E)RCISE+S [3]
+11d A+(NX+I+ET)Y [3]
+12a MI(X – E)D [4]
+2d –(V–I)^C(T+O)+(R+Y)! [3]
+1a (Y+E)LL+V^(I+O+L) [3]
+13d (D + R)^(UG)(AB)^(B(R + E) – V) [3]
+14a (W–R)^Y +(N+E+C)/K [4]
+"""
+
+GRID = """
+XX.XX
+XX...
+X.X..
+X...X
+XX.X.
+X....
+..X..
 """
 
 TABLES3 = None
@@ -31,6 +43,8 @@ TABLES5 = None
 
 def build_tables():
     global TABLES3, TABLES4, TABLES5
+    if TABLES3 is not None:
+        return
     TABLES3 = defaultdict(list)
     TABLES4 = defaultdict(list)
     TABLES5 = defaultdict(list)
@@ -48,146 +62,82 @@ def build_tables():
             TABLES5[value].append(10000 * a + 1000 * b + 100 * c + 10 * d + e)
 
 
-def parse_clues():
-    clues = {}
+def parse_clues(*, use_10d: bool = False):
+    clues = []
+    grid = Clues.get_locations_from_grid(GRID)
     for line in CLUES.strip().splitlines():
-        match = re.match(r'([1-9]+[ad]) (.*) \[([345])\]', line.strip())
-        clues[match.group(1)] = match.group(2), int(match.group(3))
+        match = re.match(r'([1-9]+)([ad]) (.*) \[([345])\]', line.strip())
+        number, letter, equation, length = match.group(1, 2, 3, 4)
+        clue = Clue(f'{number}{letter}', letter == 'a',
+                    base_location=grid[int(number) - 1], length=int(length),
+                    expression=equation)
+        clues.append(clue)
+    if use_10d:
+        clues.append(Clue(f'10d', False, base_location=grid[10 - 1], length=3))
     return clues
 
 
-def get_order():
-    clues = parse_clues()
-    table = {clue: {x for x in equation if x.isalpha()}
-             for clue, (equation, _length) in clues.items()}
-    seen = table.pop('3d') | table.pop('4d') | table.pop('5d')
-    for letters in table.values():
-        letters -= seen
-    while table:
-        smallest = min(table, key=lambda x: len(table[x]))
-        seen = table.pop(smallest)
-        print(smallest, seen)
-        for letters in table.values():
-            letters -= seen
-
-
 def get_values():
-    if TABLES3 is None:
-        build_tables()
+    build_tables()
+    clues = parse_clues()
 
-    def pull(result, letters):
-        return [[result[letter] for letter in letters]]
+    unseen_clues = set(clues)
+    special = {clues[0], clues[1], clues[2]}
+    seen_vars = set()
+    results: list[dict[Any, Any]] = [{}]
+    tables = {3: TABLES3, 4: TABLES4, 5: TABLES5}
+    while unseen_clues:
+        clue = min(unseen_clues,
+                   key=lambda clue: len(set(clue.evaluators[0].vars) - seen_vars))
+        evaluator = clue.evaluators[0]
+        new_vars = sorted(set(evaluator.vars) - seen_vars)
+        if clue in special:
+            expected_value = {'3d': 3, '4d': 6, '5d': 9}[clue.name]
+            prev_seen_clue = next_seen_clue = None
+        else:
+            index = clues.index(clue)
+            expected_value = None
+            prev_seen_clue = next((clue for clue in reversed(clues[:index])
+                                  if clue not in unseen_clues), None)
+            next_seen_clue = next((clue for clue in clues[index + 1:]
+                                   if clue not in unseen_clues), None)
 
-    results = [dict(a=a, r=r, b=b, l=l, e=e, d3=3)
-               for a, r, b, l, e in itertools.product(range(1, 4), repeat=5)
-               if a * r * a * b * l * e == 3]
+        max_var_value = 3 if clue.name == '3d' else 10
+        dict_updates = [dict(zip(new_vars, new_values))
+                        for new_values in itertools.product(range(1, max_var_value + 1),
+                                                            repeat=len(new_vars))]
+        next_result = []
+        if clue in special:
+            for result in results:
+                for dict_update in dict_updates:
+                    temp = result | dict_update
+                    value = -1 if not (x := evaluator(temp)) else int(x[0])
+                    if value == expected_value:
+                        temp[clue.name] = value
+                        next_result.append(temp)
+        else:
+            table = tables[clue.length]
+            for result in results:
+                min_value = 9 if prev_seen_clue is None else result[prev_seen_clue.name]
+                max_value = 100 if next_seen_clue is None else result[next_seen_clue.name]
+                for dict_update in dict_updates:
+                    temp = result | dict_update
+                    value = -1 if not (x := evaluator(temp)) else int(x[0])
+                    if value in table and min_value < value < max_value:
+                        temp[clue.name] = value
+                        next_result.append(temp)
 
-    results = [result | dict(p=p, o=o, u=u, g=g, h=h, d4=6)
-               for result in results
-               for l, in pull(result, "l")
-               for p, o, u, g, h in itertools.product(range(1, 7), repeat=5)
-               if h != 1 and g != h
-               if p * l * o * u / (g / h) == 6]
-
-    results = [result | dict(v=v, u=u, m=m, d5=9, a6=a6)
-               for result in results
-               for o, a, p, l, e in pull(result, "oaple")
-               for v, u, m in itertools.product(range(1, 11), repeat=3)
-               if o * (v - u) * m == 9
-               if (a6 := (m + a) * p * l * e) in TABLES4
-               ]
-
-    results = [result | dict(j=j, a7=a7)
-               for result in results
-               for e, r in pull(result, "er")
-               for j in range(1, 11)
-               if (a7 := j * (e + e) - r) in TABLES4
-               if result['a6'] < a7]
-
-    results = [result | dict(y=y, a9=a9)
-               for result in results
-               for j, e, l, p, a, r in pull(result, "jelpar")
-               for y in range(1, 11)
-               if (a9 := (j * e * l * l * y - p * (e + a + r))) in TABLES5
-               if result['a7'] < a9]
-
-    results = [result | dict(i=i, a1=a1)
-               for result in results
-               for y, e, l, v, o in pull(result, "yelvo")
-               for i in range(1, 11)
-               if (a1 := (y + e) * l * l + v ** (i + o + l)) in TABLES3
-               if result['a9'] < a1]
-
-    results = [result | dict(d=d, d13=d13)
-               for result in results
-               for r, u, g, a, b, v, e in pull(result, "rugabve")
-               for d in range(1, 11)
-               if (d13 := (d + r)**(u * g) * (a * b) ** (b * (r + e) - v)) in TABLES3
-               if result['a1'] < d13]
-
-    results = [result | dict(q=q, d12=d12)
-               for result in results
-               for u, i, d in pull(result, "uid")
-               for q in range(1, 11)
-               if (d12 := q + u + i + d) in TABLES3
-               if result['a6'] < d12 < result['a7']]
-
-    results = [result | dict(x=x, a12=a12, d10=a12)
-               for result in results
-               for m, i, e, d in pull(result, "mied")
-               for x in range(1, 11)
-               if (a12 := m * i * (x - e) * d) in TABLES4
-               if a12 in TABLES3  # 10d = 12a, so must be in both tables
-               if result['a9'] < a12 < result['a1']]
-
-    results = [result | dict(s=s, t=t, d8=d8)
-               for result in results
-               for h, o in pull(result, "ho")
-               for s in range(1, 11) for t in range(1, 11)
-               if (d8 := (s + h) ** (o + o) + t) in TABLES3
-               if result['a9'] < d8 < result['a12']]
-
-    results = [result | dict(c=c, a15=a15)
-               for result in results
-               for e, x, r, i, s in pull(result, "exris")
-               for c in range(1, 11)
-               if (a15 := e + (x + e) * r * c * i * s * e + s) in TABLES3
-               if result['d8'] < a15 < result['a12']]
-
-    results = [result | dict(d2=d2)
-               for result in results
-               for v, i, c, t, o, r, y in pull(result, "victory")
-               if (d2 := -(v - i) ** c * (t + o) + math.factorial(r + y)) in TABLES3
-               if result['a12'] < d2 < result['a1']]
-
-    results = [result | dict(n=n, d11=d11)
-               for result in results
-               for a, x, i, e, t, y in pull(result, "axiety")
-               for n in range(1, 11)
-               if (d11 := (a + (n * x + i + e * t) * y)) in TABLES3
-               if result['a15'] < d11 < result['a12']]
-
-    results = [result | dict(k=k, w=w, a14=int(a14))
-               for result in results
-               for r, y, n, e, c, in pull(result, "rynec")
-               for k in range(1, 11) for w in range(1, 11)
-               if (a14 := (w - r) ** y + (n + e + c) / k) in TABLES4
-               if a14 == int(a14)
-               if k != 1
-               if a14 > result['d13']
-               ]
+        if 'K' in new_vars:
+            next_result = [r for r in next_result if r['K'] != 1]
+        if 'H' in new_vars:
+            next_result = [r for r in next_result if r['H'] != 1]
+        if clue.name == '4d':
+            next_result = [r for r in next_result if r['H'] != r['G']]
+        unseen_clues.remove(clue)
+        seen_vars |= set(new_vars)
+        results = next_result
+        print(clue, new_vars, len(results))
     return results
-
-
-GRID = """
-XX.XX
-XX...
-X.X..
-X...X
-XX.X.
-X....
-..X..
-"""
 
 
 class Magpie231Solver(ConstraintSolver):
@@ -199,24 +149,16 @@ class Magpie231Solver(ConstraintSolver):
         solver.solve(debug=False)
 
     def __init__(self, result):
-        self.result = result
-        if TABLES3 is None:
-            build_tables()
+        self.result = result | {'10d': result['12a']}
+        build_tables()
         clues = self.get_clues()
         super().__init__(clues)
         self.add_all_constraints()
 
     def get_clues(self) -> list[Clue]:
-        grid = Clues.get_locations_from_grid(GRID)
-        clues = []
-        for line in CLUES.strip().splitlines():
-            match = re.match(r'([1-9]+)([ad]) .* \[([345])\]', line.strip())
-            number, is_across, length = match.groups()
-            number, length = int(number), int(length)
-            clue = Clue(f'{number}{is_across}', is_across == 'a',
-                        grid[number - 1], length, generator=self.generator)
-            clues.append(clue)
-        clues.append(Clue('10d', False, grid[10 - 1], 3, generator=self.generator))
+        clues = parse_clues(use_10d=True)
+        for clue in clues:
+            clue.generator = self.generator
         return clues
 
     def add_all_constraints(self):
@@ -227,9 +169,8 @@ class Magpie231Solver(ConstraintSolver):
 
     def generator(self, clue: Clue):
         length = clue.length
-        key = clue.name[-1] + clue.name[:-1]
         table = TABLES3 if length == 3 else TABLES4 if length == 4 else TABLES5
-        value = self.result[key]
+        value = self.result[clue.name]
         if value < 10:
             result = {3: [111], 6: [112, 121, 211], 9: [122, 212, 122]}[value]
         else:
@@ -238,18 +179,21 @@ class Magpie231Solver(ConstraintSolver):
 
     def draw_grid(self, *, location_to_entry, **args: Any) -> None:
         mapper = defaultdict(list)
-        for letter in "abcdeghijklmnopqrstuvwxy":
+        for letter in "abcdeghijklmnopqrstuvwxy".upper():
             mapper[self.result[letter]].append(letter.upper())
-        print(''.join(mapper[1]))
         mapper[1] = '*',
         location_to_entry = {location: ''.join(mapper[int(digit)])
-                                 for location, digit in location_to_entry.items()}
+                             for location, digit in location_to_entry.items()}
         super().draw_grid(location_to_entry=location_to_entry, **args)
 
 
 def go():
+    start = datetime.now()
     results = get_values()
-    for result in results:
+    end = datetime.now()
+    print(end - start)
+    return
+    for i, result in enumerate(results):
         Magpie231Solver.run(result)
 
 

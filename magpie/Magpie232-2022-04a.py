@@ -79,10 +79,7 @@ def main2():
 def printer(results):
     results = {location: value.upper()
                for result in results for location, value in result}
-    locations = set(itertools.product(range(1, 14), range(1, 14)))
-    draw_grid(max_row=14, max_column=14, location_to_entry=results,
-              clued_locations=locations,
-              font_multiplier=.7)
+    draw_grid(max_row=14, max_column=14, location_to_entry=results, font_multiplier=.7)
 
 
 if __name__ == '__main__':
