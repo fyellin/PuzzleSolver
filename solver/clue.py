@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from collections import deque
 from typing import Iterable, Optional, Any, FrozenSet, Sequence, Callable, Union, Dict
 
 from .clue_types import Location
@@ -66,7 +65,7 @@ class Clue:
         return cls.equation_parser.parse(expression)
 
     @staticmethod
-    def __convert_expression_to_python2(expression: str) -> Sequence[str]:
+    def __convert_expression_to_python_old(expression: str) -> Sequence[str]:
         expression = expression.replace("–", "-")   # magpie use a strange minus sign
         expression = expression.replace('−', '-')   # Listener uses a different strange minus sign
         expression = expression.replace("^", "**")  # Replace exponentiation with proper one

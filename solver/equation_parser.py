@@ -1,11 +1,5 @@
-# -----------------------------------------------------------------------------
-# calc.py
-#
-# A simple calculator with variables.   This is from O'Reilly's
-# "Lex and Yacc", p. 63.
-# -----------------------------------------------------------------------------
-import ply.lex as lex
-import ply.yacc as yacc
+import solver.ply.lex as lex
+import solver.ply.yacc as yacc
 
 
 class EquationParser:
@@ -14,7 +8,7 @@ class EquationParser:
         self.lexer = lex.lex(module=self)
         self.parser = yacc.yacc(module=self)
 
-    tokens = ('NAME', 'NUMBER', 'POWER', 'FACTORIAL', 'SUBTRACT')
+    tokens = ('NAME', 'NUMBER', 'POWER', 'FACTORIAL', 'SUBTRACT', 'QUOTED')
 
     literals = ['+', '*', '/', '(', ')', '!', '=']
 
@@ -22,30 +16,24 @@ class EquationParser:
 
     t_NAME = r'[a-zA-Z]'
     t_NUMBER = r'\d+'
-    t_POWER =r'\*\*|\^'
+    t_QUOTED = r'"[^"]*"'
+    t_POWER = r'\*\*|\^'
     t_FACTORIAL = r'!'
     t_ignore = "\n\t "
-
-    def t_SUBTRACT(self, t):
-        r'-|–|−'    # -, \u2013 = n-dash, \u2212 = subtraction
-        t.value = '-'
-        return t
+    t_SUBTRACT = r'-|–|−'    # -, \u2013 = n-dash, \u2212 = subtraction
 
     def t_error(self, t):
-        print("Illegal character '%s'" % t.value[0])
-        t.lexer.skip(1)
+        raise SyntaxError(f"Illegal character {t.value[0]}")
 
     # Parsing rules
     def p_statement1(self, p):
         """statement : expr"""
         p[0] = [p[1]]
 
-
     def p_statement2(self, p):
         """statement : statement '=' expr"""
         p[1].append(p[2])
         p[0] = p[1]
-
 
     def p_expression(self, p):
         """expr : mult
@@ -59,22 +47,22 @@ class EquationParser:
         """
         p[0] = p[1]
 
-    def p_expression_add(self, p):
-        """expr :  expr '+' mult"""
+    def p_addition(self, p):
+        """expr : expr '+' mult"""
         p[0] = f'({p[1]} + {p[3]})'
 
-    def p_expression_sub(self, p):
+    def p_subtraction(self, p):
         """expr : expr SUBTRACT mult"""
-        p[0] =  f'({p[1]} - {p[3]})'
+        p[0] = f'({p[1]} - {p[3]})'
 
-    def p_multiplication_multiply(self, p):
+    def p_multiplication(self, p):
         """mult : mult '*' just"""
         p[0] = f'({p[1]} * {p[3]})'
 
-    def p_multiplication_divide(self, p):
+    def p_division(self, p):
         """mult : mult '/' just"""
         # p[0] = f'({p[1]} / {p[3]})'
-        p[0] = f'fractions.Fraction({p[1]}, {p[3]})'
+        p[0] = f'div({p[1]}, {p[3]})'
 
     def p_juxtaposition(self, p):
         """just : just expt"""
@@ -86,22 +74,25 @@ class EquationParser:
 
     def p_exponentiation(self, p):
         """expt :  fact POWER neg"""
-        p[0] = f'({p[1]} ** {p[3]})'
+        p[0] = f'expt({p[1]}, {p[3]})'
 
     def p_factorial(self, p):
         """fact : fact FACTORIAL"""
-        p[0] = f'math.factorial({p[1]})'
+        p[0] = f'fact({p[1]})'
 
-    def p_atom_paren(self, p):
-        """atom :  '(' expr ')'"""
-        p[0] =  p[2]
+    def p_parenthesis(self, p):
+        """atom : '(' expr ')'"""
+        p[0] = p[2]
+
+    def p_quoted(self, p):
+        """atom : QUOTED"""
+        p[0] = p[1][1:-1]
 
     def p_error(self, p):
-        raise SyntaxError
+        raise SyntaxError("Parsing failed")
 
-    def parse(self, string):
-        return yacc.parse(string)
-
+    def parse(self, text):
+        return self.parser.parse(text, lexer=self.lexer)
 
 
 if __name__ == '__main__':
@@ -125,4 +116,3 @@ MI(X – E)D
 """
     for string in temp.strip().splitlines():
         print(string, parser.parse(string))
-

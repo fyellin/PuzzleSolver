@@ -1,12 +1,12 @@
+import fractions
 import itertools
+import operator
 import re
 from collections import defaultdict
 from datetime import datetime
 from typing import Any
 
-from setuptools.logging import _not_warning
-
-from solver import Clue, Clues, ConstraintSolver
+from solver import Clue, Clues, ConstraintSolver, Evaluator
 
 CLUES = """
 3d ARABLE [3]
@@ -61,6 +61,15 @@ def build_tables():
         if 10 <= value < 100:
             TABLES5[value].append(10000 * a + 1000 * b + 100 * c + 10 * d + e)
 
+def my_div(a, b):
+    if b == 0 or b == 1:
+        raise ZeroDivisionError
+    return fractions.Fraction(a, b)
+
+def my_pow(a, b):
+    if a == 1 or b == 1:
+        raise ZeroDivisionError
+    return operator.__pow__(a, b)
 
 def parse_clues(*, use_10d: bool = False):
     clues = []
@@ -72,6 +81,10 @@ def parse_clues(*, use_10d: bool = False):
                     base_location=grid[int(number) - 1], length=int(length),
                     expression=equation)
         clues.append(clue)
+    for clue in clues:
+        for evaluator in clue.evaluators:
+            evaluator.globals()['div'] = my_div
+            evaluator.globals()['pow'] = my_pow
     if use_10d:
         clues.append(Clue(f'10d', False, base_location=grid[10 - 1], length=3))
     return clues
@@ -87,7 +100,9 @@ def get_values():
     results: list[dict[Any, Any]] = [{}]
     tables = {3: TABLES3, 4: TABLES4, 5: TABLES5}
     while unseen_clues:
-        clue = min(unseen_clues,
+        universe = unseen_clues & special
+        universe = universe or unseen_clues
+        clue = min(universe,
                    key=lambda clue: len(set(clue.evaluators[0].vars) - seen_vars))
         evaluator = clue.evaluators[0]
         new_vars = sorted(set(evaluator.vars) - seen_vars)
@@ -127,12 +142,6 @@ def get_values():
                         temp[clue.name] = value
                         next_result.append(temp)
 
-        if 'K' in new_vars:
-            next_result = [r for r in next_result if r['K'] != 1]
-        if 'H' in new_vars:
-            next_result = [r for r in next_result if r['H'] != 1]
-        if clue.name == '4d':
-            next_result = [r for r in next_result if r['H'] != r['G']]
         unseen_clues.remove(clue)
         seen_vars |= set(new_vars)
         results = next_result
@@ -144,7 +153,6 @@ class Magpie231Solver(ConstraintSolver):
     @staticmethod
     def run(result):
         solver = Magpie231Solver(result)
-        # solver.plot_board({})
         solver.verify_is_180_symmetric()
         solver.solve(debug=False)
 
@@ -178,6 +186,7 @@ class Magpie231Solver(ConstraintSolver):
         return result
 
     def draw_grid(self, *, location_to_entry, **args: Any) -> None:
+        return
         mapper = defaultdict(list)
         for letter in "abcdeghijklmnopqrstuvwxy".upper():
             mapper[self.result[letter]].append(letter.upper())
@@ -192,9 +201,8 @@ def go():
     results = get_values()
     end = datetime.now()
     print(end - start)
-    return
-    for i, result in enumerate(results):
-        Magpie231Solver.run(result)
+    # for result in results:
+    #     Magpie231Solver.run(result)
 
 
 if __name__ == '__main__':
