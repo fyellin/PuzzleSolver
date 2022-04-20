@@ -20,6 +20,7 @@ X.X.......X..
 X..X...X...X.
 """
 
+# Note.  Double quotes indicate concatenation!
 ACROSS = """
 1 N + S + L (2)
 2 WOW (4)

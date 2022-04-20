@@ -78,13 +78,10 @@ def parse_clues(*, use_10d: bool = False):
         match = re.match(r'([1-9]+)([ad]) (.*) \[([345])\]', line.strip())
         number, letter, equation, length = match.group(1, 2, 3, 4)
         clue = Clue(f'{number}{letter}', letter == 'a',
-                    base_location=grid[int(number) - 1], length=int(length),
-                    expression=equation)
+                    base_location=grid[int(number) - 1], length=int(length))
+        clue.expression = equation
+        clue.evaluators = Clue.create_evaluators(equation, {'div': my_div, 'pow': my_pow})
         clues.append(clue)
-    for clue in clues:
-        for evaluator in clue.evaluators:
-            evaluator.globals()['div'] = my_div
-            evaluator.globals()['pow'] = my_pow
     if use_10d:
         clues.append(Clue(f'10d', False, base_location=grid[10 - 1], length=3))
     return clues
@@ -201,8 +198,8 @@ def go():
     results = get_values()
     end = datetime.now()
     print(end - start)
-    # for result in results:
-    #     Magpie231Solver.run(result)
+    for result in results:
+        Magpie231Solver.run(result)
 
 
 if __name__ == '__main__':

@@ -4,52 +4,38 @@ import re
 from collections import defaultdict
 from itertools import permutations
 from math import log10
-from typing import Any
 
+from solver import Clue
 from solver.draw_grid import draw_grid
+from solver.equation_parser import EquationParser
 
 MAX_INT = 10_000
 MAX_INT_log10 = 4
 
+def my_div(a, b):
+    if b == 0:
+        raise ZeroDivisionError
+    q, r = divmod(a, b)
+    if r == 0:
+        return q
+    raise ArithmeticError
 
-class MyInt(int):
-    def __init__(self, value: int) -> None:
-        pass
-
-    def __add__(self, other):
-        return MyInt(int(self) + int(other))
-
-    def __sub__(self, other):
-        return MyInt(int(self) - int(other))
-
-    def __neg__(self):
-        return MyInt(-int(self))
-
-    def __mul__(self, other):
-        return MyInt(int(self) * int(other))
-
-    def __truediv__(self, other):
-        if int(other) == 0:
-            raise ZeroDivisionError
-        q, r = divmod(self, other)
-        if r == 0:
-            return MyInt(q)
-        else:
-            raise ArithmeticError
-
-    def __pow__(self, power, modulo=None):
-        if int(power) < 0:
-            raise ArithmeticError
-        if log10(self) * power >= MAX_INT_log10:
-            raise ArithmeticError
-        return MyInt(int(self) ** int(power))
-
-    def __call__(self, *args, **kwargs):
-        if 3 <= self <= 10 or self == 0:
-            factorial = math.factorial(self)
-            if factorial <= MAX_INT:
-                return MyInt(factorial)
+def my_pow(base, power):
+    if power < 0:
         raise ArithmeticError
+    if log10(base) * power >= MAX_INT_log10:
+        raise ArithmeticError
+    return base ** power
+
+def my_fact(x):
+    if 3 <= x <= 10 or x == 0:
+        factorial = math.factorial(x)
+        if factorial <= MAX_INT:
+            return factorial
+    raise ArithmeticError
+
+EQUATION_PARSER = EquationParser()
+MAPPING = dict(div=my_div, pow=my_pow, fact=my_fact)
 
 
 def test_akm():
@@ -84,24 +70,42 @@ def test_akm():
 2 8 X 6 X X      1 3 9
 """
 
+def test_specific(clue, good_results, all_values, operators, use_factorial=False):
+    for op1, op2, op3, op4, op5 in set(permutations(operators)):
+        expression = f'u{op1}v{op2}w{op3}x{op4}y{op5}z'
+        evaluator = Clue.create_callable(expression, MAPPING)
+        if not use_factorial:
+            for values in all_values:
+                try:
+                    result = evaluator(*values)
+                    if result in good_results:
+                        expression2 = re.sub(r'[uvwxyz]', 'X', expression)
+                        print(f'(\'{clue}\', {values}, {result}, \"{expression2}\")')
+                except ArithmeticError:
+                    pass
+        else:
+            for original_values in all_values:
+                for f_index, f_var in enumerate('uvwxyz'):
+                    values = list(original_values)
+                    if values[f_index] <= 2:
+                        continue
+                    values[f_index] = math.factorial(values[f_index])
+                    try:
+                        result = evaluator(*values)
+                        if result in good_results:
+                            expression2 = expression.replace(f_var, f_var + "!")
+                            expression2 = re.sub(r'[uvwxyz]', 'X', expression2)
+                            print(
+                                f'(\'p\', {original_values}, {result}, \"{expression2}\")')
+                    except ArithmeticError:
+                        pass
+
 
 def test_clue_b():
     good_odds = {482, 571, 573, 579, 163, 169}
     all_values = [(4, 9, 5, 3, 1, 7), (8, 4, 7, 2, 6, 5),
                   *((2, 8, a, 6, b, c) for a, b, c in permutations((1, 3, 9)))]
-    operations = set(permutations('^^+++'))
-    for values in all_values:
-        for ops in operations:
-            expression = ''.join(f'MyInt({value}) {op} 'for value, op in zip(values, ops))
-            expression += f'MyInt({values[-1]})'
-            expression = expression.replace('^', '**')
-            try:
-                result = eval(expression)
-                if result in good_odds:
-                    exp2 = ''.join(f'X{op}' for op in ops) + 'X'
-                    print(f'(\'b\', {values}, {result}, \"{exp2}\")')
-            except (SyntaxError, ArithmeticError, ArithmeticError):
-                pass
+    test_specific('b', good_odds, all_values, '^^+++')
 
 
 """
@@ -111,23 +115,11 @@ Result is  2 ** 8 + (1 or 9) + 6 ** 3 + (1 or 9)
 2 8 X 6 3 X      1  9
 """
 
-
 def test_clue_c():
     good_odds = {482, 571, 579, 163}
     all_values = [(4, 9, 5, 3, 1, 7), (8, 4, 7, 2, 6, 5),
                   (2, 8, 1, 6, 3, 9), (2, 8, 9, 6, 3, 1)]
-    operations = set(permutations('-***/'))
-    for values in all_values:
-        for ops in operations:
-            expression = ''.join(f'MyInt({value}) {op} 'for value, op in zip(values, ops))
-            expression += f'MyInt({values[-1]})'
-            try:
-                result = eval(expression)
-                if result in good_odds:
-                    exp2 = ''.join(f'X{op}' for op in ops) + 'X'
-                    print(f'(\'c\', {values}, {result}, \"{exp2}\")')
-            except (ArithmeticError, ZeroDivisionError):
-                pass
+    test_specific('c', good_odds, all_values, '-***/')
 
 
 """
@@ -137,30 +129,11 @@ Result is 8 / 4 * 7 * 2 * 6 - 5 = 163.  Don't really learn anything
 2 8 X 6 3 X      1  9
 """
 
-
 def test_clue_n():
     good_evens = {948, 326, 751, 759}
     all_values = [(4, 9, 5, 3, 1, 7), (8, 4, 7, 2, 6, 5),
                   (2, 8, 1, 6, 3, 9), (2, 8, 9, 6, 3, 1)]
-    operations = set(permutations('+++-*'))
-    for original_values in all_values:
-        for ops in operations:
-            for f_index in range(5):
-                values = list(original_values)
-                if values[f_index] <= 2:
-                    continue
-                values[f_index] = math.factorial(values[f_index])
-                expression = ''.join(f'MyInt({value}) {op} '
-                                     for value, op in zip(values, ops))
-                expression += f'MyInt({values[-1]})'
-                try:
-                    result = eval(expression)
-                    if result in good_evens:
-                        exp2 = ''.join(f'X{op}' for op in ops) + 'X'
-                        exp2 = exp2[0:2*f_index + 1] + "!" + exp2[2*f_index + 1:]
-                        print(f'(\'n\', {original_values}, {result}, \"{exp2}\")')
-                except (ArithmeticError, SyntaxError):
-                    pass
+    test_specific('n', good_evens, all_values, '+++-*', use_factorial=True)
 
 
 """
@@ -179,50 +152,29 @@ VALUES = [(4, 9, 5, 3, 1, 7), (8, 4, 7, 2, 6, 5), (2, 8, 1, 6, 3, 9)]
 
 def test_clue_p():
     #  Result: 2^8 - 1 + 6! - 3 * 9 = 948
-    operations = set(permutations(('+', '-',  '-', '*', '**')))
-    for ovalues in VALUES:
-        for ops in operations:
-            for f_index in range(5):
-                values = list(ovalues)
-                if values[f_index] <= 2:
-                    continue
-                values[f_index] = math.factorial(values[f_index])
-                expression = ''.join(f'MyInt({value}) {op} '
-                                     for value, op in zip(values, ops))
-                expression += f'MyInt({values[-1]})'
-                try:
-                    result = eval(expression)
-                    if result in GOOD_EVENS:
-                        exp2 = ''.join(f'X{op}' for op in ops) + 'X'
-                        exp2 = exp2[0:2*f_index + 1] + "!" + exp2[2*f_index + 1:]
-                        print(f'(\'p\', {ovalues}, {result}, \"{exp2}\")')
-                except ArithmeticError:
-                    pass
+    test_specific('p', GOOD_EVENS, VALUES, '+--*^', use_factorial=True)
 
 
 def test_expression(letter, expression, parenthesis):
-    expression = expression.replace(' ', '').replace('×', '*').replace('–', '-')
+    mapping = dict(div=my_div, pow=my_pow, fact=my_fact)
+    expression = expression.replace(' ', '')
+    for ch in 'uvwxyz':
+        expression = expression.replace('X', ch, 1)
     parenthesized_expressions = add_parentheses(expression, parenthesis)
     parses = []
     for pexp in parenthesized_expressions:
-        saved_pexp = pexp
-        pexp = pexp.replace('!', '()').replace('^', "**")
-        for ch in 'abcdef':
-            pexp = pexp.replace('X', ch, 1)
         try:
-            code = eval(f"lambda a, b, c, d, e, f: {pexp}")
-            parses.append((saved_pexp, code))
+            evaluator = Clue.create_callable(pexp, mapping)
+            parses.append((pexp, evaluator))
         except SyntaxError:
-            # print("Unable to compile", pexp)
             pass
 
     expected_values = GOOD_ODDS if letter <= 'j' else GOOD_EVENS
     count = 0
     for values in VALUES:
-        xvalues = [MyInt(value) for value in values]
-        for pexp, code in parses:
+        for pexp, evaluator in parses:
             try:
-                result = code(*xvalues)
+                result = evaluator(*values)
                 if result in expected_values:
                     print(f'(\'{letter}\', {values}, {result}, \"{pexp}\")')
                     count += 1
@@ -250,11 +202,6 @@ def add_parentheses(expr, parentheses):
     else:
         assert False, "Unknown parenthesis size"
 
-    items = [item for item in items
-             if ')X' not in item and 'X(' not in item
-             if '(X)' not in item and '(X!)' not in item
-             if '!(' not in item
-             ]
     return items
 
 
@@ -317,11 +264,12 @@ CLUES = [
 
 
 def verify_clues():
-    for (letter, values, result, expression) in CLUES:
+    for (letter, values, expected_result, expression) in CLUES:
         for value in values:
-            expression = expression.replace('X', f'MyInt({value})', 1)
-        expression = expression.replace('^', '**').replace('!', '()')
-        assert result == eval(expression)
+            expression = expression.replace('X', f'{value}', 1)
+        evaluator = Clue.create_callable(expression, MAPPING)
+        result = evaluator()
+        assert expected_result == result
 
 
 def my_draw_grid():
@@ -361,4 +309,6 @@ def my_draw_grid():
 
 
 if __name__ == '__main__':
-    my_draw_grid()
+    # verify_clues()
+    run()
+    # my_draw_grid()

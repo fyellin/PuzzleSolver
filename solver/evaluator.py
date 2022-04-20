@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import ast
 import math
 import fractions
-import operator
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Sequence, Mapping
 from typing import Any, Callable, NamedTuple, Optional
 from .clue_types import ClueValue, Letter
+from .equation_parser import EquationParser
 
 
 class Evaluator (NamedTuple):
@@ -15,26 +14,32 @@ class Evaluator (NamedTuple):
     vars: Sequence[Letter]
     expression: str
 
+    equation_parser = None
+
     @classmethod
-    def make(cls, expression: str, *,
-             user_globals: Optional[dict[str, Any]] = None) -> Evaluator:
-        expression_ast = ast.parse(expression.strip(), mode='eval')
-        variables = sorted({Letter(node.id) for node in ast.walk(expression_ast)
-                            if isinstance(node, ast.Name) and len(node.id) == 1
-                            })
-        code = f"lambda {', '.join(variables)}: {expression}"
-        my_globals = (user_globals or globals()).copy()
-        my_globals.update((
-            ('fact', math.factorial),
-            ('div', fractions.Fraction),
-            ('expt', operator.__pow__),
-        ))
-        namespace = {}
-        compiled_code = eval(code, my_globals, namespace)
-        return Evaluator(cls.standard_wrapper, compiled_code, variables, expression)
+    def from_string(cls, expression: str,
+                    mapping: Optional[Mapping[str, Callable]] = None
+                    ) -> Sequence[Evaluator]:
+        if mapping is None:
+            mapping = {}
+        if cls.equation_parser is None:
+            cls.equation_parser = EquationParser()
+        parses = cls.equation_parser.parse(expression)
+        my_globals = {'fact': math.factorial, **mapping}
+        mapping_vars = set(mapping.keys())
+        evaluators = []
+        for parse in parses:
+            variables = sorted(parse.vars())
+            expression = parse.toString(mapping_vars)
+            code = f"lambda {', '.join(variables)}: {expression}"
+            compiled_code = eval(code, my_globals, {})
+            evaluators.append(
+                Evaluator(cls.standard_wrapper, compiled_code, variables, expression))
+        return evaluators
 
     @staticmethod
-    def standard_wrapper(evaluator: Evaluator, value_dict: dict[Letter, int]) -> Iterable[ClueValue]:
+    def standard_wrapper(evaluator: Evaluator, value_dict: dict[Letter, int]
+                         ) -> Iterable[ClueValue]:
         try:
             result = evaluator.callable(*(value_dict[x] for x in evaluator.vars))
             int_result = int(result)
@@ -44,7 +49,8 @@ class Evaluator (NamedTuple):
         except ArithmeticError:
             return ()
 
-    def with_alt_wrapper(self, wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]]) -> Evaluator:
+    def with_alt_wrapper(self, wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]]
+                         ) -> Evaluator:
         return self._replace(wrapper=wrapper)
 
     def globals(self):

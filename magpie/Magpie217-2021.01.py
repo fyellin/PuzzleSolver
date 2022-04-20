@@ -53,8 +53,8 @@ class Magpie217 (EquationSolver):
         return clues
 
     def get_special_evaluator(self, clue: Clue, equation1: str, equation2: str):
-        evaluator1 = Clue.create_evaluator(equation1)
-        evaluator2 = Clue.create_evaluator(equation2)
+        evaluator1, = Clue.create_evaluators(equation1)
+        evaluator2, = Clue.create_evaluators(equation2)
 
         def my_evaluator(_evaluator: Evaluator, values: dict[Letter, int]) -> Iterable[ClueValue]:
             values1 = list(evaluator1(values))
