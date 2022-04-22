@@ -30,7 +30,7 @@ class Evaluator (NamedTuple):
         evaluators = []
         for parse in parses:
             variables = sorted(parse.vars())
-            expression = parse.toString(mapping_vars)
+            expression = parse.to_string(mapping_vars)
             code = f"lambda {', '.join(variables)}: {expression}"
             compiled_code = eval(code, my_globals, {})
             evaluators.append(

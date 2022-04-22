@@ -311,4 +311,4 @@ def my_draw_grid():
 if __name__ == '__main__':
     # verify_clues()
     run()
-    # my_draw_grid()
+    my_draw_grid()

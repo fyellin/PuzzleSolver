@@ -1,130 +1,142 @@
 from __future__ import annotations
 
-from typing import Optional
+from functools import reduce
+from typing import NamedTuple, Optional
 
-import solver.ply.lex as lex
-import solver.ply.yacc as yacc
-from dataclasses import dataclass
+from solver.sly.lex import Lexer
+from solver.sly.yacc import Parser
+
+
+class MyLexer(Lexer):
+    tokens = {'NAME', 'NUMBER', 'FUNCTION',
+              'POWER', 'EXCLAMATION', 'PLUS', 'MINUS', 'TIMES', 'DIVIDE'}
+    ignore = " \t\n"
+    literals = ['(', ')', '=', ',']
+
+    # Tokens
+    NAME = r'[a-zA-Z]'
+    NUMBER = r'\d+'
+    FUNCTION = r'"[^"]*"'
+    POWER = r'\*\*|\^'   # must be defined before TIMES
+    EXCLAMATION = r'!'
+    PLUS = r'\+'
+    MINUS = r'-|−|–'    # -, \u2013 = n-dash, \u2212 = subtraction]
+    TIMES = r'\*|×'
+    DIVIDE = r'/'
+
+    def MINUS(self, t):
+        t.value = '-'
+        return t
+
+    def TIMES(self, t):
+        t.value = '*'
+        return t
+
+    def FUNCTION(self, t):
+        t.value = t.value[1:-1]
+        return t
+
+    def error(self, t):
+        raise SyntaxError(f"Illegal character {t.value[0]}")
+
+
+class MyParser(Parser):
+    debugfile = "/tmp/parser.out"
+    tokens = MyLexer.tokens
+
+    # statement
+    @_('expression { "=" expression }')
+    def statement(self, p):
+        return [p.expression0] + p.expression1
+
+    # expression
+    @_('multiply { PLUS|MINUS multiply }')
+    def expression(self, p):
+        return self.__binop_builder(p[0], p[1])
+
+    # multiply
+    @_('juxtaposition { TIMES|DIVIDE juxtaposition }')
+    def multiply(self, p):
+        return self.__binop_builder(p[0], p[1])
+
+    # juxtaposition
+    @_('prefix { exponent }')  # It's not 'prefix { prefix }'.  Only first can have sign
+    def juxtaposition(self, p):
+        return self.__binop_builder(p[0], (('*', x) for x, in p[1]))
+
+    # prefix
+    @_('{ MINUS|PLUS } exponent')
+    def prefix(self, p):
+        return self.__unary_builder(p[1], p[0])
+
+    # exponent
+    @_('postfix')
+    def exponent(self, p):
+        return p.postfix
+
+    @_('postfix POWER prefix')
+    def exponent(self, p):
+        return Parse(operator="**", arg1=p.postfix, arg2=p.prefix)
+
+    # postfix
+    @_('atom { EXCLAMATION }')
+    def postfix(self, p):
+        return self.__unary_builder(p[0], p[1])
+
+    # atom
+    @_('"(" expression ")"')
+    def atom(self, p):
+        return p.expression
+
+    @_('NUMBER')
+    def atom(self, p):
+        return Parse(operator="const", arg1=p.NUMBER)
+
+    @_('NAME')
+    def atom(self, p):
+        return Parse(operator="var", arg1=p.NAME)
+
+    @_('FUNCTION "(" [ arglist ] ")"')
+    def atom(self, p):
+        return Parse(operator='function', arg1=p.FUNCTION, arg2=p.arglist or ())
+
+    @_('expression { "," expression }')
+    def arglist(self, p):
+        return [p.expression0] + p.expression1
+
+    def error(self, p):
+        raise SyntaxError("Parsing failed")
+
+    @staticmethod
+    def __binop_builder(first, rest):
+        def joiner(current, next):
+            operator, argument = next
+            return Parse(operator=operator, arg1=current, arg2=argument)
+        return reduce(joiner, rest, first)
+
+    @staticmethod
+    def __unary_builder(first, rest):
+        def joiner(previous, current):
+            operator, = current
+            return Parse(operator=operator, arg1=previous)
+        return reduce(joiner, rest, first)
+
 
 class EquationParser:
     def __init__(self):
-        # Build the lexer
-        self.lexer = lex.lex(module=self)
-        self.parser = yacc.yacc(module=self)
-
-    tokens = ('NAME', 'NUMBER', 'POWER', 'FACTORIAL', 'SUBTRACT', 'MULTIPLY', 'FUNCTION')
-
-    literals = ['+', '/', '(', ')','=', ',']
-
-    # Tokens
-
-    t_NAME = r'[a-zA-Z]'
-    t_NUMBER = r'\d+'
-    t_FUNCTION = r'"[^"]*"'
-    t_POWER = r'\*\*|\^'
-    t_FACTORIAL = r'!'
-    t_ignore = "\n\t "
-    t_SUBTRACT = r'-|−|–'    # -, \u2013 = n-dash, \u2212 = subtraction]
-    t_MULTIPLY = r'\*|×'
-
-    def t_error(self, t):
-        raise SyntaxError(f"Illegal character {t.value[0]}")
-
-    # Parsing rules
-    def p_statement1(self, p):
-        """statement : expr"""
-        p[0] = [p[1]]
-
-    def p_statement2(self, p):
-        """statement : statement '=' expr"""
-        p[1].append(p[3])
-        p[0] = p[1]
-
-    def p_expression(self, p):
-        """expr : mult
-           mult : just
-           just : neg
-           neg : expt
-           expt : fact
-           fact : atom
-        """
-        p[0] = p[1]
-
-    def p_addition(self, p):
-        """expr : expr '+' mult"""
-        p[0] = Parse(operator='+', arg1=p[1], arg2=p[3])
-
-    def p_subtraction(self, p):
-        """expr : expr SUBTRACT mult"""
-        p[0] = Parse(operator='-', arg1=p[1], arg2=p[3])
-
-    def p_multiplication(self, p):
-        """mult : mult MULTIPLY just"""
-        p[0] = Parse(operator='*', arg1=p[1], arg2=p[3])
-
-    def p_division(self, p):
-        """mult : mult '/' just"""
-        p[0] = Parse(operator='/', arg1=p[1], arg2=p[3])
-
-    def p_juxtaposition(self, p):
-        """just : just expt"""
-        p[0] = Parse(operator='*', arg1=p[1], arg2=p[2])
-
-    def p_negation(self, p):
-        """neg : SUBTRACT neg"""
-        p[0] = Parse(operator='-', arg1=p[2])
-
-    def p_exponentiation(self, p):
-        """expt :  fact POWER neg"""
-        p[0] = Parse(operator='**', arg1=p[1], arg2=p[3])
-
-    def p_factorial(self, p):
-        """fact : fact FACTORIAL"""
-        p[0] = Parse(operator='!', arg1=p[1])
-
-    def p_parenthesis(self, p):
-        """atom : '(' expr ')'"""
-        p[0] = p[2]
-
-    def p_number(self, p):
-        """atom : NUMBER"""
-        p[0] = Parse("const", arg1=p[1])
-
-    def p_variable(self, p):
-        """atom : NAME"""
-        p[0] = Parse("var", arg1=p[1])
-
-    def p_function_call(self, p):
-        """atom : FUNCTION '(' csl ')' """
-        p[0] = Parse('function', p[1][1:-1], p[3])
-
-    def p_comma_separated_list_empty(self, p):
-        """csl : """
-        p[0] = []
-
-    def p_comma_separated_list_one(self, p):
-        """csl : expr """
-        p[0] = [p[1]]
-
-    def p_comma_separated_list_many(self, p):
-        """csl : csl ',' expr """
-        p[1].append(p[3])
-        p[0] = p[1]
-
-    def p_error(self, p):
-        raise SyntaxError("Parsing failed")
+        self.lexer = MyLexer()
+        self.parser = MyParser()
 
     def parse(self, text):
-        return self.parser.parse(text, lexer=self.lexer)
+        return self.parser.parse(self.lexer.tokenize(text))
 
 
-@dataclass
-class Parse:
+class Parse(NamedTuple):
     operator: str
-    arg1: Optional[Parse]|int|str
+    arg1: Optional[Parse] | int | str
     arg2: Optional[Parse] = None
 
-    def toString(self, functions: set[str] = frozenset(['fact'])):
+    def to_string(self, functions: set[str] = frozenset(['fact'])):
         def binop(func, operator, x, y):
             if func in functions:
                 return f'{func}({internal(x)}, {internal(y)})'
@@ -137,22 +149,28 @@ class Parse:
             else:
                 return f'({operator} {internal(x)})'
 
+        def postop(func, operator, x):
+            if func in functions:
+                return f'{func}({internal(x)})'
+            else:
+                return f'({internal(x)}{operator})'
+
         def internal(parse):
-            match(parse):
+            match parse:
                 case Parse('var', x, None) | Parse('const', x, None):
                     return str(x)
                 case Parse('+', x, y):
-                    return binop('add', '+', x, y)
-                case Parse('*', x, y):
-                    return binop('mul', '*', x, y)
+                    return unop('pos', '+', x) if y is None else binop('add', '+', x, y)
                 case Parse('-', x, y):
                     return unop('neg', '-', x) if y is None else binop('sub', '-', x, y)
+                case Parse('*', x, y):
+                    return binop('mul', '*', x, y)
                 case Parse('/', x, y):
                     return binop('div', '/', x, y)
                 case Parse('**', x, y):
                     return binop('pow', '**', x, y)
                 case Parse('!', x, None):
-                    return f'fact({internal(x)})'
+                    return postop('fact', '!', x)
                 case Parse('function', name, args):
                     return name + '(' + ', '.join(internal(arg) for arg in args) + ')'
                 case _:
@@ -161,28 +179,35 @@ class Parse:
         return internal(self)
 
     def __str__(self):
-        return self.toString()
+        return self.to_string()
 
     def vars(self) -> set[str]:
-        match self:
-            case Parse('var', x, None):
-                return {x}
-            case Parse('const', x, None):
-                return set()
-            case Parse('function', _name, args):
-                return { x for arg in args for x in arg.vars()}
-            case Parse(_, x, None):
-                return x.vars()
-            case Parse(_, x, y):
-                return x.vars() | y.vars()
-            case _:
-                raise Exception
+        result = set()
+        def internal(parse):
+            match parse:
+                case Parse('var', x, None):
+                    result.add(x)
+                case Parse('const', _x, None):
+                    pass
+                case Parse('function', _name, args):
+                    for x in args:
+                        internal(x)
+                case Parse(_, x, None):
+                    internal(x)
+                case Parse(_, x, y):
+                    internal(x); internal(y)
+                case _:
+                    raise Exception
+        internal(self)
+        return result
 
 
 if __name__ == '__main__':
+    from equation_parser_old import EquationParser as EquationParser2
     parser = EquationParser()
+    parser2 = EquationParser2()
     temp = """
-"sin"(x, y, z) + "cos"(z!) + "temp"()
+"sin"(x, y, z) = "cos"(---z!!!) = "temp"()
 ARABLE
 PLOU/(G/H)
 O(V – U)M 
@@ -200,5 +225,7 @@ MI(X – E)D
 (W–R)^Y +(N+E+C)/K
 """
     for string in temp.strip().splitlines():
-        temp = parser.parse(string)[0]
-        print(string, temp, temp.vars())
+        print(string)
+        for parse, parse2 in zip(parser.parse(string), parser2.parse(string)):
+            print('    ', parse, parse.vars())
+            assert str(parse) == str(parse2)
