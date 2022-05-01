@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import abc
 import itertools
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Collection, Callable, Sequence
 from datetime import datetime
 from heapq import nlargest, nsmallest
@@ -25,13 +26,16 @@ class ConstraintSolver(BaseSolver):
     _constraints: dict[Clue, list[Callable[..., bool]]]
     _singleton_constraint: dict[Clue, list[Callable[..., bool]]]
     _all_intersections: dict[Clue, Sequence[tuple[Clue, Sequence[Intersection]]]]
+    _letter_handler: Optional[LetterCountHandler]
 
     def __init__(self, clue_list: Sequence[Clue], constraints: Sequence[Constraint] = (),
+                 *, letter_handler: Optional[LetterCountHandler] = None,
                  **kwargs: Any) -> None:
         super().__init__(clue_list, **kwargs)
         self._constraints = defaultdict(list)
         self._singleton_constraint = defaultdict(list)
         self._all_intersections = self.__get_all_intersections()
+        self._letter_handler = letter_handler
 
         for constraint in constraints:
             clues, predicate, name = constraint
@@ -82,10 +86,10 @@ class ConstraintSolver(BaseSolver):
         time1 = datetime.now()
         initial_unknown_clues = {clue: self.__get_initial_values_for_clue(clue)
                                  for clue in self._clue_list if clue.generator}
-        self.special_handler_start()
+        self._letter_handler and self._letter_handler.start()
         time2 = datetime.now()
         self.__solve(initial_unknown_clues)
-        self.special_handler_close()
+        self._letter_handler and self._letter_handler.close()
         time3 = datetime.now()
         if show_time:
             print(f'Solutions {self._solution_count}; Steps: {self._step_count}; '
@@ -100,7 +104,6 @@ class ConstraintSolver(BaseSolver):
                 self._solution_count += 1
                 if depth < self._max_debug_depth:
                     print(f'{"***" * depth}***SOLVED***"')
-
             return
 
         if depth < len(self._start_clues):
@@ -115,13 +118,14 @@ class ConstraintSolver(BaseSolver):
             return
         constraints = self._constraints[clue]
         seen_values = set(self._known_clues.values())
+        letter_handler = self._letter_handler
 
         try:
-            special_handler_clue_info = self.special_handler_get_clue_info(clue)
+            letter_handler_clue_info = letter_handler and letter_handler.get_clue_info(clue)
             self._step_count += len(values)
             for i, value in enumerate(sorted(values)):
                 is_duplicate = not self._allow_duplicates and value in seen_values and len(value) > 1
-                fails_special_handling = not self.special_handler_checking_value(value, special_handler_clue_info)
+                fails_special_handling = letter_handler and not letter_handler.checking_value(value, letter_handler_clue_info)
                 if depth < self._max_debug_depth:
                     print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: {value.__repr__()} -->'
                           f'{" dup" if is_duplicate else ""}'
@@ -153,9 +157,11 @@ class ConstraintSolver(BaseSolver):
                         next_unknown_clues[clue2] = frozenset(values2)
                 else:
                     # If we get here, "break" was not called in the "for" loop, so everything is good to go.
-                    self.special_handler_adding_value(value, special_handler_clue_info)
+                    if letter_handler:
+                        letter_handler.adding_value(value, letter_handler_clue_info)
                     self.__solve(next_unknown_clues)
-                    self.special_handler_removing_value(value, special_handler_clue_info)
+                    if letter_handler:
+                        letter_handler.removing_value(value, letter_handler_clue_info)
 
         finally:
             self._known_clues.pop(clue, None)
@@ -207,24 +213,6 @@ class ConstraintSolver(BaseSolver):
     def show_solution(self, known_clues: KnownClueDict) -> None:
         """Overridden by subclasses that want to do more than just show a plot of the board."""
         self.plot_board(known_clues)
-
-    def special_handler_start(self) -> None:
-        pass
-
-    def special_handler_get_clue_info(self, clue: Clue) -> Any:
-        pass
-
-    def special_handler_checking_value(self, _value: ClueValue, _info: Any):
-        return True
-
-    def special_handler_adding_value(self, _value: ClueValue, _info: Any) -> None:
-        pass
-
-    def special_handler_removing_value(self, _value: ClueValue, _info: Any) -> None:
-        pass
-
-    def special_handler_close(self):
-        pass
 
     def __check_2_clue_constraint(
             self, clue1: Clue, clue2: Clue,
@@ -326,5 +314,48 @@ class Constraint(NamedTuple):
     clues: Sequence[Union[Clue, str]]
     predicate: Callable[..., bool]
     name: Optional[str] = None
+
+
+class LetterCountHandler(abc.ABC):
+    _locations: set[tuple[int, int]]
+    _counter: Counter[str]
+
+    @abc.abstractmethod
+    def real_checking_value(self, value: ClueValue, info: Any) -> bool:
+        ...
+
+    def start(self):
+        self._locations = set()
+        self._counter = Counter()
+
+    def get_clue_info(self, clue: Clue) -> Any:
+        temp = [(index, location) for index, location in enumerate(clue.locations)
+                if location not in self._locations]
+        new_locations = {location for _, location in temp}
+        new_indices = [index for index, _ in temp]
+        return new_indices, new_locations
+
+    def checking_value(self, value: ClueValue, info: Any) -> bool:
+        counter = self._counter
+        indices, _locations = info
+        counter.update(value[index] for index in indices)
+        result = self.real_checking_value(value, info)
+        counter.subtract(value[index] for index in indices)
+        return result
+
+    def adding_value(self, value: ClueValue, info: Any) -> None:
+        indices, locations = info
+        self._counter.update(value[index] for index in indices)
+        self._locations |= locations
+
+    def removing_value(self, value: ClueValue, info: Any) -> None:
+        indices, locations = info
+        self._counter.subtract(value[index] for index in indices)
+        self._locations -= locations
+
+    def close(self):
+        assert len(self._locations) == 0
+        assert all(x == 0 for x in self._counter.values())
+
 
 

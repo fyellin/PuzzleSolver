@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import ast
+from collections.abc import Sequence
+from dataclasses import dataclass
 from functools import reduce
-from typing import NamedTuple, Optional
+from typing import ClassVar, cast
 
 from solver.sly.lex import Lexer
 from solver.sly.yacc import Parser
@@ -76,7 +79,7 @@ class MyParser(Parser):
 
     @_('postfix POWER prefix')
     def exponent(self, p):
-        return Parse(operator="**", arg1=p.postfix, arg2=p.prefix)
+        return '**', p.postfix, p.prefix
 
     # postfix
     @_('atom { EXCLAMATION }')
@@ -90,15 +93,15 @@ class MyParser(Parser):
 
     @_('NUMBER')
     def atom(self, p):
-        return Parse(operator="const", arg1=p.NUMBER)
+        return 'const', p.NUMBER
 
     @_('NAME')
     def atom(self, p):
-        return Parse(operator="var", arg1=p.NAME)
+        return 'var', p.NAME
 
     @_('FUNCTION "(" [ arglist ] ")"')
     def atom(self, p):
-        return Parse(operator='function', arg1=p.FUNCTION, arg2=p.arglist or ())
+        return 'function', p.FUNCTION, tuple(p.arglist or ())
 
     @_('expression { "," expression }')
     def arglist(self, p):
@@ -109,104 +112,133 @@ class MyParser(Parser):
 
     @staticmethod
     def __binop_builder(first, rest):
-        def joiner(current, next):
-            operator, argument = next
-            return Parse(operator=operator, arg1=current, arg2=argument)
+        def joiner(previous, current):
+            operator, argument = current
+            return operator, previous, argument
         return reduce(joiner, rest, first)
 
     @staticmethod
     def __unary_builder(first, rest):
         def joiner(previous, current):
             operator, = current
-            return Parse(operator=operator, arg1=previous)
+            return operator, previous
         return reduce(joiner, rest, first)
 
 
 class EquationParser:
-    def __init__(self):
+    def __init__(self) -> None:
         self.lexer = MyLexer()
         self.parser = MyParser()
 
-    def parse(self, text):
-        return self.parser.parse(self.lexer.tokenize(text))
+    def parse(self, text: str) -> list[Parse]:
+        return [Parse(x) for x in self.parser.parse(self.lexer.tokenize(text))]
 
 
-class Parse(NamedTuple):
-    operator: str
-    arg1: Optional[Parse] | int | str
-    arg2: Optional[Parse] = None
+@dataclass
+class Parse:
+    expression: tuple
 
-    def to_string(self, functions: set[str] = frozenset(['fact'])):
-        def binop(func, operator, x, y):
-            if func in functions:
-                return f'{func}({internal(x)}, {internal(y)})'
-            else:
-                return f'({internal(x)} {operator} {internal(y)})'
+    PARSE_BINOPS: ClassVar[dict[str, str]] = {'+': 'add', '-': 'sub', '*': 'mul',
+                                              '/': 'div', '**': 'pow'}
+    PARSE_UNOPS: ClassVar[dict[str], str] = {'+': 'pos', '-': 'neg', '!': 'fact'}
 
-        def unop(func, operator, x):
-            if func in functions:
-                return f'{func}({internal(x)})'
-            else:
-                return f'({operator} {internal(x)})'
-
-        def postop(func, operator, x):
-            if func in functions:
-                return f'{func}({internal(x)})'
-            else:
-                return f'({internal(x)}{operator})'
-
-        def internal(parse):
-            match parse:
-                case Parse('var', x, None) | Parse('const', x, None):
+    def to_string(self, functions: set[str] = frozenset(['fact'])) -> str:
+        def internal(expression):
+            match expression:
+                case ('var', x) | ('const', x):
                     return str(x)
-                case Parse('+', x, y):
-                    return unop('pos', '+', x) if y is None else binop('add', '+', x, y)
-                case Parse('-', x, y):
-                    return unop('neg', '-', x) if y is None else binop('sub', '-', x, y)
-                case Parse('*', x, y):
-                    return binop('mul', '*', x, y)
-                case Parse('/', x, y):
-                    return binop('div', '/', x, y)
-                case Parse('**', x, y):
-                    return binop('pow', '**', x, y)
-                case Parse('!', x, None):
-                    return postop('fact', '!', x)
-                case Parse('function', name, args):
+
+                case ('function', name, args):
                     return name + '(' + ', '.join(internal(arg) for arg in args) + ')'
-                case _:
-                    raise Exception
 
-        return internal(self)
+                case (binop, x, y):
+                    func = self.PARSE_BINOPS[binop]
+                    if func in functions:
+                        return f'{func}({internal(x)}, {internal(y)})'
+                    else:
+                        return f'({internal(x)} {binop} {internal(y)})'
 
-    def __str__(self):
+                case (unop, x):
+                    func = self.PARSE_UNOPS[unop]
+                    if func in functions:
+                        return f'{func}({internal(x)})'
+                    elif unop != '!':
+                        return f'({unop} {internal(x)})'
+                    else:
+                        return f'({internal(x)} !)'
+
+        return internal(self.expression)
+
+    def __str__(self) -> str:
         return self.to_string()
 
-    def vars(self) -> set[str]:
+    def vars(self) -> Sequence[str]:
         result = set()
-        def internal(parse):
-            match parse:
-                case Parse('var', x, None):
+
+        def internal(expression):
+            match expression:
+                case ('var', x):
                     result.add(x)
-                case Parse('const', _x, None):
+                case ('const', _x):
                     pass
-                case Parse('function', _name, args):
+                case ('function', _name, args):
                     for x in args:
                         internal(x)
-                case Parse(_, x, None):
+                case (_, x):
                     internal(x)
-                case Parse(_, x, y):
-                    internal(x); internal(y)
+                case (_, x, y):
+                    internal(x)
+                    internal(y)
                 case _:
-                    raise Exception
-        internal(self)
-        return result
+                    raise Exception(f"Cannot handle '{expression}'")
+        internal(self.expression)
+        return sorted(result)
+
+    AST_BINOPS: ClassVar[dict[str, str]] = {'+': ast.Add, '-': ast.Sub, '*': ast.Mult,
+                                            '/': ast.Div, '**': ast.Pow}
+    AST_UNOPS: ClassVar[dict[str], str] = {'+': ast.UAdd, '-': ast.USub}
+
+    def get_ast_expression(self, functions):
+        def ast_function_call(name, args):
+            return ast.Call(func=ast.Name(id=name, ctx=ast.Load()),
+                            args=[ast_expression(x) for x in args],
+                            keywords=[])
+
+        def ast_expression(expression):
+            match expression:
+                case ('var', x):
+                    return ast.Name(id=x, ctx=ast.Load())
+                case ('const', x):
+                    return ast.Constant(value=x)
+                case ('function', name, args):
+                    return ast_function_call(name, args)
+                case (binop, x, y):
+                    func = self.PARSE_BINOPS[binop]
+                    if func in functions:
+                        return ast_function_call(func, (x, y))
+                    ast_op = self.AST_BINOPS[binop]
+                    return ast.BinOp(
+                        left=ast_expression(x), right=ast_expression(y), op=ast_op())
+                case (unop, x):
+                    func = self.PARSE_UNOPS[unop]
+                    if func in functions or unop not in self.AST_UNOPS:
+                        return ast_function_call(func, (x,))
+                    ast_op = self.AST_UNOPS[unop]
+                    return ast.UnaryOp(operand=ast_expression(x), op=ast_op())
+                case _:
+                    raise Exception(f"Cannot handle '{expression}'")
+
+        variables = self.vars()
+        result = ast.Expression(
+                     body=ast.Lambda(args=ast.arguments(
+                              args=[ast.arg(arg=var) for var in variables],
+                              posonlyargs=[], kwonlyargs=[], kw_defaults=[], defaults=[],
+                          ),
+                          body=ast_expression(self.expression)))
+        return ast.fix_missing_locations(result)
 
 
-if __name__ == '__main__':
-    from equation_parser_old import EquationParser as EquationParser2
-    parser = EquationParser()
-    parser2 = EquationParser2()
-    temp = """
+ITEM_STRING = """
 "sin"(x, y, z) = "cos"(---z!!!) = "temp"()
 ARABLE
 PLOU/(G/H)
@@ -224,8 +256,31 @@ MI(X – E)D
 (D + R)^(UG)(AB)^(B(R + E) – V)
 (W–R)^Y +(N+E+C)/K
 """
-    for string in temp.strip().splitlines():
+
+ITEMS = ITEM_STRING.strip().splitlines()
+
+
+def run():
+    from equation_parser_old import EquationParser as EquationParser2
+    parser = EquationParser()
+    parser2 = EquationParser2()
+    for string in ITEMS:
         print(string)
         for parse, parse2 in zip(parser.parse(string), parser2.parse(string)):
             print('    ', parse, parse.vars())
             assert str(parse) == str(parse2)
+
+
+def run2():
+    parser = EquationParser()
+    for string in ITEMS:
+        parse = parser.parse(string)
+        for equation in parse:
+            print(string)
+            expression = equation.get_ast_expression({'fact'})
+            print(ast.unparse(expression.body))
+            compile(cast(ast, expression), filename='', mode='eval')
+
+
+if __name__ == '__main__':
+    run2()

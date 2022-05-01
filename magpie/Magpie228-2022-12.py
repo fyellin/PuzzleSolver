@@ -4,6 +4,7 @@ from itertools import permutations
 from typing import Any
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, Letter, Location, generators
+from solver.constraint_solver import LetterCountHandler
 
 GRID = """
 XXXXXX
@@ -57,7 +58,7 @@ class Magpie288(ConstraintSolver):
 
     def __init__(self):
         clue_list = self.get_clues()
-        super().__init__(clue_list)
+        super().__init__(clue_list, letter_handler=self.MyLetterCountHandler())
         # self.letter_values = self.get_letter_values()
         # print(self.letter_values)
         self.letter_values = {'B': 19, 'D': 3, 'E': 23, 'G': 7, 'L': 2,
@@ -107,7 +108,7 @@ class Magpie288(ConstraintSolver):
             def my_filter(_):
                 return True
         else:
-            value = int(clue.evaluators[0](self.letter_values))
+            value = int(clue.evaluators[0](self.letter_values)[0])
             if clue.context == 'Min':
                 def my_filter(x):
                     return x >= value
@@ -124,7 +125,7 @@ class Magpie288(ConstraintSolver):
             return '.'
         result = set(range(1, 10))
         for clue in clues:
-            min_max_value = clue.evaluators[0](self.letter_values)
+            min_max_value = clue.evaluators[0](self.letter_values)[0]
             if clue.context == 'Min':
                 assert len(min_max_value) <= clue.length
                 if len(min_max_value) == clue.length:
@@ -135,49 +136,13 @@ class Magpie288(ConstraintSolver):
                     result.intersection_update(range(1, int(min_max_value[0]) + 1))
         return '[' + ''.join(str(x) for x in sorted(result)) + ']'
 
-    _locations: set[Location]
-    _counter: Counter[str, int]
+    class MyLetterCountHandler(LetterCountHandler):
+        def real_checking_value(self, value: ClueValue, info: Any) -> bool:
+            count1 = sum(1 for x in self._counter.values() if x > 0)
+            count2 = max(self._counter.values())
+            result = (count1 <= 9 and count2 <= 4) or (count1 <= 6 and count2 <= 6) \
+                     or (count1 <= 4 and count2 <= 9) or (count1 <= 3 and count2 <= 12)
+            return result
 
-    def special_handler_start(self):
-        self._locations = set()
-        self._counter = Counter()
-
-    def special_handler_get_clue_info(self, clue: Clue) -> Any:
-        temp = [(index, location) for index, location in enumerate(clue.locations)
-                if location not in self._locations]
-        new_locations = {location for _, location in temp}
-        new_indices = [index for index, _ in temp]
-        return new_indices, new_locations
-
-    def special_handler_checking_value(self, value: ClueValue, info: Any):
-        indices, _locations = info
-        self._counter.update(value[index] for index in indices)
-        count1 = sum(1 for x in self._counter.values() if x > 0)
-        count2 = max(self._counter.values())
-        self._counter.subtract(value[index] for index in indices)
-        result = (count1 <= 9 and count2 <= 4) or (count1 <= 6 and count2 <= 6) \
-                 or (count1 <= 4 and count2 <= 9) or (count1 <= 3 and count2 <= 12)
-        return result
-
-    def special_handler_adding_value(self, value: ClueValue, info: Any) -> None:
-        indices, locations = info
-        self._counter.update(value[index] for index in indices)
-        self._locations |= locations
-
-    def special_handler_removing_value(self, value: ClueValue, info: Any) -> None:
-        indices, locations = info
-        self._counter.subtract(value[index] for index in indices)
-        self._locations -= locations
-
-    def special_handler_close(self):
-        assert len(self._locations) == 0
-        assert all(x == 0 for x in self._counter.values())
-
-to_exclude = None
-data = None
-to_exclude_set = set(to_exclude)
-pairs = [(id, file) for id, file in zip(data["id"], data["file"])
-          if file not in to_exclude_set]
-
-result = { 'id': [_ for id, _ in pairs],
-           'file': [_ for _, file in pairs] }
+if __name__ == '__main__':
+    Magpie288.run()
