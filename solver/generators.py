@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import itertools
 import math
-from typing import Iterable, Callable, Tuple, Iterator, List, Union
+from collections.abc import Callable, Iterator, Iterable
+from typing import Union
 
 from .clue import Clue
 
@@ -77,7 +78,7 @@ def not_prime(clue: Clue) -> Iterator[int]:
     return (p for p, is_prime in _prime_not_prime(clue) if not is_prime)
 
 
-def _prime_not_prime(clue: Clue) -> Iterator[Tuple[int, bool]]:
+def _prime_not_prime(clue: Clue) -> Iterator[tuple[int, bool]]:
     """Returns (int, isPrime) for all integers of the right length"""
     min_value, max_value = get_min_max(clue)
     # Get list of the prime factors that could possibly divide our numbers
@@ -154,7 +155,7 @@ def using_current_base(generator: ClueValueGenerator) -> ClueValueGenerator:
     return result
 
 
-def get_min_max(clue: Clue) -> Tuple[int, int]:
+def get_min_max(clue: Clue) -> tuple[int, int]:
     min_value = BASE ** (clue.length - 1)
     max_value = BASE * min_value
     return min_value, max_value
@@ -200,7 +201,7 @@ def __prime2() -> Iterator[int]:
         factors.append(next_factor)
 
 
-def __prime2x(factors: List[int]) -> Iterator[int]:
+def __prime2x(factors: list[int]) -> Iterator[int]:
     yield from [3, 5, 7]
     factor_count = 1
     while True:

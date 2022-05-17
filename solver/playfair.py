@@ -1,10 +1,11 @@
-from typing import Sequence, List, Optional, Mapping
+from collections.abc import Sequence, Mapping
+from typing import Optional
 
-from .playfair_constraints import ConstraintsGenerator, ConstraintRow
+from solver.playfair_constraints import ConstraintsGenerator, ConstraintRow
 
 
 class PlayfairSolver(object):
-    results: List[ConstraintRow]
+    results: list[ConstraintRow]
     debug: bool
     count: int
 
@@ -13,7 +14,7 @@ class PlayfairSolver(object):
         solver = PlayfairSolver(
             plain_text='TOPSYTURVY' 'INVERTED' 'UPSIDEDOWN',
             cipher_text='WK..A.YVRU' 'SMI..HFE' 'PBWSEF..SO',
-            tail=12)
+            tail=16)
         results = solver.solve(debug=debug)
         for result in results:
             missing = ''.join(sorted(result.missing_letters()))
@@ -82,6 +83,13 @@ class PlayfairSolver(object):
                     # If this item was forced, we format it a little bit differently, and don't increase the indent.
                     print(f"{indent}• \"{min_constraint_name}\" {current_row} -> {temp} : {sizes}")
                 else:
-                    print(f"{indent}{i + 1}/{min_count} \"{min_constraint_name}\" {current_row} -> {temp} : {sizes}")
+                    print(f"{indent}{i  + 1}/{min_count} \"{min_constraint_name}\" {current_row} -> {temp} : {sizes}")
 
             self.__solve(depth + 1 if min_count > 1 else depth, next_pending_constraints, next_rows_so_far)
+
+if __name__ == '__main__':
+    solver = PlayfairSolver("THIR" "TIME" "VELE" "HARP", "RK.S" "SKBL" "E.OL" "FCSQ", 16)
+    results = solver.solve(debug=False)
+    for result in results:
+        print(result, ''.join(sorted(result.missing_letters())))
+

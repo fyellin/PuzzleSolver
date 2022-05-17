@@ -1,6 +1,5 @@
 import itertools
 import re
-import typing
 from abc import ABC, abstractmethod
 from collections import Counter, OrderedDict
 from collections.abc import Sequence, Mapping
@@ -27,7 +26,7 @@ class BaseSolver(ABC):
         self._clue_list = clue_list
         self._allow_duplicates = allow_duplicates
 
-        all_locations: typing.Counter[Location] = Counter(location for clue in clue_list for location in clue.locations)
+        all_locations: Counter[Location] = Counter(location for clue in clue_list for location in clue.locations)
         self.__name_to_clue = OrderedDict((clue.name, clue) for clue in clue_list)
         self.__max_row = 1 + max(row for (row, _) in all_locations)
         self.__max_column = 1 + max(column for (_, column) in all_locations)

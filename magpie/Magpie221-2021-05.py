@@ -1,6 +1,6 @@
 import itertools
 import math
-from typing import Sequence, Iterator, List
+from collections.abc import Sequence, Iterator
 
 from solver import ConstraintSolver, Clues, Clue
 from solver.constraint_solver import KnownClueDict
@@ -42,7 +42,7 @@ class Property:
         return item in self.items
 
 
-def digits(value: int) -> List[int]:
+def digits(value: int) -> list[int]:
     return [int(x) for x in str(value)]
 
 
@@ -144,7 +144,7 @@ class Solver221(ConstraintSolver):
 
     @staticmethod
     def get_clue_list() -> Sequence[Clue]:
-        grid_locations = [(-1, -1)] + Clues.get_locations_from_grid(GRID)
+        grid_locations = [(-1, -1)] + list(Clues.get_locations_from_grid(GRID))
 
         across = ((1, 2, handle1a),
                   (3, 3, handle3a),

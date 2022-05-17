@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 from collections import Counter
 from collections.abc import Iterator, Sequence
+from pathlib import Path
 from typing import Any
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, Location, \
@@ -115,12 +116,13 @@ class Magpie233 (ConstraintSolver):
     def run() -> None:
         solver = Magpie233()
         solver.verify_is_180_symmetric()
-        solver.solve(debug=True, max_debug_depth=1000)
+        solver.solve(debug=True, max_debug_depth=8)
 
     def __init__(self) -> None:
         clues = self.get_clues()
         super().__init__(clues, allow_duplicates=False,
-                         letter_handler=self.MyLetterCountHandler())
+                         # letter_handler=self.MyLetterCountHandler()
+                         )
         self.add_puzzle_constraints()
 
     def get_clues(self) -> Sequence[Clue]:
@@ -168,8 +170,25 @@ class Magpie233 (ConstraintSolver):
             result = [counter[i] for i in range(0, 10)]
             return result
 
+    def draw_image(self, _plt, axes):
+        from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+        from matplotlib.patches import Rectangle
+        from PIL import Image
+
+        rect = Rectangle((4, 4), 2, 2, linewidth=1, edgecolor='black', facecolor='gray')
+        axes.add_patch(rect)
+
+        filename = Path(__file__).parent / '..' / "misc" / "piemag.png"
+        image = Image.open(filename)
+        image.load()
+        image_box = OffsetImage(image, zoom=1.5)
+        ab = AnnotationBbox(image_box, (5, 5), frameon=False)
+        axes.add_artist(ab)
+
+
     def draw_grid(self, **args: Any) -> None:
         super().draw_grid(**args, blacken_unused=False)
+        return
         location_to_entry = args['location_to_entry']
         clued_locations = args['clued_locations']
         # self.get_words(clued_locations, location_to_entry)
@@ -183,8 +202,11 @@ class Magpie233 (ConstraintSolver):
             else:
                 top_bars |= {(r1, c1), (r1 + 2, c1)}
                 left_bars |= {(r1, c1), (r1, c1 + 1), (r1 + 1, c1), (r1 + 1, c1 + 1)}
+
         xargs = dict(top_bars=top_bars, left_bars=left_bars,
-                     location_to_clue_numbers={}, blacken_unused=False, subtext="MAGPIE")
+                     blacken_unused=False, subtext="MAGPIE",
+                     location_to_clue_numbers={},
+                     extra=self.draw_image)
         super().draw_grid(**(args | xargs))
 
     def solve_grid_entry(self, clued_locations, location_to_entry):

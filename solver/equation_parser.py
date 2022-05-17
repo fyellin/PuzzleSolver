@@ -44,7 +44,6 @@ class MyLexer(Lexer):
 
 
 class MyParser(Parser):
-    debugfile = "/tmp/parser.out"
     tokens = MyLexer.tokens
 
     # statement
@@ -258,18 +257,6 @@ MI(X – E)D
 """
 
 ITEMS = ITEM_STRING.strip().splitlines()
-
-
-def run():
-    from equation_parser_old import EquationParser as EquationParser2
-    parser = EquationParser()
-    parser2 = EquationParser2()
-    for string in ITEMS:
-        print(string)
-        for parse, parse2 in zip(parser.parse(string), parser2.parse(string)):
-            print('    ', parse, parse.vars())
-            assert str(parse) == str(parse2)
-
 
 def run2():
     parser = EquationParser()

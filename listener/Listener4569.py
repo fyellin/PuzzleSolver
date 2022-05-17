@@ -1,5 +1,6 @@
 import re
-from typing import Dict, List, Set, Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from solver import Clue, ClueValue, Letter, Location
 from solver import EquationSolver
@@ -64,7 +65,7 @@ class MySolver (EquationSolver):
         super().__init__(clue_list, items=MySolver.get_clue_values())
 
 
-    def show_solution(self,  known_clues: Dict[Clue, ClueValue], known_letters: Dict[Letter, int]) -> None:
+    def show_solution(self,  known_clues: dict[Clue, ClueValue], known_letters: dict[Letter, int]) -> None:
         super().show_solution(known_clues, known_letters)
         for clue in self._clue_list:
             print(clue.name, known_clues[clue])
@@ -76,13 +77,13 @@ class MySolver (EquationSolver):
         super().draw_grid(**args)
         # Now draw the grid using the secret word.
 
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
         location_to_entry = {location: 'DEPILATORS'[int(value)] for (location, value) in location_to_entry.items()}
         args['location_to_entry'] = location_to_entry
         super().draw_grid(**args)
 
     @staticmethod
-    def get_clue_values() -> List[int]:
+    def get_clue_values() -> list[int]:
         result = set()
         for i in range(3, 47):
             cube = i * i * i
@@ -99,7 +100,7 @@ def create_clue_list() -> Sequence[Clue]:
             if item == 'X':
                 locations.append((row + 1, column + 1))
 
-    result: List[Clue] = []
+    result: list[Clue] = []
     for lines, is_across, suffix in ((ACROSS, True, 'a'), (DOWN, False, 'd'), (THROUGH, False, 't')):
         for line in lines.splitlines():
             line = line.strip()

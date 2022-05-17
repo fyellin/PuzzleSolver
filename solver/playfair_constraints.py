@@ -1,5 +1,6 @@
 import itertools
-from typing import Dict, Tuple, Set, FrozenSet, Optional, Sequence, Any
+from collections.abc import Sequence
+from typing import Optional,Any
 
 
 class ConstraintsGenerator:
@@ -12,14 +13,14 @@ class ConstraintsGenerator:
         assert len(plain_text) % 2 == 0
         self.cipher_text = cipher_text
 
-    def generate_all_constraints(self) -> Dict[str, Sequence['ConstraintRow']]:
+    def generate_all_constraints(self) -> dict[str, Sequence['ConstraintRow']]:
         """
         Generate all constraints for the given plain_text / cipher_text pair.  For now, we only do constraints
         that list all possible solutions of AB->CD, but others may be possible in the future.
         """
         return self.generate_encryption_constraints()
 
-    def generate_encryption_constraints(self) -> Dict[str, Sequence['ConstraintRow']]:
+    def generate_encryption_constraints(self) -> dict[str, Sequence['ConstraintRow']]:
         """
         Generates the encryption constraints.  The cipher text and plain text are broken down into pairs of letters,
         and a constraint is generated for each pair.
@@ -43,7 +44,7 @@ class ConstraintsGenerator:
         # Verify the fact that no letter encrypts or decrypts to itself
         assert (p0 == '.' or p0 != c0) and (p1 == '.' or p1 != c1)
         result = []
-        seen: Set['ConstraintRow'] = set()
+        seen: set['ConstraintRow'] = set()
         # Look at ever possible pair of positions for p0 and p1.
         for (row0, column0, row1, column1) in itertools.product(range(5), repeat=4):
             if (row0, column0) == (row1, column1):
@@ -79,11 +80,11 @@ class ConstraintsGenerator:
 
 
 class ConstraintRow (object):
-    _locations: FrozenSet[Tuple[int, int]]
-    _letter_to_location: Dict[str, Tuple[int, int]]
+    _locations: frozenset[tuple[int, int]]
+    _letter_to_location: dict[str, tuple[int, int]]
     _flat: str
 
-    def __init__(self, location_dict: Dict[str, Tuple[int, int]]):
+    def __init__(self, location_dict: dict[str, tuple[int, int]]):
         self._letter_to_location = location_dict
         self._locations = frozenset(location_dict.values())
         array = ['.'] * 25
@@ -128,7 +129,7 @@ class ConstraintRow (object):
     # noinspection SpellCheckingInspection
     ALL_LETTERS = frozenset("ABCDEFGHIKLMNOPQRSTUVWXYZ")
 
-    def missing_letters(self) -> Set[str]:
+    def missing_letters(self) -> set[str]:
         return set(self.ALL_LETTERS).difference(list(self._letter_to_location.keys()))
 
     def fill_in_tail(self, sorted_tail_length: int) -> Optional['ConstraintRow']:

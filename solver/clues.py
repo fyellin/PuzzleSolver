@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Sequence, List
+from collections.abc import Sequence
 
 from .clue import Clue
 from .clue_types import Location
@@ -18,7 +18,7 @@ class Clues:
 
     @classmethod
     def create_from_text(cls, across: str, down: str, locations: Sequence[Location]) -> Sequence[Clue]:
-        result: List[Clue] = []
+        result: list[Clue] = []
         for lines, is_across, letter in ((across, True, 'a'), (down, False, 'd')):
             for line in lines.splitlines():
                 line = line.strip()

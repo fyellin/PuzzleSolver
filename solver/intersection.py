@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
-from typing import NamedTuple, Sequence, Callable, Dict, Pattern, List, Optional
+from collections.abc import Callable, Sequence
+from re import Pattern
+from typing import NamedTuple, Optional
 
 from .base_solver import BaseSolver
 from .clue import Clue
@@ -38,7 +40,7 @@ class Intersection(NamedTuple):
 
     @staticmethod
     def make_pattern_generator(clue: Clue, intersections: Sequence[Intersection], solver: BaseSolver) -> \
-            Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
+            Callable[[dict[Clue, ClueValue]], Pattern[str]]:
         """
         This method takes a clue and the intersections of this clue with other clues whose values are already
         known when we assign a value to this clue.  It returns a function.
@@ -63,7 +65,7 @@ class Intersection(NamedTuple):
 
         # {0}, {1}, etc represent the order the items appear in the  "intersections" argument, not necessarily
         # the order that they appear in the pattern.  format can handle that.
-        seen_list: List[Optional[Intersection]] = [None] * clue.length
+        seen_list: list[Optional[Intersection]] = [None] * clue.length
         for i, intersection in enumerate(intersections):
             square_seen_already = seen_list[intersection.this_index]
             if not square_seen_already:
@@ -72,7 +74,7 @@ class Intersection(NamedTuple):
 
         pattern_format = ''.join(pattern_list)
 
-        def getter(known_clues: Dict[Clue, ClueValue]) -> Pattern[str]:
+        def getter(known_clues: dict[Clue, ClueValue]) -> Pattern[str]:
             args = (known_clues[x.other_clue][x.other_index] for x in intersections)
             regexp = pattern_format.format(*args)
             return re.compile(regexp)
