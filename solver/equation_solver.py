@@ -96,10 +96,11 @@ class EquationSolver(BaseSolver):
                 if twin_value:
                     if twin_value not in clue_values:
                         continue
-                    print(f'{" | " * current_index} {clue.name} TWIN {clue_letters} '
-                          f'{next_letter_values} {twin_value} ({clue.length}): -->')
+                    if self._debug:
+                        print(f'{" | " * current_index} {clue.name} TWIN {clue_letters} '
+                              f'{next_letter_values} {twin_value} ({clue.length}): -->')
                     self._solve(current_index + 1)
-                    return
+                    continue
                 for clue_value in clue_values:
                     if not (clue_value and pattern.fullmatch(clue_value)):
                         continue
