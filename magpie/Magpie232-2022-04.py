@@ -182,16 +182,6 @@ class Magpie231Solver(ConstraintSolver):
             result = table[value]
         return result
 
-    def draw_grid(self, *, location_to_entry, **args: Any) -> None:
-        return
-        mapper = defaultdict(list)
-        for letter in "abcdeghijklmnopqrstuvwxy".upper():
-            mapper[self.result[letter]].append(letter.upper())
-        mapper[1] = '*',
-        location_to_entry = {location: ''.join(mapper[int(digit)])
-                             for location, digit in location_to_entry.items()}
-        super().draw_grid(location_to_entry=location_to_entry, **args)
-
 
 def go():
     start = datetime.now()

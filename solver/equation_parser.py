@@ -141,7 +141,8 @@ class Parse:
                                               '/': 'div', '**': 'pow'}
     PARSE_UNOPS: ClassVar[dict[str], str] = {'+': 'pos', '-': 'neg', '!': 'fact'}
 
-    def to_string(self, functions: set[str] = frozenset(['fact'])) -> str:
+    def to_string(self, functions: set[str] = frozenset()) -> str:
+        functions |= { 'fact' }
         def internal(expression):
             match expression:
                 case ('var', x) | ('const', x):
