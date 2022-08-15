@@ -25,7 +25,7 @@ class Evaluator (NamedTuple):
         if cls.equation_parser is None:
             cls.equation_parser = EquationParser()
         parses = cls.equation_parser.parse(expression)
-        my_globals = {'fact': math.factorial, **mapping}
+        my_globals = {'fact': math.factorial, 'math': math, **mapping}
         mapping_vars = set(mapping.keys())
         evaluators = []
         for parse in parses:

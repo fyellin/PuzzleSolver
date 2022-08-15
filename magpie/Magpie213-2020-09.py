@@ -290,7 +290,7 @@ def test():
     print(f'Generator: {time2 - time1}; List: {time3 - time2}')
 
 if __name__ == '__main__':
-    test()
+    Solver213().run()
 
 
 

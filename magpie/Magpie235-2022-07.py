@@ -1,7 +1,6 @@
-import itertools
 import re
 from collections import defaultdict
-from itertools import combinations
+from itertools import combinations, product
 from typing import Any
 
 import numpy
@@ -68,7 +67,7 @@ class MagpieSolver235Values(EquationSolver):
     @staticmethod
     def run():
         solver = MagpieSolver235Values()
-        solver.solve()
+        solver.solve(debug=True, max_debug_depth=1)
 
     def __init__(self):
         clues = self.get_clues()
@@ -128,17 +127,14 @@ class SolverMagpie235Links (ConstraintSolver):
                 location_to_clues[location].append(clue)
         double_locations = {location for location, clues in location_to_clues.items()
                             if len(clues) > 1}
-
         constraints = {}
         optional_constraints = set()
         for (row_column, is_across), clues in lines.items():
             rc = "row" if is_across else "col"
             locations = [x for clue in clues for x in clue.locations]
             for base in range(2, 11):
-                answers_list = list(
-                    itertools.product(*[self.entry_table[base, clue.length]
-                                        for clue in clues]))
-                for answers in answers_list:
+                entries = [self.entry_table[base, clue.length] for clue in clues]
+                for answers in product(*entries):
                     base_answers, real_answers = zip(*answers)
                     if len(set(real_answers)) != len(real_answers):
                         # Make sure no "real answer" is duplicated on a single row
@@ -147,6 +143,9 @@ class SolverMagpie235Links (ConstraintSolver):
                     info.extend(f'Value-{x}' for x in real_answers)
                     # info.extend(f'Entry-{x}' for x in base_answers)
                     # optional_constraints.update(f'Entry-{x}' for x in base_answers)
+                    if any(self.is_start_location(location) and digit == '0'
+                          for location, digit in zip(locations, ''.join(base_answers))):
+                        continue
                     for location, digit in zip(locations, ''.join(base_answers)):
                         if location in double_locations:
                             encoding = self.encoding[digit][is_across]
@@ -178,9 +177,17 @@ class SolverMagpie235Links (ConstraintSolver):
 
     @staticmethod
     def create_encoding():
-        acrosses = list(itertools.combinations(range(5), 3))
+        acrosses = list(combinations(range(5), 3))
         downs = [tuple(x for x in range(6) if x not in item) for item in acrosses]
         return {chr(ord('0') + i): (acrosses[i], downs[i]) for i in range(10)}
+
+    @staticmethod
+    def create_encoding_x():
+        return {str(i) : (across, down)
+                for i in range(10)
+                for across in [[f"U{j}" if i == j else f"D{j}" for j in range(10)]]
+                for down in [[f"D{j}" if i == j else f"U{j}" for j in range(10)]]
+                }
 
 
 if __name__ == '__main__':

@@ -40,6 +40,7 @@ class EquationSolver(BaseSolver):
     _items: Sequence[int]
     _all_constraints: list[tuple[tuple[Clue, ...], Callable[[], bool]]]
     _debug: bool
+    _max_debug_depth: int
 
     def __init__(self, clue_list: Sequence[Clue], *, items: Iterable[int] = (), **args: Any) -> None:
         super().__init__(clue_list, **args)
@@ -60,12 +61,13 @@ class EquationSolver(BaseSolver):
 
         self._all_constraints.append((actual_clues, check_relationship))
 
-    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int:
+    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: int = 1000) -> int:
         self._step_count = 0
         self._solution_count = 0
         self._known_letters = {}
         self._known_clues = {}
         self._debug = debug
+        self._max_debug_depth = -1 if not debug else max_debug_depth
         time1 = datetime.now()
         self._solving_order = self._get_solving_order()
         time2 = datetime.now()
@@ -85,7 +87,7 @@ class EquationSolver(BaseSolver):
         clue, evaluator, clue_letters, pattern_maker, constraints = self._solving_order[current_index]
         twin_value = self._known_clues.get(clue, None)  # None if not a twin, twin's value if it is.
         pattern = pattern_maker(self._known_clues)
-        if self._debug:
+        if current_index < self._max_debug_depth:
             print(f'{" | " * current_index} {clue.name} letters={clue_letters} pattern="{pattern.pattern}"')
         try:
             for next_letter_values in self.get_letter_values(self._known_letters, clue_letters):
@@ -96,7 +98,7 @@ class EquationSolver(BaseSolver):
                 if twin_value:
                     if twin_value not in clue_values:
                         continue
-                    if self._debug:
+                    if current_index <= self._max_debug_depth:
                         print(f'{" | " * current_index} {clue.name} TWIN {clue_letters} '
                               f'{next_letter_values} {twin_value} ({clue.length}): -->')
                     self._solve(current_index + 1)
@@ -110,7 +112,7 @@ class EquationSolver(BaseSolver):
                     self._known_clues[clue] = clue_value
                     if not all(constraint() for constraint in constraints):
                         continue
-                    if self._debug:
+                    if current_index <= self._max_debug_depth:
                         print(f'{" | " * current_index} {clue.name} {"".join(clue_letters)} '
                               f'{next_letter_values} {clue_value} ({clue.length}): -->')
                     self._solve(current_index + 1)
