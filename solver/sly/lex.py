@@ -218,7 +218,6 @@ class Lexer(metaclass=LexerMeta):
 
         # Collect all previous rules from base classes
         rules = []
-
         for base in cls.__bases__:
             if isinstance(base, LexerMeta):
                 rules.extend(base._rules)

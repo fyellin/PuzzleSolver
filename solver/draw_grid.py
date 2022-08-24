@@ -20,6 +20,7 @@ def draw_grid(*, max_row: int, max_column: int,
               subtext: Optional[str] = None,
               font_multiplier: float = 1.0,
               blacken_unused: bool = True,
+              file: Optional[str] = None,
               grid_drawer: Callable[[plt, Axes], None] = None,
               extra: Callable[[plt, Axes], None] = None,
               **args: Any) -> None:
@@ -108,6 +109,9 @@ def draw_grid(*, max_row: int, max_column: int,
             elif index == 3:
                 axes.text(column + .95, row + .95, text,
                           va='bottom', ha='right', **font_info)
+
+    if file is not None:
+        plt.savefig(file)
 
     if extra:
         extra(plt, axes)

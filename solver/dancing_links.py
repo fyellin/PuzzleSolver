@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 import collections
 import copy
+import itertools
+import math
 import random
+import string
 import sys
 from collections.abc import Hashable, Sequence, Iterator
 from typing import Optional, Callable, Any, TypeVar, Generic
@@ -226,3 +231,37 @@ class DancingLinks(Generic[Row, Constraint]):
     @staticmethod
     def __indent(depth: int) -> str:
         return ' | ' * depth
+
+
+class Encoder:
+    alphabet: str
+    prefix: str
+    table: dict[str, tuple[Sequence[int], Sequence[int]]]
+
+    @staticmethod
+    def alphabet(prefix: str = "") -> Encoder:
+        return Encoder(string.ascii_uppercase, prefix)
+
+    @staticmethod
+    def digits(prefix: str = "") -> Encoder:
+        return Encoder(string.digits, prefix)
+
+    @staticmethod
+    def of(alphabet: str, prefix: str = "") -> Encoder:
+        return Encoder(alphabet, prefix)
+
+    def __init__(self, alphabet: str, prefix: str = ""):
+        self.alphabet = alphabet
+        self.prefix = prefix
+        length = len(alphabet)
+        n = next(i for i in itertools.count(0) if math.comb(i, i // 2) >= length)
+        downs = list(itertools.combinations(range(n), n // 2))
+        acrosses = [tuple(x for x in range(n + 1) if x not in item) for item in downs]
+        self.table = {ch: (down, across)
+                      for ch, down, across in zip(alphabet, acrosses, downs)}
+
+    def encode(self, letter: str, location: tuple[int, int], is_across: bool) -> Sequence[str]:
+        row, column = location
+        return [f'{self.prefix}r{row}c{column}-{value}'
+                for value in self.table[letter][is_across]]
+
