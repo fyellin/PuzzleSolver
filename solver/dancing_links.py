@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import collections
 import copy
-import itertools
 import math
 import random
 import string
 import sys
 from collections.abc import Hashable, Sequence, Iterator
+from itertools import combinations, count
 from typing import Optional, Callable, Any, TypeVar, Generic
 
 from typing.io import TextIO
@@ -234,8 +234,8 @@ class DancingLinks(Generic[Row, Constraint]):
 
 
 class Encoder:
-    alphabet: str
     prefix: str
+    alphabet: str
     table: dict[str, tuple[Sequence[int], Sequence[int]]]
 
     @staticmethod
@@ -253,15 +253,21 @@ class Encoder:
     def __init__(self, alphabet: str, prefix: str = ""):
         self.alphabet = alphabet
         self.prefix = prefix
-        length = len(alphabet)
-        n = next(i for i in itertools.count(0) if math.comb(i, i // 2) >= length)
-        downs = list(itertools.combinations(range(n), n // 2))
-        acrosses = [tuple(x for x in range(n + 1) if x not in item) for item in downs]
-        self.table = {ch: (down, across)
-                      for ch, down, across in zip(alphabet, acrosses, downs)}
+        size = next(i for i in count(3, 2) if math.comb(i, i // 2) >= len(alphabet))
+        self.table = {
+            ch: (down, (*across, size + 1))
+            for ch, across in zip(alphabet, combinations(range(size), size // 2))
+            for down in [tuple(x for x in range(size) if x not in across)]
+        }
 
     def encode(self, letter: str, location: tuple[int, int], is_across: bool) -> Sequence[str]:
         row, column = location
         return [f'{self.prefix}r{row}c{column}-{value}'
                 for value in self.table[letter][is_across]]
+
+    def locator(self, location: tuple[int, int], is_across: bool):
+        row, column = location
+        return f'{self.prefix}r{row}c{column}-{"A" if is_across else "D"}'
+
+
 
