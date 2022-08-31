@@ -70,6 +70,8 @@ class FillInCrosswordGrid:
                           if not isinstance(clue, str)}
                 self.results.append(result)
 
+            total = sum(len(items) for items in self.constraints.values())
+            print(f"The constraints have total length {total}")
             solver = DancingLinks(self.constraints,
                                   optional_constraints=self.optional_constraints,
                                   row_printer=print_me)
@@ -170,7 +172,7 @@ class FillInCrosswordGrid:
             location = 1 + (self.height - entry_length) // 2, (self.width + 1) // 2
             for number, entry in clues_by_size[entry_length]:
                 # There should only be a few clues that can go in the middle, so
-                # creating this as a constraint should be helpful.
+                # adding a special constraint item should be helpful.
                 self.__generate_constraint(False, (number, location, entry),
                                            extras=['Middle'])
 
@@ -186,51 +188,6 @@ class FillInCrosswordGrid:
                         continue
                     self.__generate_constraint(False, (number1, location1, entry1),
                                                (number2, location2, entry2))
-
-    def handle_numbering_old(self) -> None:
-        """
-        Add constraints items to the clues to ensure that the numbering is in order.
-
-        This generates constraint items of the form clue1@location|clue2,
-        for example, 4A@r2c3|7D.
-
-        This constraint is added to two sets of constraint rows:
-        A) All rows that place clue1 at the indicated location, In this case, all clues
-           indicating that 4A starts at r2c3
-        B) All rows that place clue2 at a location that is inconsistent with clue1 being
-           at location.  In this example, since 7 > 4, clue 7D must start after 4A, and
-           we add this constraint to any row which causes 7D to start before r2c3.
-
-        Normally, we need a unique optional constraint item for each pair of rows that
-        are mutually exclusive.  If we make both A mutually exclusive with both B1 and B2
-        using the same constraint item, B1 and B2 end up being mutually exclusive.  It's
-        okay here.
-        """
-        operators = [operator.lt, operator.eq, operator.gt]
-        clues = [*((number, 'A') for number, _ in self.acrosses),
-                 *((number, 'D') for number, _ in self.downs)]
-        for clue1, clue2 in permutations(clues, 2):
-            finder1, finder2 = self.finder[clue1], self.finder[clue2]
-            assert finder1, f'Need results for {clue1}'
-            assert finder2, f'Need results for {clue2}'
-            (number1, letter1), (number2, letter2) = clue1, clue2
-            # returns op.lt, op.eq, or op.gt such that op(number1, number2) is true
-            op = operators[(number1 >= number2) + (number1 > number2)]
-            assert op(number1, number2)
-            for location1, values1 in finder1.items():
-                row1, column1 = location1
-                item = None  # only set item if we need it.
-                for location2, values2 in finder2.items():
-                    if not op(location1, location2):
-                        item = item or \
-                               f'{number1}{letter1}@r{row1}c{column1}|{number2}{letter2}'
-                        for value in values2:
-                            value.append(item)
-                if item is not None:
-                    assert item not in self.optional_constraints
-                    self.optional_constraints.add(item)
-                    for value in values1:
-                        value.append(item)
 
     def handle_numbering(self) -> None:
         """
@@ -259,22 +216,24 @@ class FillInCrosswordGrid:
             assert finder1, f'Need results for {clue1}'
             assert finder2, f'Need results for {clue2}'
             (number1, letter1), (number2, letter2) = clue1, clue2
+            # Create a function consistent() such that consistent(location1, location2)
+            # indicates whether clue number1 in location1 and clue number2 in location2
+            # are consistent possibilites
             delta = number2 - number1
             if delta > 0:
-                def op(loc1: Square, loc2: Square) -> bool:
+                def consistent(loc1: Square, loc2: Square) -> bool:
                     return self.__sq_ix(loc2) - self.__sq_ix(loc1) >= delta
             elif delta < 0:
-                def op(loc1: Square, loc2: Square) -> bool:
+                def consistent(loc1: Square, loc2: Square) -> bool:
                     return self.__sq_ix(loc2) - self.__sq_ix(loc1) <= delta
             else:
-                op = operator.eq
-            # returns op.lt, op.eq, or op.gt such that op(number1, number2) is true
-            # op = operators[(number1 >= number2) + (number1 > number2)]
+                consistent = operator.eq
+
             for location1, values1 in finder1.items():
                 row1, column1 = location1
                 item = None  # only set item if we need it.
                 for location2, values2 in finder2.items():
-                    if not op(location1, location2):
+                    if not consistent(location1, location2):
                         item = item or \
                                f'{number1}{letter1}@r{row1}c{column1}|{number2}{letter2}'
                         for value in values2:

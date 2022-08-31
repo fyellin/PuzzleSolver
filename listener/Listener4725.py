@@ -5,7 +5,7 @@ from collections import Counter, defaultdict
 from fractions import Fraction
 from typing import Callable, Pattern, Sequence, Union
 
-from listener.FillInCrosswordGrid import FillInCrosswordGrid
+from solver.fill_in_crossword_grid import FillInCrosswordGrid
 from solver import Clue, ClueValue, EquationSolver, Intersection
 from solver.equation_solver import KnownClueDict, KnownLetterDict
 
@@ -260,7 +260,7 @@ class Listener4725(EquationSolver):
                     for clue1, clue2 in zip(numbers, values)]
         acrosses = get_clues(self.a_numbers, self.a_clues)
         downs = get_clues(self.d_numbers, self.d_clues)
-        filler = FillInCrosswordGrid(13, acrosses, downs)
+        filler = FillInCrosswordGrid(acrosses, downs, size=13)
         results = filler.run()
         if results:
             self.show_letter_values(known_letters)
