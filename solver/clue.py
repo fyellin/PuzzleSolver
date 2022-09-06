@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Callable, FrozenSet, Iterable, Optional, Sequence, Union
 
-from .clue_types import Location
+from .clue_types import ClueValue, Location
 from .evaluator import Evaluator
 
 ClueValueGenerator = Callable[['Clue'], Iterable[Union[str, int]]]
@@ -54,11 +54,12 @@ class Clue:
 
     @classmethod
     def create_evaluators(cls, expression: str,
-                          mapping: Optional[Mapping[str, Callable]] = None
+                          mapping: Optional[Mapping[str, Callable]] = None,
+                          wrapper: Optional[Callable[[Evaluator, dict], Iterable[ClueValue]]] = None,
                           ) -> Sequence[Evaluator]:
         if mapping is None:
             mapping = {}
-        return Evaluator.from_string(expression, mapping)
+        return Evaluator.from_string(expression, mapping, wrapper)
 
     @classmethod
     def create_callable(cls, expression: str,
@@ -66,6 +67,12 @@ class Clue:
         assert '=' not in expression
         evaluator, = cls.create_evaluators(expression, mapping)
         return evaluator.callable
+
+    def with_alt_wrapper(self, wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]]
+                         ) -> Evaluator:
+
+        return self._replace(wrapper=wrapper)
+
 
     def __hash__(self) -> int:
         return id(self)

@@ -2,11 +2,14 @@ import dataclasses
 import itertools
 import re
 from collections import Counter
-from typing import Any, Iterator, Sequence
+from enum import Enum, auto
+from typing import Any, Iterable, Iterator, Optional, Sequence
 
 from matplotlib.patches import Arc
 
-from solver import Clue, Clues, ConstraintSolver, Intersection, generators
+from solver import Clue, ClueValue, Clues, ConstraintSolver, Evaluator, Intersection, \
+    Letter, \
+    generators
 
 GRID = """
 x.xxxxxx
@@ -62,7 +65,7 @@ generators.BASE = 8
 
 @dataclasses.dataclass
 class MyIterator:
-    base: Iterator[int]
+    base: Optional[Iterator[int]] = None
     multiplier: int = 1
     offset: int = 0
 
@@ -138,6 +141,14 @@ def octal(result):
     return oct(result)[2:]
 
 
+class Picture (Enum):
+    ACROSS = auto()
+    DOWN = auto()
+    NW_SE = auto()
+    NE_SW = auto()
+
+
+
 class Solver237(ConstraintSolver):
     @staticmethod
     def run() -> None:
@@ -161,8 +172,10 @@ class Solver237(ConstraintSolver):
                     clue.generator = result
 
     def draw_grid(self, **args: Any) -> None:
-        converter = {"0": "w", "4": "w", "1": "x", "2": "x",
-                     "3": "y", "5": "y", "6": "z", "7": "z"}
+        converter = {"0": Picture.ACROSS, "4": Picture.ACROSS,
+                     "1": Picture.NW_SE, "2": Picture.NW_SE,
+                     "3": Picture.NE_SW, "5": Picture.NE_SW,
+                     "6": Picture.DOWN, "7": Picture.DOWN}
         curve = {}
         missing = 0
         items = args['location_to_entry']
@@ -179,10 +192,9 @@ class Solver237(ConstraintSolver):
 
         args.pop('location_to_clue_numbers')
         args['top_bars'] = args['left_bars'] = {}
-        args['location_to_entry'].clear()
+        # args['location_to_entry'].clear()
         super().draw_grid(extra=lambda plt, axes: self.extra(plt, axes, curve),
-                          font_multiplier=.5, **args,
-                          file="/Users/fy/Desktop/Magpie237.png")
+                          font_multiplier=.5, **args)
 
         # for location, value in curve.items():
         #     items[location] = dict(w="LT", x="OC", y="AE", z="SU")[value]
@@ -194,20 +206,20 @@ class Solver237(ConstraintSolver):
         width = 3
         for (y, x), value in curves.items():
             match value:
-                case 'z':
+                case Picture.DOWN:
                     plt.plot((x + .5, x + .5), (y, y + 1), color, lw=width)
                     plt.plot((x + 0, x + .3), (y + .5, y + .5), color, lw=width)
                     plt.plot((x + .7, x + 1), (y + .5, y + .5), color, lw=width)
-                case 'w':
+                case Picture.ACROSS:
                     plt.plot((x + 0, x + 1), (y + .5, y + .5), color, lw=width)
                     plt.plot((x + .5, x + .5), (y + .0, y + .3), color, lw=width)
                     plt.plot((x + .5, x + .5), (y + .7, y + 1.0), color, lw=width)
-                case 'x':
+                case Picture.NW_SE:
                     axes.add_patch(Arc((x, y), width=1, height=1,
                                        theta1=0, theta2=90, color=color, lw=width))
                     axes.add_patch(Arc((x + 1, y + 1), width=1, height=1,
                                        theta1=180, theta2=270, color=color, lw=width))
-                case 'y':
+                case Picture.NE_SW:
                     axes.add_patch(Arc((x + 1, y), width=1, height=1,
                                        theta1=90, theta2=180, color=color, lw=width))
                     axes.add_patch(Arc((x, y + 1), width=1, height=1,
@@ -226,7 +238,7 @@ class Solver237(ConstraintSolver):
                     for A, C, E, L, O, S, T, U in itertools.permutations(range(8))]
         seen = set()
         for clue in self._clue_list:
-            if any(x in clue.expression for x in SPECIALS):
+            if not clue.context:
                 continue
             seen.add(clue)
             intersections = [x for clue2, intersections in self._all_intersections[clue]
@@ -250,8 +262,7 @@ class Solver237(ConstraintSolver):
         assert len(mappings) == 1
         return mappings.pop()
 
-    @classmethod
-    def get_clue_list(cls) -> Sequence[Clue]:
+    def get_clue_list(self) -> Sequence[Clue]:
         result = []
         locations = Clues.get_locations_from_grid(GRID)
         for lines, is_across, letter in ((ACROSSES, True, 'a'), (DOWNS, False, 'd')):
@@ -265,11 +276,15 @@ class Solver237(ConstraintSolver):
                 number = ord(number) - ord('a') + 1
                 length = int(length)
                 location = locations[number - 1]
+                original_expression = expression
                 for x in SPECIALS:
                     expression = expression.replace(x, '"' + x + '"()')
                 clue = Clue(f'{number}{letter}', is_across, location, length)
                 clue.expression = expression
                 clue.evaluators = clue.create_evaluators(expression, mapping=MAPPING)
+                # Context indicates this clue has nothing special in it.
+                clue.context = expression == original_expression
+
                 result.append(clue)
         return result
 

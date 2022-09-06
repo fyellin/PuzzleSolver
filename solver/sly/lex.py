@@ -226,9 +226,6 @@ class Lexer(metaclass=LexerMeta):
         existing = dict(rules)
 
         for key, value in cls._attributes.items():
-            # Added by FY because I don't understand what's going on
-            if key == 'regex_module':
-                continue
             if (key in cls._token_names) or key.startswith('ignore_') or hasattr(value, 'pattern'):
                 if callable(value) and not hasattr(value, 'pattern'):
                     raise LexerBuildError(f"function {value} doesn't have a regex pattern")

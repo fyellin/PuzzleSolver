@@ -18,8 +18,10 @@ class Evaluator (NamedTuple):
 
     @classmethod
     def from_string(cls, expression: str,
-                    mapping: Optional[Mapping[str, Callable]] = None
+                    mapping: Optional[Mapping[str, Callable]] = None,
+                    wrapper: Optional[Callable[[Evaluator, dict], Iterable[ClueValue]]] = None,
                     ) -> Sequence[Evaluator]:
+        wrapper = wrapper or cls.standard_wrapper
         if mapping is None:
             mapping = {}
         if cls.equation_parser is None:
@@ -34,7 +36,7 @@ class Evaluator (NamedTuple):
             code = f"lambda {', '.join(variables)}: {expression}"
             compiled_code = eval(code, my_globals, {})
             evaluators.append(
-                Evaluator(cls.standard_wrapper, compiled_code, variables, expression))
+                Evaluator(wrapper, compiled_code, variables, expression))
         return evaluators
 
     @staticmethod
