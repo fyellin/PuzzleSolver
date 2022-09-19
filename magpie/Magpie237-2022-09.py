@@ -7,9 +7,10 @@ from typing import Any, Iterable, Iterator, Optional, Sequence
 
 from matplotlib.patches import Arc
 
-from solver import Clue, ClueValue, Clues, ConstraintSolver, Evaluator, Intersection, \
-    Letter, \
-    generators
+from solver import Clue, ClueValue, Clues, ConstraintSolver, EquationSolver, Evaluator, \
+    Letter, generators
+from solver.constraint_solver import KnownClueDict
+from solver.equation_solver import KnownLetterDict
 
 GRID = """
 x.xxxxxx
@@ -69,7 +70,7 @@ class MyIterator:
     multiplier: int = 1
     offset: int = 0
 
-    def __iter__(self) -> Iterator[int]:
+    def __iter__(self) -> Iterator[str]:
         for x in self.base:
             yield x * self.multiplier + self.offset
 
@@ -80,24 +81,12 @@ class MyIterator:
         return MyIterator(self.base, self.multiplier, self.offset - other)
 
     def __mul__(self, other):
-        if other != 0:
-            return MyIterator(self.base, self.multiplier * other, self.offset * other)
-        else:
-            assert other != 0
-
-    def generator(self):
-        def result(clue: Clue):
-            min_value, max_value = 8 ** (clue.length - 1), 8 ** clue.length
-            for value in self:
-                if value >= min_value:
-                    if value >= max_value:
-                        return
-                    yield octal(value)
-        return result
+        assert other > 0
+        return MyIterator(self.base, self.multiplier * other, self.offset * other)
 
 
 def palindrome():
-    return generators.palindrome
+    return MyIterator(x for x in itertools.count(1) if octal(x) == octal(x)[::-1])
 
 
 def fibonacci():
@@ -148,7 +137,6 @@ class Picture (Enum):
     NE_SW = auto()
 
 
-
 class Solver237(ConstraintSolver):
     @staticmethod
     def run() -> None:
@@ -159,17 +147,11 @@ class Solver237(ConstraintSolver):
     def __init__(self) -> None:
         clues = self.get_clue_list()
         super().__init__(clues)
-        self.values = self.get_letters_and_fixed_clues()
+        values = self.get_letter_values()
         for clue in clues:
-            if clue in self.values:
-                clue.generator = generators.known(self.values[clue])
-            else:
-                evaluator = clue.evaluators[0]
-                result = evaluator.callable(*(self.values[x] for x in evaluator.vars))
-                if isinstance(result, MyIterator):
-                    clue.generator = result.generator()
-                else:
-                    clue.generator = result
+            evaluator = clue.evaluators[0]
+            clue.generator = lambda clue, evaluator=evaluator: itertools.takewhile(
+                lambda x: len(x) <= clue.length, evaluator(values))
 
     def draw_grid(self, **args: Any) -> None:
         converter = {"0": Picture.ACROSS, "4": Picture.ACROSS,
@@ -229,38 +211,37 @@ class Solver237(ConstraintSolver):
                   fontweight='bold', fontfamily="sans-serif",
                   va='top', ha='center')
 
-    def get_letters_and_fixed_clues(self):
-        """
-        Look at all possible mappings, and see which ones gives consistent answers for
-        the clues consisting just of letters.
-        """
-        mappings = [dict(A=A, C=C, E=E, L=L, O=O, S=S, T=T, U=U)
-                    for A, C, E, L, O, S, T, U in itertools.permutations(range(8))]
-        seen = set()
-        for clue in self._clue_list:
-            if not clue.context:
-                continue
-            seen.add(clue)
-            intersections = [x for clue2, intersections in self._all_intersections[clue]
-                             if clue2 in seen for x in intersections]
-            pattern_generator = Intersection.make_pattern_generator(
-                clue, intersections, self)
-            next_mappings = []
-            for mapping in mappings:
-                try:
-                    evaluator = clue.evaluators[0]
-                    result = evaluator.callable(*(mapping[x] for x in evaluator.vars))
-                except ArithmeticError:
-                    continue
-                if result == int(result) and result > 0:
-                    pattern = pattern_generator(mapping)
-                    entry = octal(int(result))
-                    if pattern.fullmatch(entry):
-                        mapping[clue] = entry
-                        next_mappings.append(mapping)
-            mappings = next_mappings
-        assert len(mappings) == 1
-        return mappings.pop()
+    def get_letter_values(self) -> KnownLetterDict:
+        clues = [clue for clue in self._clue_list if clue.context]
+        result = {}
+
+        class Solver2(EquationSolver):
+            def run(self):
+                self.solve(debug=True)
+
+            def show_solution(self, clue_values: KnownClueDict, known_letters: KnownLetterDict
+                              ) -> None:
+                nonlocal result
+                result = dict(known_letters)
+                self.plot_board(clue_values)
+
+        Solver2(clues, items=range(8)).run()
+        return result
+
+    @staticmethod
+    def base_eight_wrapper(evaluator: Evaluator, value_dict: dict[Letter, int]
+                           ) -> Iterable[ClueValue]:
+        try:
+            result = evaluator.callable(*(value_dict[x] for x in evaluator.vars))
+            if isinstance(result, MyIterator):
+                for value in result:
+                    yield(ClueValue(octal(value)))
+                return
+            int_result = int(result)
+            if result == int_result > 0:
+                yield ClueValue(octal(int_result))
+        except ArithmeticError:
+            pass
 
     def get_clue_list(self) -> Sequence[Clue]:
         result = []
@@ -281,10 +262,10 @@ class Solver237(ConstraintSolver):
                     expression = expression.replace(x, '"' + x + '"()')
                 clue = Clue(f'{number}{letter}', is_across, location, length)
                 clue.expression = expression
-                clue.evaluators = clue.create_evaluators(expression, mapping=MAPPING)
+                clue.evaluators = clue.create_evaluators(
+                    expression, mapping=MAPPING, wrapper=self.base_eight_wrapper)
                 # Context indicates this clue has nothing special in it.
                 clue.context = expression == original_expression
-
                 result.append(clue)
         return result
 
