@@ -68,11 +68,8 @@ class Clue:
         evaluator, = cls.create_evaluators(expression, mapping)
         return evaluator.callable
 
-    def with_alt_wrapper(self, wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]]
-                         ) -> Evaluator:
-
-        return self._replace(wrapper=wrapper)
-
+    def change_wrapper(self, wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]]) -> None:
+        self.evaluators = tuple(x.with_alt_wrapper(wrapper) for x in self.evaluators)
 
     def __hash__(self) -> int:
         return id(self)

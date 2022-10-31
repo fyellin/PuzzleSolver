@@ -89,9 +89,9 @@ def draw_grid(*, max_row: int, max_column: int,
                   va='center', ha='center', rotation=rotation.get((row, column), 0))
 
     if subtext is not None:
-        axes.text((max_column + 1) / 2, max_row + .5, subtext,
+        axes.text((max_column + 1) / 2, max_row + 1, subtext,
                   fontsize=points_per_data / 2, fontweight='bold',
-                  fontfamily="sans-serif", va='center', ha='center')
+                  fontfamily="sans-serif", va='bottom', ha='center')
 
     # Fill in the clue numbers
     for (row, column), clue_numbers in location_to_clue_numbers.items():
