@@ -232,7 +232,7 @@ class Solver237(ConstraintSolver):
     def base_eight_wrapper(evaluator: Evaluator, value_dict: dict[Letter, int]
                            ) -> Iterable[ClueValue]:
         try:
-            result = evaluator.callable(*(value_dict[x] for x in evaluator.vars))
+            result = evaluator.raw_call(value_dict)
             if isinstance(result, MyIterator):
                 for value in result:
                     yield(ClueValue(octal(value)))
@@ -262,7 +262,7 @@ class Solver237(ConstraintSolver):
                     expression = expression.replace(x, '"' + x + '"()')
                 clue = Clue(f'{number}{letter}', is_across, location, length)
                 clue.expression = expression
-                clue.evaluators = clue.create_evaluators(
+                clue.evaluators = Evaluator.create_evaluators(
                     expression, mapping=MAPPING, wrapper=self.base_eight_wrapper)
                 # Context indicates this clue has nothing special in it.
                 clue.context = expression == original_expression

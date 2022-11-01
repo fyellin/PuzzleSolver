@@ -63,7 +63,7 @@ class ConstraintSolver(BaseSolver):
             self._constraints[clue].append(check_relationship)
 
     def add_extended_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., Sequence[ClueValue]],
-                       *, name: Optional[str] = None) -> None:
+                                *, name: Optional[str] = None) -> None:
         actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue) for clue in clues)
         actual_name = name or '-'.join(clue.name for clue in actual_clues)
         assert len(clues) > 1
@@ -76,7 +76,7 @@ class ConstraintSolver(BaseSolver):
 
     def solve(self, *, show_time: bool = True, debug: bool = False,
               max_debug_depth: Optional[int] = None,
-              start_clues: Sequence[Clue|str] = ()) -> int:
+              start_clues: Sequence[Clue | str] = ()) -> int:
         self._step_count = 0
         self._solution_count = 0
         self._known_clues = {}
@@ -356,6 +356,3 @@ class LetterCountHandler(abc.ABC):
     def close(self):
         assert len(self._locations) == 0
         assert all(x == 0 for x in self._counter.values())
-
-
-

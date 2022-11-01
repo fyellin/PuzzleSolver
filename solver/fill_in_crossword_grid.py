@@ -224,6 +224,7 @@ class FillInCrosswordGridAbstract:
         letter = 'A' if is_across else 'D'
         return Clue(f'{number}{letter}', is_across, (row, column), len(entry), context=entry)
 
+
 class FillInCrosswordGrid (FillInCrosswordGridAbstract):
     acrosses: Sequence[tuple[int, str]]
     downs: Sequence[tuple[int, str]]
@@ -361,6 +362,7 @@ class FillInCrosswordGrid (FillInCrosswordGridAbstract):
             else:
                 c += 1
 
+
 class FillInCrosswordGridMushed (FillInCrosswordGridAbstract):
     clues: Sequence[tuple[int, str]]
 
@@ -420,7 +422,7 @@ class FillInCrosswordGridMushed (FillInCrosswordGridAbstract):
                 location = 1 + (self.height - size) // 2, (self.width + 1) // 2
             for number, entry in clues_by_size[size]:
                 self._generate_constraint(is_across, (number, location, entry),
-                                           extras=extras)
+                                          extras=extras)
             return len(clues_by_size[size])
 
         if len(odd_counts) == 0:
@@ -503,6 +505,7 @@ def test2():
     # results = filler.no_numbering().run(debug=3)
     for result in results:
         filler.display(result)
+
 
 def test3():
     info = (

@@ -13,7 +13,7 @@ def draw_grid(*, max_row: int, max_column: int,
               location_to_entry: dict[Location, str] = None,
               location_to_clue_numbers: dict[Location, Sequence[str]] = None,
               top_bars: set[Location] = frozenset(),
-              left_bars:  set[Location] = frozenset(),
+              left_bars: set[Location] = frozenset(),
               shading: dict[Location, str] = None,
               rotation: dict[Location, str] = None,
               circles: set[Location] = frozenset(),
@@ -85,7 +85,7 @@ def draw_grid(*, max_row: int, max_column: int,
     # Fill in the values
     for (row, column), entry in location_to_entry.items():
         axes.text(column + 1 / 2, row + 1 / 2, entry,
-                  fontsize=points_per_data/2, fontweight='bold', fontfamily="sans-serif",
+                  fontsize=points_per_data / 2, fontweight='bold', fontfamily="sans-serif",
                   va='center', ha='center', rotation=rotation.get((row, column), 0))
 
     if subtext is not None:

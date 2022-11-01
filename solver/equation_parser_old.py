@@ -6,6 +6,7 @@ import solver.ply.lex as lex
 import solver.ply.yacc as yacc
 from dataclasses import dataclass
 
+
 class EquationParser:
     def __init__(self):
         # Build the lexer
@@ -14,7 +15,7 @@ class EquationParser:
 
     tokens = ('NAME', 'NUMBER', 'POWER', 'SUBTRACT', 'MULTIPLY', 'FUNCTION')
 
-    literals = ['+', '/', '(', ')','=', ',', '!']
+    literals = ['+', '/', '(', ')', '=', ',', '!']
 
     # Tokens
 
@@ -120,10 +121,28 @@ class EquationParser:
 @dataclass
 class Parse:
     operator: str
-    arg1: Optional[Parse]|int|str
+    arg1: Optional[Parse] | int | str
     arg2: Optional[Parse] = None
 
-    def toString(self, functions: set[str] = frozenset(['fact'])):
+    def __str__(self):
+        return self._to_string()
+
+    def vars(self) -> set[str]:
+        match self:
+            case Parse('var', x, None):
+                return {x}
+            case Parse('const', _x, None):
+                return set()
+            case Parse('function', _name, args):
+                return {x for arg in args for x in arg.vars()}
+            case Parse(_, x, None):
+                return x.vars()
+            case Parse(_, x, y):
+                return x.vars() | y.vars()
+            case _:
+                raise Exception
+
+    def _to_string(self, functions: set[str] = frozenset(['fact'])):
         def binop(func, operator, x, y):
             if func in functions:
                 return f'{func}({internal(x)}, {internal(y)})'
@@ -137,7 +156,7 @@ class Parse:
                 return f'({operator} {internal(x)})'
 
         def internal(parse):
-            match(parse):
+            match parse:
                 case Parse('var', x, None) | Parse('const', x, None):
                     return str(x)
                 case Parse('+', x, y):
@@ -158,24 +177,6 @@ class Parse:
                     raise Exception
 
         return internal(self)
-
-    def __str__(self):
-        return self.toString()
-
-    def vars(self) -> set[str]:
-        match self:
-            case Parse('var', x, None):
-                return {x}
-            case Parse('const', x, None):
-                return set()
-            case Parse('function', _name, args):
-                return { x for arg in args for x in arg.vars()}
-            case Parse(_, x, None):
-                return x.vars()
-            case Parse(_, x, y):
-                return x.vars() | y.vars()
-            case _:
-                raise Exception
 
 
 if __name__ == '__main__':

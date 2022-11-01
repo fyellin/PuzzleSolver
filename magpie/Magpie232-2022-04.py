@@ -80,7 +80,7 @@ def parse_clues(*, use_10d: bool = False):
         clue = Clue(f'{number}{letter}', letter == 'a',
                     base_location=grid[int(number) - 1], length=int(length))
         clue.expression = equation
-        clue.evaluators = Clue.create_evaluators(equation, {'div': my_div, 'pow': my_pow})
+        clue.evaluators = Evaluator.create_evaluators(equation, mapping={'div': my_div, 'pow': my_pow})
         clues.append(clue)
     if use_10d:
         clues.append(Clue(f'10d', False, base_location=grid[10 - 1], length=3))

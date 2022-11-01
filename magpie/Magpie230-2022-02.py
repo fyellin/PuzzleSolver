@@ -120,13 +120,14 @@ class Magpie230 (EquationSolver):
                 # All of our arguments should be MultiValue.  Hence the result of what looks like a simple
                 # calculation will also be a MultiValue.  So we just need to convert the MultiValue to a list
                 # of values.  No filtering is necessary since we toss out all negative numbers in the - operator.
-                result = evaluator.callable(*(value_dict[x] for x in evaluator.vars))
+                result = evaluator.raw_call(value_dict)
                 return (ClueValue(str(x)) for x in cast(MultiValue, result).values)
             except ArithmeticError:
                 return ()
 
         for clue in clues:
-            clue.evaluators = tuple(x.with_alt_wrapper(my_wrapper) for x in clue.evaluators)
+            for evaluator in clue.evaluators:
+                evaluator.set_wrapper(my_wrapper)
 
         # This cast is a bald-faced lie.  But it works.
         super().__init__(clues, items=cast(tuple[int], MultiValue.make_all()))

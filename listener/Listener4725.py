@@ -6,7 +6,7 @@ from fractions import Fraction
 from typing import Callable, Pattern, Sequence, Union
 
 from solver.fill_in_crossword_grid import FillInCrosswordGrid
-from solver import Clue, ClueValue, EquationSolver, Intersection
+from solver import Clue, ClueValue, EquationSolver, Evaluator, Intersection
 from solver.equation_solver import KnownClueDict, KnownLetterDict
 
 A_NUMBERS = """
@@ -177,7 +177,6 @@ class Listener4725(EquationSolver):
         self.add_constraint(self.d_clues, appropriate_count)
 
     def get_clues(self, lines, is_special):
-
         result: list[Clue] = []
         for line in lines.splitlines():
             line = line.strip()
@@ -186,17 +185,17 @@ class Listener4725(EquationSolver):
             self.clue_count += 1
             clue = Clue(f'{self.clue_count}a', True, (1, 1), 1)
             if is_special:
-                evaluator = Clue.create_evaluators(line, dict(fact=self.factorial))[0]
-                evaluator = evaluator.with_alt_wrapper(self.my_wrapper)
-                clue.evaluators = evaluator,
+                clue.evaluators = Evaluator.create_evaluators(
+                    line, mapping=dict(fact=self.factorial), wrapper=self.my_wrapper)
             else:
-                clue.evaluators = Clue.create_evaluators(line)
+                clue.evaluators = Evaluator.create_evaluators(line)
             result.append(clue)
         return result
 
     @classmethod
     def my_wrapper(cls, evaluator, value_dict):
-        result = evaluator.callable(*(Fraction(value_dict[x]) for x in evaluator.vars))
+        value_dict = {letter: Fraction(value_dict[letter]) for letter in evaluator.vars}
+        result = evaluator.raw_call(value_dict)
         assert isinstance(result, Fraction)
         if result <= 0:
             return ()

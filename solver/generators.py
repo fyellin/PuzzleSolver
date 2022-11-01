@@ -131,6 +131,7 @@ def within_clue_limits(clue: Clue, stream: Iterator[int]) -> Iterator[int]:
                 return
             yield value
 
+
 def convert_to_base(num: int, base: int) -> str:
     """Converts a number to the specified base, and returns the value as a string"""
     result = []
@@ -236,6 +237,3 @@ def phi(value: int) -> int:
             return result
         if value < prime * prime:
             return result * 2
-
-
-

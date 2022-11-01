@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 
-from solver import ClueValue, Clues, EquationSolver, Evaluator, Letter
+from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, Letter
 
 GRID = """
 X.XXXX
@@ -44,24 +44,29 @@ class Magpie216(EquationSolver):
     @staticmethod
     def run() -> None:
         solver = Magpie216()
-        solver.solve(debug=True)
+        solver.solve(debug=False)
 
     def __init__(self):
         locations = Clues.get_locations_from_grid(GRID)
         clue_list = Clues.create_from_text(ACROSS, DOWN, locations)
-
-        def my_wrapper(evaluator: Evaluator, value_dict: dict[Letter, int]) -> Iterable[ClueValue]:
-            for cubed_letter in evaluator.vars:
-                temp = self._known_letters[cubed_letter]
-                self._known_letters[cubed_letter] = temp ** 3
-                results = list(Evaluator.standard_wrapper(evaluator, value_dict))
-                self._known_letters[cubed_letter] = temp
-                yield from results
-
         for clue in clue_list:
-            clue.evaluators = tuple(x.with_alt_wrapper(my_wrapper) for x in clue.evaluators)
-
+            self.redo_evaluator(clue)
         super().__init__(clue_list, items=(range(-10, 11)))
+
+
+    def redo_evaluator(self, clue: Clue):
+        original_evaluator, = clue.evaluators
+        evaluators = []
+        for var in original_evaluator.vars:
+            cubed_expression = clue.expression.replace(var, f'({var}**3)')
+            evaluators.append(Evaluator.create_evaluator(cubed_expression))
+
+        def my_wrapper(_evaluator: Evaluator, value_dict: dict[Letter, int]
+                       ) -> Iterable[ClueValue]:
+            return {result for evaluator in evaluators
+                    for result in evaluator(value_dict)}
+
+        original_evaluator.set_wrapper(my_wrapper)
 
 
 if __name__ == '__main__':

@@ -5,9 +5,8 @@ from collections import defaultdict
 from itertools import permutations
 from math import log10
 
-from solver import Clue
+from solver import Clue, Evaluator
 from solver.draw_grid import draw_grid
-from solver.equation_parser import EquationParser
 
 MAX_INT = 10_000
 MAX_INT_log10 = 4
@@ -34,7 +33,7 @@ def my_fact(x):
             return factorial
     raise ArithmeticError
 
-EQUATION_PARSER = EquationParser()
+
 MAPPING = dict(div=my_div, pow=my_pow, fact=my_fact)
 
 
@@ -73,7 +72,7 @@ def test_akm():
 def test_specific(clue, good_results, all_values, operators, use_factorial=False):
     for op1, op2, op3, op4, op5 in set(permutations(operators)):
         expression = f'u{op1}v{op2}w{op3}x{op4}y{op5}z'
-        evaluator = Clue.create_callable(expression, MAPPING)
+        evaluator = create_callable(expression, MAPPING)
         if not use_factorial:
             for values in all_values:
                 try:
@@ -164,7 +163,7 @@ def test_expression(letter, expression, parenthesis):
     parses = []
     for pexp in parenthesized_expressions:
         try:
-            evaluator = Clue.create_callable(pexp, mapping)
+            evaluator = create_callable(pexp, mapping)
             parses.append((pexp, evaluator))
         except SyntaxError:
             pass
@@ -267,9 +266,18 @@ def verify_clues():
     for (letter, values, expected_result, expression) in CLUES:
         for value in values:
             expression = expression.replace('X', f'{value}', 1)
-        evaluator = Clue.create_callable(expression, MAPPING)
+        evaluator = create_callable(expression, MAPPING)
         result = evaluator()
         assert expected_result == result
+
+def create_callable(expression, mapping):
+    evaluator = Evaluator.create_evaluator(expression, mapping=mapping)
+
+    def function(*args):
+        result, = evaluator(dict(zip(evaluator.vars, args))) or (-1,)
+        return int(result)
+
+    return function
 
 
 def my_draw_grid():
@@ -309,6 +317,6 @@ def my_draw_grid():
 
 
 if __name__ == '__main__':
-    # verify_clues()
+    verify_clues()
     run()
     my_draw_grid()

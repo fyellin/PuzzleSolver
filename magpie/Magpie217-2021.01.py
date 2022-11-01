@@ -46,15 +46,14 @@ class Magpie217 (EquationSolver):
             cc = 2 * (i % 4) + 2
             locations = [(rr, cc), (rr - 1, cc - 1), (rr - 1, cc), (rr - 1, cc + 1), (rr, cc + 1), (rr + 1, cc + 1),
                          (rr + 1, cc), (rr + 1, cc - 1), (rr, cc - 1)]
-            clue = Clue(str(i + 1), True, (rr, cc), 9, expression=f'{equation1} + {equation2}', locations=locations)
-
-            clue.evaluators = self.get_special_evaluator(clue, equation1, equation2)
+            clue = Clue(str(i + 1), True, (rr, cc), 9,
+                        expression=f'{equation1} + {equation2}', locations=locations)
+            self.fix_clue_evaluator(clue, equation1, equation2)
             clues.append(clue)
         return clues
 
-    def get_special_evaluator(self, clue: Clue, equation1: str, equation2: str):
-        evaluator1, = Clue.create_evaluators(equation1)
-        evaluator2, = Clue.create_evaluators(equation2)
+    def fix_clue_evaluator(self, clue: Clue, equation1: str, equation2: str):
+        evaluator1, evaluator2 = Evaluator.create_evaluators(f'{equation1} = {equation2}')
 
         def my_evaluator(_evaluator: Evaluator, values: dict[Letter, int]) -> Iterable[ClueValue]:
             values1 = list(evaluator1(values))
@@ -67,7 +66,7 @@ class Magpie217 (EquationSolver):
             missing = next(x for x in '123456789' if x not in digits)
             return [ClueValue(missing + digits[i:] + digits[:i]) for i in range(8)]
 
-        return clue.evaluators[0].with_alt_wrapper(my_evaluator),
+        clue.evaluators[0].set_wrapper(my_evaluator)
 
     def draw_grid(self, **args: Any) -> None:
         left_bars = []

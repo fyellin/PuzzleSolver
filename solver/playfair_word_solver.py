@@ -4,7 +4,6 @@ import os
 from collections import Counter
 from collections.abc import Sequence
 from itertools import pairwise
-from urllib.request import urlopen
 
 
 class PlayfairEncoder:
@@ -117,4 +116,3 @@ def main2():
 
 if __name__ == '__main__':
     main2()
-

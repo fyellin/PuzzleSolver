@@ -150,4 +150,5 @@ class BaseSolver(ABC):
         draw_grid(**args)
 
     @abstractmethod
-    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int: ...
+    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int:
+        ...

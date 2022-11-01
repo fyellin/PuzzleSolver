@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any, Callable, FrozenSet, Iterable, Optional, Sequence, Union
 
-from .clue_types import ClueValue, Location
+from .clue_types import Location
 from .evaluator import Evaluator
 
 ClueValueGenerator = Callable[['Clue'], Iterable[Union[str, int]]]
@@ -41,7 +40,7 @@ class Clue:
                 self.locations = tuple((row + i, column) for i in range(length))
         if expression:
             assert not expression.startswith('@')
-            self.evaluators = self.create_evaluators(expression)
+            self.evaluators = Evaluator.create_evaluators(expression)
         else:
             self.evaluators = ()
         self.expression = expression or ''
@@ -52,30 +51,9 @@ class Clue:
     def location(self, i: int) -> Location:
         return self.locations[i]
 
-    @classmethod
-    def create_evaluators(cls, expression: str,
-                          mapping: Optional[Mapping[str, Callable]] = None,
-                          wrapper: Optional[Callable[[Evaluator, dict], Iterable[ClueValue]]] = None,
-                          ) -> Sequence[Evaluator]:
-        if mapping is None:
-            mapping = {}
-        return Evaluator.from_string(expression, mapping, wrapper)
+    __hash__ = object.__hash__
 
-    @classmethod
-    def create_callable(cls, expression: str,
-                        mapping: Optional[Mapping[str, Callable]] = None) -> Callable:
-        assert '=' not in expression
-        evaluator, = cls.create_evaluators(expression, mapping)
-        return evaluator.callable
-
-    def change_wrapper(self, wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]]) -> None:
-        self.evaluators = tuple(x.with_alt_wrapper(wrapper) for x in self.evaluators)
-
-    def __hash__(self) -> int:
-        return id(self)
-
-    def __eq__(self, other: Any) -> bool:
-        return self is other
+    __eq__ = object.__eq__
 
     def __str__(self) -> str:
         return f'<Clue {self.name}>'

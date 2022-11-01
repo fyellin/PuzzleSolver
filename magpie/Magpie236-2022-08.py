@@ -4,7 +4,7 @@ from typing import Any, Dict, Sequence, Tuple, Union
 
 from matplotlib import pyplot as plt
 
-from solver import Clue, Clues, EquationSolver, Location
+from solver import Clue, Clues, EquationSolver, Evaluator, Location
 
 GRID = """
 x...xxx..x....x
@@ -105,7 +105,8 @@ class Solver236(EquationSolver):
                         row, column = (row, column - 1) if column % 2 == 1 else (row + 1, column - 1)
                         locations.append((row, column))
                 clue = Clue(f'{number}{letter}', is_across, (row, column), length, locations=locations)
-                clue.evaluators = Clue.create_evaluators(f'"choose"({eq1}, {eq2})', cls.MAPPING)
+                clue.evaluators = Evaluator.create_evaluators(
+                    f'"choose"({eq1}, {eq2})', mapping=cls.MAPPING)
                 clues.append(clue)
         return clues
 

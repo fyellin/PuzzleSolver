@@ -1,13 +1,13 @@
 import itertools
 from collections.abc import Sequence
-from typing import Optional,Any
+from typing import Optional, Any
 
 
 class ConstraintsGenerator:
     # For each pair of letters AB in the plaintext, where we know that AB encrypts to CD (hereafter written AB->CD),
     # we generate a constraint.  A constraint is a set of Rows, where each row indicates a possible location of A, B
     # C, and D.  We have a solution when we've picked one row from each constraint this are mutually consistent.
-    def __init__(self, plain_text: str="", cipher_text: str=""):
+    def __init__(self, plain_text: str = "", cipher_text: str = ""):
         self.plain_text = plain_text
         assert len(plain_text) == len(cipher_text)
         assert len(plain_text) % 2 == 0

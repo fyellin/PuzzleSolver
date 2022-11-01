@@ -1,49 +1,63 @@
 from __future__ import annotations
 
 import math
-import fractions
-from collections.abc import Iterable, Sequence, Mapping
-from typing import Any, Callable, NamedTuple, Optional
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass
+from typing import Callable, ClassVar, Optional, cast
+
 from .clue_types import ClueValue, Letter
 from .equation_parser import EquationParser
 
+WrapperType = Callable[['Evaluator', dict[Letter, int]], Iterable[ClueValue]]
 
-class Evaluator (NamedTuple):
-    wrapper: Callable[[Evaluator, dict[Letter, int]], Iterable[ClueValue]]
-    callable: Callable[[dict[Letter, int]], Optional[ClueValue]]
-    vars: Sequence[Letter]
-    expression: str
 
-    equation_parser = None
+@dataclass
+class Evaluator:
+    _wrapper: WrapperType
+    _compiled_code: Callable[[dict[Letter, int]], Optional[ClueValue]]
+    _expression: str
+    _vars: Sequence[Letter]
+
+    _equation_parser: ClassVar[EquationParser] = None
 
     @classmethod
-    def from_string(cls, expression: str,
-                    mapping: Optional[Mapping[str, Callable]] = None,
-                    wrapper: Optional[Callable[[Evaluator, dict], Iterable[ClueValue]]] = None,
-                    ) -> Sequence[Evaluator]:
-        wrapper = wrapper or cls.standard_wrapper
+    def create_evaluator(cls, expression: str,
+                         mapping: Optional[Mapping[str, Callable]] = None,
+                         wrapper: Optional[Callable[[Evaluator, dict], Iterable[ClueValue]]] = None,
+                         ) -> Evaluator:
+        result, = cls.create_evaluators(expression, mapping, wrapper)
+        return result
+
+    @classmethod
+    def create_evaluators(cls, expression: str,
+                          mapping: Optional[Mapping[str, Callable]] = None,
+                          wrapper: Optional[Callable[[Evaluator, dict], Iterable[ClueValue]]] = None,
+                          ) -> Sequence[Evaluator]:
+        if cls._equation_parser is None:
+            cls._equation_parser = EquationParser()
         if mapping is None:
             mapping = {}
-        if cls.equation_parser is None:
-            cls.equation_parser = EquationParser()
-        parses = cls.equation_parser.parse(expression)
+        wrapper = wrapper or cls.standard_wrapper
+
+        parses = cls._equation_parser.parse(expression)
         my_globals = {'fact': math.factorial, 'math': math, **mapping}
         mapping_vars = set(mapping.keys())
         evaluators = []
         for parse in parses:
-            variables = sorted(parse.vars())
+            variables = cast(Sequence[Letter], sorted(parse.vars()))
             expression = parse.to_string(mapping_vars)
             code = f"lambda {', '.join(variables)}: {expression}"
             compiled_code = eval(code, my_globals, {})
-            evaluators.append(
-                Evaluator(wrapper, compiled_code, variables, expression))
+            evaluators.append(Evaluator(wrapper, compiled_code, expression, variables))
         return evaluators
 
-    @staticmethod
-    def standard_wrapper(evaluator: Evaluator, value_dict: dict[Letter, int]
-                         ) -> Iterable[ClueValue]:
+    @property
+    def vars(self) -> Sequence[Letter]:
+        return self._vars
+
+    def standard_wrapper(self, value_dict: dict[Letter, int]) -> Iterable[ClueValue]:
         try:
-            result = evaluator.callable(*(value_dict[x] for x in evaluator.vars))
+            result = self._compiled_code(*(value_dict[x] for x in self._vars))
             int_result = int(result)
             if result == int_result > 0:
                 return ClueValue(str(int_result)),
@@ -51,21 +65,21 @@ class Evaluator (NamedTuple):
         except ArithmeticError:
             return ()
 
-    def with_alt_wrapper(self, wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]]
-                         ) -> Evaluator:
-        return self._replace(wrapper=wrapper)
+    def raw_call(self, value_dict: dict[Letter, int]) -> Iterable[int]:
+        return self._compiled_code(*(value_dict[x] for x in self._vars))
 
-    def globals(self):
-        return self.callable.__globals__
+    def set_wrapper(self, wrapper: WrapperType):
+        self._wrapper = wrapper
 
     def __str__(self):
-        return '<' + self.expression + '>'
+        return '<' + self._expression + '>'
 
     def __repr__(self):
         return str(self)
 
     def __call__(self, arg: dict[Letter, int]) -> Iterable[ClueValue]:
-        return self.wrapper(self, arg)
+        return self._wrapper(self, arg)
 
-    def __hash__(self) -> int:
-        return id(self.callable)
+    __hash__ = object.__hash__
+
+    __eq__ = object.__eq__

@@ -20,7 +20,6 @@ class Intersection(NamedTuple):
         """Returns the location of this intersection"""
         return self.this_clue.locations[self.this_index]
 
-
     @staticmethod
     def get_intersections(this: Clue, other: Clue) -> Sequence[Intersection]:
         """
@@ -61,7 +60,7 @@ class Intersection(NamedTuple):
             pattern = re.compile(''.join(pattern_list))
             return lambda _: pattern
 
-        assert(all(intersection.this_clue == clue for intersection in intersections))
+        assert all(intersection.this_clue == clue for intersection in intersections)
 
         # {0}, {1}, etc represent the order the items appear in the  "intersections" argument, not necessarily
         # the order that they appear in the pattern.  format can handle that.
