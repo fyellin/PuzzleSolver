@@ -1,4 +1,5 @@
 import itertools
+import multiprocessing
 from collections import Counter
 from collections.abc import Iterable
 from datetime import datetime
@@ -33,7 +34,7 @@ class SolvingStep(NamedTuple):
 
 class EquationSolver(BaseSolver):
     _step_count: int
-    _solution_count: int
+    _solutions: list[tuple[dict[Clue, ClueValue], KnownLetterDict]]
     _known_letters: KnownLetterDict
     _known_clues: dict[Clue, ClueValue]
     _solving_order: Sequence[SolvingStep]
@@ -61,9 +62,10 @@ class EquationSolver(BaseSolver):
 
         self._all_constraints.append((actual_clues, check_relationship))
 
-    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: int = 1000) -> int:
+    def solve(self, *, show_time: bool = True, debug: bool = False,
+              max_debug_depth: int = 1000, multiprocessing: bool = False):
         self._step_count = 0
-        self._solution_count = 0
+        self._solutions= []
         self._known_letters = {}
         self._known_clues = {}
         self._debug = debug
@@ -71,18 +73,21 @@ class EquationSolver(BaseSolver):
         time1 = datetime.now()
         self._solving_order = self._get_solving_order()
         time2 = datetime.now()
-        self._solve(0)
+        if multiprocessing:
+            self._solve_mp(0)
+        else:
+            self._solve(0)
         time3 = datetime.now()
         if show_time:
-            print(f'Solutions {self._solution_count}; steps: {self._step_count}; '
+            print(f'Solutions {len(self._solutions)}; steps: {self._step_count}; '
                   f'Setup: {time2 - time1}; Execution: {time3 - time2}; Total: {time3 - time1}')
-        return self._solution_count
+        return self._solutions
 
     def _solve(self, current_index: int) -> None:
         if current_index == len(self._solving_order):
             if self.check_solution(self._known_clues, self._known_letters):
                 self.show_solution(self._known_clues, self._known_letters)
-                self._solution_count += 1
+                self._solutions.append((self._known_clues.copy(), self._known_letters.copy()))
             return
         clue, evaluator, clue_letters, pattern_maker, constraints = self._solving_order[current_index]
         twin_value = self._known_clues.get(clue, None)  # None if not a twin, twin's value if it is.
@@ -122,6 +127,81 @@ class EquationSolver(BaseSolver):
                 self._known_letters.pop(letter, None)
             if not twin_value:
                 self._known_clues.pop(clue, None)
+
+    def _solve_mp(self, current_index: int) -> None:
+        assert current_index < len(self._solving_order)
+        clue, evaluator, clue_letters, pattern_maker, constraints = self._solving_order[current_index]
+        twin_value = self._known_clues.get(clue, None)  # None if not a twin, twin's value if it is.
+        assert twin_value is None
+        pattern = pattern_maker(self._known_clues)
+        if current_index < self._max_debug_depth:
+            print(f'{" | " * current_index} {clue.name} letters={clue_letters} pattern="{pattern.pattern}"')
+
+        items = []
+        for next_letter_values in self.get_letter_values(self._known_letters, clue_letters):
+            self._known_letters.update(zip(clue_letters, next_letter_values))
+            clue_values = evaluator(self._known_letters)
+            for clue_value in clue_values:
+                if not (clue_value and pattern.fullmatch(clue_value)):
+                    continue
+                self._known_clues.pop(clue, None)
+                if not self._allow_duplicates and clue_value in self._known_clues.values():
+                    continue
+                self._known_clues[clue] = clue_value
+                if not all(constraint() for constraint in constraints):
+                    continue
+                if current_index <= self._max_debug_depth:
+                    print(f'{" | " * current_index} {clue.name} {"".join(clue_letters)} '
+                          f'{next_letter_values} {clue_value} ({clue.length}): -->')
+                items.append((clue_value, *next_letter_values))
+        if len(items) == 0:
+            raise Exception("Unexpected lack of qualified items")
+        elif len(items) == 1:
+            self._solve_mp(current_index + 1)
+        else:
+            known_clues = self._pickle_encode_known_clues_dict(self._known_clues)
+            known_letters = self._known_letters
+            args = [(id, type(self), current_index,
+                     known_clues | {clue.name: clue_value},
+                     known_letters | dict(zip(clue_letters, letter_values)))
+                    for id, (clue_value, *letter_values) in enumerate(items)]
+            with multiprocessing.Pool() as pool:
+                results =  pool.imap_unordered(self._mp_bridge, args)
+                for count, (id, solutions) in enumerate(results, start=1):
+                    clue_value, *letter_values = items[id]
+                    print(f'{clue.name} {"".join(clue_letters)} '
+                          f'{letter_values} {clue_value} ({clue.length}): --> {len(solutions)}')
+                    for clue_values, letter_values in solutions:
+                        clue_values = self._pickle_decode_known_clues_dict(clue_values)
+                        self._solutions.append((clue_values, letter_values))
+
+    def _pickle_encode_known_clues_dict(self, clue_dict: KnownClueDict) -> dict[str, ClueValue]:
+        return {clue.name: value for clue, value in clue_dict.items()}
+
+    def _pickle_decode_known_clues_dict(self, encoding: dict[str, ClueValue]) -> KnownClueDict:
+        return {self.clue_named(name): value for name, value in encoding.items()}
+
+    @staticmethod
+    def _mp_bridge(arg):
+        id, mytype, current_index, known_clues, known_letters = arg
+        self = mytype()
+        return self._handle_multiprocessing(id, current_index, known_clues, known_letters)
+
+    def _handle_multiprocessing(self, id, current_index, known_clues, known_letters):
+        self._step_count = 0
+        self._solutions = []
+
+        self._known_letters = known_letters
+        self._known_clues = self._pickle_decode_known_clues_dict(known_clues)
+        self._debug = False
+        self._max_debug_depth = -1
+        self._solving_order = self._get_solving_order()
+        for i in range(current_index + 1):
+            clue, *_ = self._solving_order[i]
+            assert clue in self._known_clues
+        self._solve(current_index + 1)
+        return id, [(self._pickle_encode_known_clues_dict(known_clues), known_letters)
+                    for known_clues, known_letters in self._solutions]
 
     def _get_solving_order(self) -> Sequence[SolvingStep]:
         """Figures out the best order to solve the various clues."""

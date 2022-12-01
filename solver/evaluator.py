@@ -40,7 +40,7 @@ class Evaluator:
         wrapper = wrapper or cls.standard_wrapper
 
         parses = cls._equation_parser.parse(expression)
-        my_globals = {'fact': math.factorial, 'math': math, **mapping}
+        my_globals = {'fact': cls.factorial, 'sqrt': cls.sqrt, 'math': math, **mapping}
         mapping_vars = set(mapping.keys())
         evaluators = []
         for parse in parses:
@@ -51,9 +51,27 @@ class Evaluator:
             evaluators.append(Evaluator(wrapper, compiled_code, expression, variables))
         return evaluators
 
+    @staticmethod
+    def factorial(i):
+        if (j := int(i)) == i and j >= 0:
+            return math.factorial(j)
+        raise ArithmeticError
+
+    @staticmethod
+    def sqrt(i):
+        if i >= 0:
+            result = math.isqrt(i)
+            if result * result == i:
+                return result
+        raise ArithmeticError
+
     @property
     def vars(self) -> Sequence[Letter]:
         return self._vars
+
+    @property
+    def compiled_code(self):
+        return self._compiled_code
 
     def standard_wrapper(self, value_dict: dict[Letter, int]) -> Iterable[ClueValue]:
         try:

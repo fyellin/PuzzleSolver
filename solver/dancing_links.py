@@ -239,7 +239,7 @@ class Encoder:
     table: dict[str, tuple[Sequence[int], Sequence[int]]]
 
     @staticmethod
-    def alphabet(prefix: str = "") -> Encoder:
+    def of_alphabet(prefix: str = "") -> Encoder:
         return Encoder(string.ascii_uppercase, prefix)
 
     @staticmethod

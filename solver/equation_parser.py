@@ -12,7 +12,7 @@ from solver.sly.yacc import Parser
 
 class MyLexer(Lexer):
     tokens = {'NAME', 'NUMBER', 'FUNCTION',
-              'POWER', 'EXCLAMATION', 'PLUS', 'MINUS', 'TIMES', 'DIVIDE'}
+              'POWER', 'EXCLAMATION', 'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'SQUARE_ROOT'}
     ignore = " \t\n"
     literals = ['(', ')', '=', ',']
 
@@ -26,6 +26,7 @@ class MyLexer(Lexer):
     MINUS = r'-|−|–'    # -, \u2013 = n-dash, \u2212 = subtraction]
     TIMES = r'\*|×'
     DIVIDE = r'/'
+    SQUARE_ROOT = r'√'
 
     def MINUS(self, t):
         t.value = '-'
@@ -37,6 +38,10 @@ class MyLexer(Lexer):
 
     def FUNCTION(self, t):
         t.value = t.value[1:-1]
+        return t
+
+    def SQUARE_ROOT(self, t):
+        t.value = '√'
         return t
 
     def error(self, t):
@@ -67,7 +72,7 @@ class MyParser(Parser):
         return self.__binop_builder(p[0], (('*', x) for x, in p[1]))
 
     # prefix
-    @_('{ MINUS|PLUS } exponent')
+    @_('{ MINUS|PLUS|SQUARE_ROOT } exponent')
     def prefix(self, p):
         return self.__unary_builder(p[1], p[0])
 
@@ -139,10 +144,10 @@ class Parse:
 
     PARSE_BINOPS: ClassVar[dict[str, str]] = {'+': 'add', '-': 'sub', '*': 'mul',
                                               '/': 'div', '**': 'pow'}
-    PARSE_UNOPS: ClassVar[dict[str], str] = {'+': 'pos', '-': 'neg', '!': 'fact'}
+    PARSE_UNOPS: ClassVar[dict[str], str] = {'+': 'pos', '-': 'neg', '!': 'fact', '√': 'sqrt'}
 
     def to_string(self, functions: set[str] = frozenset()) -> str:
-        functions |= { 'fact' }
+        functions |= { 'fact', 'sqrt' }
         def internal(expression):
             match expression:
                 case ('var', x) | ('const', x):
@@ -254,7 +259,7 @@ MI(X – E)D
 –(V–I)^C(T+O)+(R+Y)!
 (Y+E)LL+V^(I+O+L)
 (D + R)^(UG)(AB)^(B(R + E) – V)
-(W–R)^Y +(N+E+C)/K
+(W–R)^Y +(N+E+C)/√K
 """
 
 ITEMS = ITEM_STRING.strip().splitlines()
