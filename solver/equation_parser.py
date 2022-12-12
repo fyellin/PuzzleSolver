@@ -11,15 +11,17 @@ from solver.sly.yacc import Parser
 
 
 class MyLexer(Lexer):
-    tokens = {'NAME', 'NUMBER', 'FUNCTION',
+    tokens = {'NAME', 'LONG_NAME', 'NUMBER', 'FUNCTION', 'OLD_FUNCTION',
               'POWER', 'EXCLAMATION', 'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'SQUARE_ROOT'}
     ignore = " \t\n"
     literals = ['(', ')', '=', ',']
 
     # Tokens
     NAME = r'[a-zA-Z]'
+    LONG_NAME = r'\$[a-zA-Z][0-9a-zA-Z]*'
     NUMBER = r'\d+'
-    FUNCTION = r'"[^"]*"'
+    OLD_FUNCTION = r'"[^"]*"'
+    FUNCTION = r'@[a-zA-Z][0-9a-zA-Z]*'
     POWER = r'\*\*|\^'   # must be defined before TIMES
     EXCLAMATION = r'!'
     PLUS = r'\+'
@@ -34,14 +36,6 @@ class MyLexer(Lexer):
 
     def TIMES(self, t):
         t.value = '*'
-        return t
-
-    def FUNCTION(self, t):
-        t.value = t.value[1:-1]
-        return t
-
-    def SQUARE_ROOT(self, t):
-        t.value = '√'
         return t
 
     def error(self, t):
@@ -103,9 +97,17 @@ class MyParser(Parser):
     def atom(self, p):
         return 'var', p.NAME
 
+    @_('LONG_NAME')
+    def atom(self, p):
+        return 'var', p.LONG_NAME[1:]
+
     @_('FUNCTION "(" [ arglist ] ")"')
     def atom(self, p):
-        return 'function', p.FUNCTION, tuple(p.arglist or ())
+        return 'function', p.FUNCTION[1:], tuple(p.arglist or ())
+
+    @_('OLD_FUNCTION "(" [ arglist ] ")"')
+    def atom(self, p):
+        return 'function', p.OLD_FUNCTION[1:-1], tuple(p.arglist or ())
 
     @_('expression { "," expression }')
     def arglist(self, p):
@@ -144,10 +146,12 @@ class Parse:
 
     PARSE_BINOPS: ClassVar[dict[str, str]] = {'+': 'add', '-': 'sub', '*': 'mul',
                                               '/': 'div', '**': 'pow'}
-    PARSE_UNOPS: ClassVar[dict[str], str] = {'+': 'pos', '-': 'neg', '!': 'fact', '√': 'sqrt'}
+    PARSE_UNOPS: ClassVar[dict[str], str] = {'+': 'pos', '-': 'neg',
+                                             '!': 'fact', '√': 'sqrt'}
 
     def to_string(self, functions: set[str] = frozenset()) -> str:
-        functions |= { 'fact', 'sqrt' }
+        functions |= {'fact', 'sqrt'}
+
         def internal(expression):
             match expression:
                 case ('var', x) | ('const', x):
@@ -263,6 +267,7 @@ MI(X – E)D
 """
 
 ITEMS = ITEM_STRING.strip().splitlines()
+
 
 def run2():
     parser = EquationParser()

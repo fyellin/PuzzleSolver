@@ -76,9 +76,9 @@ class Magpie240(EquationSolver):
                 location = locations[number - 1]
                 length = int(match.group(4 - is_across))
                 expr1 = match.group(2).strip()
-                expr2 = f'-{chr(96 + number)}' if is_across else match.group(3).strip()
+                expr2 = f'$a{number} - 100' if is_across else match.group(3).strip()
                 clue = Clue(f'{number}{letter}', is_across, location, length)
-                expression = f'"square2"({expr1}, {expr2})'
+                expression = f'@square2({expr1}, {expr2})'
                 clue.evaluators = Evaluator.create_evaluators(
                     expression, mapping=dict(square2=self.squares2))
                 results.append(clue)
@@ -100,14 +100,14 @@ class Magpie240(EquationSolver):
         if not letters:
             yield()
             return
-        uppers = [x for x in letters if x.isupper()]
-        downers = [x for x in letters if x.islower()]
+        uppers = [x for x in letters if len(x) == 1 and x.isupper()]
+        downers = [x for x in letters if len(x) > 1 or x.islower()]
         unused_uppers = unused_downers = []
         if uppers:
             unused_uppers = [i for i in range(1, 16)
                              if i not in known_letters.values()]
         if downers:
-            unused_downers = [i for i in range(-1, -100, -1)
+            unused_downers = [i for i in range(101, 200)
                               if i not in known_letters.values()]
         if not downers:
             for values in itertools.permutations(unused_uppers, len(uppers)):
