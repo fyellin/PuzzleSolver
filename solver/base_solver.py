@@ -131,7 +131,7 @@ class BaseSolver(ABC):
             if clue in clue_values:
                 for location, value in zip(clue.locations, clue_values[clue]):
                     if location in location_to_entry:
-                        assert value == location_to_entry[location]
+                        assert value == location_to_entry[location], f'Clash at {location} {value} ≠ {location_to_entry[location]}'
                     else:
                         location_to_entry[location] = value
             # These are internal locations of an answer, so a heavy bar isn't needed.

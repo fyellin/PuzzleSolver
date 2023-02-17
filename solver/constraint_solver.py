@@ -122,14 +122,15 @@ class ConstraintSolver(BaseSolver):
 
         try:
             letter_handler_clue_info = letter_handler and letter_handler.get_clue_info(clue)
-            self._step_count += len(values)
             for i, value in enumerate(sorted(values)):
+                self._step_count += 1
                 is_duplicate = not self._allow_duplicates and value in seen_values and len(value) > 1
                 fails_special_handling = letter_handler and not letter_handler.checking_value(value, letter_handler_clue_info)
                 if depth < self._max_debug_depth:
                     print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: {value.__repr__()} -->'
                           f'{" dup" if is_duplicate else ""}'
-                          f'{" special-handling-fail" if fails_special_handling else ""}')
+                          f'{" special-handling-fail" if fails_special_handling else ""}'
+                          f' [{self._step_count}]')
                 if is_duplicate or fails_special_handling:
                     continue
 

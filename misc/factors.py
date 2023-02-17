@@ -4,9 +4,8 @@ import operator
 from typing import Sequence, Tuple, Iterator
 
 
-@functools.lru_cache(None)
+@functools.cache
 def prime_factors(value: int) -> Sequence[Tuple[int, int]]:
-    # 21033 is incorrect
     from misc.primes import PRIMES
     result = []
     for prime in PRIMES:
@@ -24,7 +23,7 @@ def prime_factors(value: int) -> Sequence[Tuple[int, int]]:
             return result
 
 
-@functools.lru_cache(None)
+@functools.cache
 def divisor_count(value: int) -> int:
     factorization = prime_factors(value)
     return product(count + 1 for _prime, count in factorization)
@@ -38,19 +37,19 @@ def phi(value: int) -> int:
     return current
 
 
-@functools.lru_cache(None)
+@functools.cache
 def factor_sum(value: int) -> int:
     factorization = prime_factors(value)
     return product((prime ** (count + 1) - 1) // (prime - 1) for prime, count in factorization)
 
 
-@functools.lru_cache(None)
+@functools.cache
 def factor_count(value: int) -> int:
     factorization = prime_factors(value)
     return product(count + 1 for _, count in factorization)
 
 
-@functools.lru_cache(None)
+@functools.cache
 def factor_list(value: int) -> Sequence[int]:
     def recurse(prime_factor_list) -> Sequence[int]:
         if not prime_factor_list:
@@ -65,20 +64,20 @@ def factor_list(value: int) -> Sequence[int]:
     return result
 
 
-@functools.lru_cache(None)
+@functools.cache
 def shared_factor_count(x: int, y: int) -> int:
     gcd = math.gcd(x, y)
     return factor_count(gcd)
 
 
-@functools.lru_cache(None)
+@functools.cache
 def odd_factor_count(value: int) -> int:
     while value % 2 == 0:
         value = value // 2
     return factor_count(value)
 
 
-@functools.lru_cache(None)
+@functools.cache
 def even_factor_count(value: int) -> int:
     count = 0
     while value & 1 == 0:
