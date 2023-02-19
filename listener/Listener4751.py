@@ -1,8 +1,7 @@
 import itertools
 import math
-from collections import Counter
-from functools import cache
 from collections.abc import Sequence
+from functools import cache
 
 from misc.factors import divisor_count
 from solver import Clue, Clues, ConstraintSolver, generators
@@ -117,6 +116,7 @@ class Listener4751 (ConstraintSolver):
         self.results = []
         self.message = self.translate("REVERSEACROSSENTRIES")
         clues, constraints = self.get_clues()
+        self.constraints = constraints
         super().__init__(clues, constraints=constraints,)
 
     def translate(self, message):
@@ -124,23 +124,6 @@ class Listener4751 (ConstraintSolver):
 
     def finish(self) -> None:
         return
-        print(len(self.results))
-
-        for result in self.results:
-            alt_result = self.reverse_solution(result)
-            if self.verify_solution(alt_result):
-                print(self.clue_to_message(result), alt_result in self.results)
-                self.plot_board(alt_result)
-
-
-
-
-        messages = [self.clue_to_message(result) for result in self.results]
-        messages = [message for message in messages if message[:7] == self.message[:7]]
-        counter = Counter(message[7:13] for message in messages)
-        for value in sorted(counter):
-            count = counter[value]
-            print(f'{count:>4}, {value}')
 
     def get_clues(self) -> tuple[Sequence[Clue], Sequence[Constraint]]:
         grid = Clues.get_locations_from_grid(GRID)
@@ -172,15 +155,25 @@ class Listener4751 (ConstraintSolver):
             return False
         return True
 
+    # AAA = (351, 169, 82, 75, 88, 8552, 29, 135, 384, 45, 1229, 11, 17, 18, 954, 389, 38, 525,
+    #  172, 65, 98, 189, 55, 81, 23, 28, 35, 59, 49, 415, 174, 20, 218, 19, 15, 89)
+    # BBB = (153, 961, 28, 57, 88, 2558, 92, 531, 483, 54, 9221, 11, 71, 81, 459, 983, 12, 585,
+    #  958, 67, 18, 182, 55, 25, 24, 98, 34, 19, 31, 515, 919, 20, 288, 14, 75, 13)
+
     def show_solution(self, result: KnownClueDict) -> None:
+        return
         self.results.append(result.copy())
         message = self.clue_to_message(result)
         if message == self.message:
+            count = len(self.results)
+            print(len(self.results))
             alt_result = self.reverse_solution(result)
             if self.verify_solution(alt_result):
-                # self.plot_board(result, subtext="Solution")
-                # self.plot_board(alt_result, subtext="Entry")
-                print(self.clue_to_message(result))
+                self.plot_board(result, subtext=f"Solution #{count}")
+                self.plot_board(alt_result, subtext=f"Entry #{count}")
+            else:
+                pass
+                # self.plot_board(result, subtext=f"Bad #{count}")
 
     def clue_to_message(self, result):
         return tuple(int(result[clue][-1]) for clue in self._clue_list
@@ -200,19 +193,23 @@ class Listener4751 (ConstraintSolver):
         return result
 
     def verify_solution(self, known_clues: KnownClueDict) -> bool:
-        singleton_constraint = self._singleton_constraint
-        constraints = self._constraints
         if len(set(known_clues.values())) != len(known_clues):
             return False
+        if any(value[0] == '0' for value in known_clues.values()):
+            return False
         for clue, value in known_clues.items():
-            gen = set(clue.generator(clue))
-            if value not in gen and int(value) not in gen:
+            legal_values = self.__get_clue_legal_values(clue)
+            if value not in legal_values and int(value) not in legal_values:
                 return False
-            if not all(constraint(value) for constraint in singleton_constraint[clue]):
-                return False
-            if not all(constraint(known_clues) for constraint in constraints[clue]):
+        for constraint in self.constraints:
+            values = [known_clues[self.clue_named(x)] for x in constraint.clues.split()]
+            if not constraint.predicate(*values):
                 return False
         return True
+
+    @cache
+    def __get_clue_legal_values(self, clue):
+        return set(clue.generator(clue))
 
 
 if __name__ == '__main__':

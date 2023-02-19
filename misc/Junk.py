@@ -1,12 +1,16 @@
 import sys
+import unittest
 
-class Classmate:
-    def __init__(self, name):
-        self.name = name
 
-    def hello(self):
-        print(f'My name is {self.name} and I am a', end = '')
+SETTINGS = {}
+print(id(SETTINGS))
 
-classmate1 = Classmate(sys.argv[1])
-classmate1.hello()
-print(classmate1.__class__)
+class MyTests(unittest.TestCase):
+    def test_foobar(self):
+        print(id(SETTINGS))
+        self.assertEqual(2, 3)
+
+
+if __name__ == '__main__':
+    print('hello')
+    unittest.main()

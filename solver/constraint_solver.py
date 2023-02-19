@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import itertools
 from collections import Counter, defaultdict
-from collections.abc import Collection, Callable, Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from heapq import nlargest, nsmallest
 from typing import Any, NamedTuple, Optional, Union, cast
@@ -14,7 +14,7 @@ from .clue_types import ClueValue
 from .intersection import Intersection
 
 KnownClueDict = dict[Clue, ClueValue]
-
+UnknownClueDict = dict[Clue, tuple[ClueValue]]
 
 class ConstraintSolver(BaseSolver):
     _step_count: int
@@ -34,18 +34,21 @@ class ConstraintSolver(BaseSolver):
         super().__init__(clue_list, **kwargs)
         self._constraints = defaultdict(list)
         self._singleton_constraint = defaultdict(list)
-        self._all_intersections = self.__get_all_intersections()
         self._letter_handler = letter_handler
+
+        self.__add_intersection_constraints()
 
         for constraint in constraints:
             clues, predicate, name = constraint
             self.add_constraint(clues, predicate, name=name)
 
-    def add_constraint(self, clues: Sequence[Union[Clue, str]] | str, predicate: Callable[..., bool],
+    def add_constraint(self, clues: Sequence[Union[Clue, str]] | str,
+                       predicate: Callable[..., bool],
                        *, name: Optional[str] = None) -> None:
         if isinstance(clues, str):
             clues = clues.split()
-        actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue) for clue in clues)
+        actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue)
+                             for clue in clues)
         actual_name = name or '-'.join(clue.name for clue in actual_clues)
 
         if len(actual_clues) == 1:
@@ -56,22 +59,27 @@ class ConstraintSolver(BaseSolver):
             # This is just an optimization, since the two-clue case in the most common
             clue1, clue2 = actual_clues
 
-            def check_relationship(unknown_clues: dict[Clue, frozenset[ClueValue]]) -> bool:
-                return self.__check_2_clue_constraint(clue1, clue2, unknown_clues, predicate, actual_name)
+            def check_relationship(unknown_clues: UnknownClueDict) -> bool:
+                return self.__check_2_clue_constraint(clue1, clue2, unknown_clues,
+                                                      predicate, actual_name)
         else:
-            def check_relationship(unknown_clues: dict[Clue, frozenset[ClueValue]]) -> bool:
-                return self.__check_n_clue_constraint(actual_clues, unknown_clues, predicate, actual_name)
+            def check_relationship(unknown_clues: UnknownClueDict) -> bool:
+                return self.__check_n_clue_constraint(actual_clues, unknown_clues,
+                                                      predicate, actual_name)
         for clue in actual_clues:
             self._constraints[clue].append(check_relationship)
 
-    def add_extended_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., Sequence[ClueValue]],
+    def add_extended_constraint(self, clues: Sequence[Union[Clue, str]],
+                                predicate: Callable[..., Sequence[ClueValue]],
                                 *, name: Optional[str] = None) -> None:
-        actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue) for clue in clues)
+        actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue)
+                             for clue in clues)
         actual_name = name or '-'.join(clue.name for clue in actual_clues)
         assert len(clues) > 1
 
-        def check_relationship(unknown_clues: dict[Clue, frozenset[ClueValue]]) -> bool:
-            return self.__check_extended_constraint(actual_clues, unknown_clues, predicate, actual_name)
+        def check_relationship(unknown_clues: UnknownClueDict) -> bool:
+            return self.__check_extended_constraint(actual_clues, unknown_clues,
+                                                    predicate, actual_name)
 
         for clue in actual_clues:
             self._constraints[clue].append(check_relationship)
@@ -83,7 +91,8 @@ class ConstraintSolver(BaseSolver):
         self._solution_count = 0
         self._known_clues = {}
         self._debug = debug
-        self._start_clues = [self.clue_named(x) if isinstance(x, str) else x for x in start_clues]
+        self._start_clues = [self.clue_named(x) if isinstance(x, str) else x
+                             for x in start_clues]
         self._max_debug_depth = -1 if not debug else (max_debug_depth or 1000)
         time1 = datetime.now()
         initial_unknown_clues = {clue: self.__get_initial_values_for_clue(clue)
@@ -95,10 +104,11 @@ class ConstraintSolver(BaseSolver):
         time3 = datetime.now()
         if show_time:
             print(f'Solutions {self._solution_count}; Steps: {self._step_count}; '
-                  f'Setup: {time2 - time1}; Execution: {time3 - time2}; Total: {time3 - time1}')
+                  f'Setup: {time2 - time1}; Execution: {time3 - time2}; '
+                  f'Total: {time3 - time1}')
         return self._solution_count
 
-    def __solve(self, unknown_clues: dict[Clue, frozenset[ClueValue]]) -> None:
+    def __solve(self, unknown_clues: UnknownClueDict) -> None:
         depth = len(self._known_clues)
         if not unknown_clues:
             if self.check_solution(self._known_clues):
@@ -112,8 +122,10 @@ class ConstraintSolver(BaseSolver):
             clue = self._start_clues[depth]
             values = unknown_clues[clue]
         else:
-            # find the clue -> values with the smallest possible number of values and the greatest length
-            clue, values = min(unknown_clues.items(), key=lambda x: (len(x[1]), -x[0].length, x[0].name))
+            # find the clue -> values with the smallest possible number of values
+            # and the greatest length
+            clue, values = min(unknown_clues.items(),
+                               key=lambda x: (len(x[1]), -x[0].length, x[0].name))
         if not values:
             if depth < self._max_debug_depth:
                 print(f'{" | " * depth}{clue.name} XX')
@@ -124,7 +136,7 @@ class ConstraintSolver(BaseSolver):
 
         try:
             letter_handler_clue_info = letter_handler and letter_handler.get_clue_info(clue)
-            for i, value in enumerate(sorted(values)):
+            for i, value in enumerate(values):
                 self._step_count += 1
                 is_duplicate = not self._allow_duplicates and value in seen_values and len(value) > 1
                 fails_special_handling = letter_handler and not letter_handler.checking_value(value, letter_handler_clue_info)
@@ -143,28 +155,11 @@ class ConstraintSolver(BaseSolver):
                 # Check the constraints.
                 if not all(constraint(next_unknown_clues) for constraint in constraints):
                     continue
-
-                # Look at all the other clues intersecting "clue", and their intersections.
-                for clue2, intersections in self._all_intersections[clue]:
-                    if clue2 in next_unknown_clues:
-                        values2: Collection[ClueValue] = next_unknown_clues[clue2]
-                        values2_size = len(values2)
-                        for intersection in intersections:
-                            values2 = [x for x in values2 if intersection.values_match(value, x)]
-                            if depth < self._max_debug_depth and len(values2) != values2_size:
-                                print(f'{"   " * depth}   {clue2.name} {values2_size} -> {len(values2)} '
-                                      f'[{intersection}]')
-                                values2_size = len(values2)
-                        if not values2:
-                            break
-                        next_unknown_clues[clue2] = frozenset(values2)
-                else:
-                    # If we get here, "break" was not called in the "for" loop, so everything is good to go.
-                    if letter_handler:
-                        letter_handler.adding_value(value, letter_handler_clue_info)
-                    self.__solve(next_unknown_clues)
-                    if letter_handler:
-                        letter_handler.removing_value(value, letter_handler_clue_info)
+                if letter_handler:
+                    letter_handler.adding_value(value, letter_handler_clue_info)
+                self.__solve(next_unknown_clues)
+                if letter_handler:
+                    letter_handler.removing_value(value, letter_handler_clue_info)
 
         finally:
             self._known_clues.pop(clue, None)
@@ -172,7 +167,7 @@ class ConstraintSolver(BaseSolver):
     def get_initial_values_for_clue(self, clue):
         return self.__get_initial_values_for_clue(clue)
 
-    def __get_initial_values_for_clue(self, clue: Clue) -> frozenset[ClueValue]:
+    def __get_initial_values_for_clue(self, clue: Clue) -> tuple[ClueValue]:
         """
         Generates all the possible values for the clue, but tosses out those that have a zero in a bad location,
         or otherwise don't find the expected pattern.
@@ -181,34 +176,45 @@ class ConstraintSolver(BaseSolver):
         pattern = pattern_generator({})
         clue_generator = cast(ClueValueGenerator, clue.generator)  # we know clue_generator isn't None
         string_values = [(str(x) if isinstance(x, int) else x) for x in clue_generator(clue)]
-        result = frozenset([x for x in string_values
-                            if pattern.fullmatch(x)
-                            if all(predicate(x) for predicate in self._singleton_constraint[clue])])
+        predicates = self._singleton_constraint[clue]
+        result = tuple(sorted([x for x in string_values
+                               if pattern.fullmatch(x)
+                               if all(predicate(x) for predicate in predicates)]))
         if self._max_debug_depth > 0:
             def show_full(x):
                 return [item.__repr__() for item in x]
 
             if len(result) <= 20:
-                print(f'{clue.name}: ({", ".join(show_full(sorted(result)))})')
+                print(f'{clue.name}: ({", ".join(show_full(result))})')
             else:
                 smallest = nsmallest(8, result)
                 largest = nlargest(8, result)
                 largest.reverse()
                 print(f'{clue.name}: ({", ".join(show_full(smallest))} '
                       f'[{len(result) - 16} skipped] {", ".join(show_full(largest))})')
-        return cast(frozenset[ClueValue], result)
+        return cast(tuple[ClueValue], result)
 
-    def __get_all_intersections(self) -> dict[Clue, Sequence[tuple[Clue, Sequence[Intersection]]]]:
-        """
-        For each clue, returns every other clue that it intersects, and the list of those intersections
-        """
-        result: dict[Clue, list[tuple[Clue, Sequence[Intersection]]]] = {clue: [] for clue in self._clue_list}
+    def __add_intersection_constraints(self):
+        def create_single_constraint(clue: Clue, clue2: Clue, intersection: Intersection):
+            constraint_name = str(intersection)
+            this_index, other_index = intersection.this_index, intersection.other_index
+
+            def check_relationship(unknown_clues: UnknownClueDict) -> bool:
+                if clue2 not in unknown_clues:
+                    return True
+                this_char = self._known_clues[clue][this_index]
+                start_value = unknown_clues[clue2]
+                end_value = tuple(x for x in start_value if this_char == x[other_index])
+                if len(self._known_clues) < self._max_debug_depth:
+                    self.__debug_show_constraint(clue2, constraint_name, start_value, end_value)
+                unknown_clues[clue2] = end_value
+                return bool(end_value)
+
+            return check_relationship
+
         for clue, clue2 in itertools.permutations(self._clue_list, 2):
-            intersections = Intersection.get_intersections(clue, clue2)
-            if intersections:
-                result[clue].append((clue2, intersections))
-        # mypy isn't happy returning a list when I've declared "sequence"
-        return cast(dict[Clue, Sequence[tuple[Clue, Sequence[Intersection]]]], result)
+            for intersection in Intersection.get_intersections(clue, clue2):
+                self._constraints[clue].append(create_single_constraint(clue, clue2, intersection))
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         return True
@@ -219,7 +225,7 @@ class ConstraintSolver(BaseSolver):
 
     def __check_2_clue_constraint(
             self, clue1: Clue, clue2: Clue,
-            unknown_clues: dict[Clue, frozenset[ClueValue]],
+            unknown_clues: UnknownClueDict,
             clue_filter: Callable[[ClueValue, ClueValue], bool],
             name: str) -> bool:
         """
@@ -232,24 +238,23 @@ class ConstraintSolver(BaseSolver):
         value1, value2 = self._known_clues.get(clue1, None), self._known_clues.get(clue2, None)
         unknown_values_count = (value1 is None) + (value2 is None)
         if unknown_values_count == 1:
-            if value1:
+            if value1 is not None:
                 unknown_clue = clue2
                 start_value = unknown_clues[clue2]
-                end_value = unknown_clues[clue2] = frozenset(x for x in start_value if clue_filter(value1, x))
+                end_value = unknown_clues[clue2] = tuple(
+                    x for x in start_value if clue_filter(value1, x))
             else:
                 unknown_clue = clue1
                 start_value = unknown_clues[clue1]
-                end_value = unknown_clues[clue1] = frozenset(
+                end_value = unknown_clues[clue1] = tuple(
                     x for x in start_value if clue_filter(x, cast(ClueValue, value2)))
             if len(self._known_clues) < self._max_debug_depth:
                 self.__debug_show_constraint(unknown_clue, name, start_value, end_value)
             return bool(end_value)
-        elif unknown_values_count == 0:
-            assert clue_filter(cast(ClueValue, value1), cast(ClueValue, value2))
         return True
 
     def __check_n_clue_constraint(self, clues: tuple[Clue, ...],
-                                  unknown_clues: dict[Clue, frozenset[ClueValue]],
+                                  unknown_clues: UnknownClueDict,
                                   clue_filter: Callable[..., bool],
                                   name: str) -> bool:
         """
@@ -265,31 +270,21 @@ class ConstraintSolver(BaseSolver):
         if unknown_values_count == 1:
             unknown_index = values.index(None)
             unknown_clue = clues[unknown_index]
-
-            def clue_filter_caller(value: ClueValue) -> bool:
-                values[unknown_index] = value
-                return clue_filter(*cast(list[ClueValue], values))
+            pre_values, post_values = values[:unknown_index], values[unknown_index + 1:]
 
             start_value = unknown_clues[unknown_clue]
-            end_value = unknown_clues[unknown_clue] = frozenset(filter(clue_filter_caller, start_value))
+            end_value = unknown_clues[unknown_clue] = tuple(
+                value for value in start_value
+                if clue_filter(*pre_values, value, *post_values))
             if len(self._known_clues) < self._max_debug_depth:
                 self.__debug_show_constraint(unknown_clue, name, start_value, end_value)
             return bool(end_value)
-        elif unknown_values_count == 0:
-            assert clue_filter(*cast(list[ClueValue], values))
         return True
 
     def __check_extended_constraint(self, clues: tuple[Clue, ...],
-                                    unknown_clues: dict[Clue, frozenset[ClueValue]],
+                                    unknown_clues: UnknownClueDict,
                                     clue_filter: Callable[..., Sequence[ClueValue]],
                                     name: str) -> bool:
-        """
-        Used by constraints with more than two variables.
-        Ensures that the clues satisfy a certain relationship.
-        If the value of all clues is already known, it will make sure that the values pass the relationship.
-        If the value of all but one is known, this will remove all values of the remaining unknown clue that don't
-        pass the relationship.
-        """
         values = [self._known_clues.get(clue, None) for clue in clues]
         unknown_values_count = values.count(None)
 
@@ -300,17 +295,19 @@ class ConstraintSolver(BaseSolver):
         unknown_clue = clues[unknown_index]
 
         start_value = unknown_clues[unknown_clue]
-        end_value = unknown_clues[unknown_clue] = frozenset(clue_filter(start_value, *values))
+        end_value = unknown_clues[unknown_clue] = tuple(clue_filter(start_value, *values))
 
         if len(self._known_clues) < self._max_debug_depth:
             self.__debug_show_constraint(unknown_clue, name, start_value, end_value)
         return bool(end_value)
 
-    def __debug_show_constraint(self, clue: Clue, constraint_name: str, start_value: frozenset[ClueValue],
-                                end_value: frozenset[ClueValue]) -> None:
+    def __debug_show_constraint(self, clue: Clue, constraint_name: str,
+                                start_value: tuple[ClueValue],
+                                end_value: tuple[ClueValue]) -> None:
         if len(start_value) != len(end_value):
             depth = len(self._known_clues) - 1
-            print(f'{"   " * depth}   {clue.name} {len(start_value)} -> {len(end_value)} [{constraint_name}] ')
+            print(f'{"   " * depth}   {clue.name} {len(start_value)} -> '
+                  f'{len(end_value)} [{constraint_name}] ')
 
 
 class Constraint(NamedTuple):
