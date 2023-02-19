@@ -41,8 +41,10 @@ class ConstraintSolver(BaseSolver):
             clues, predicate, name = constraint
             self.add_constraint(clues, predicate, name=name)
 
-    def add_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., bool],
+    def add_constraint(self, clues: Sequence[Union[Clue, str]] | str, predicate: Callable[..., bool],
                        *, name: Optional[str] = None) -> None:
+        if isinstance(clues, str):
+            clues = clues.split()
         actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue) for clue in clues)
         actual_name = name or '-'.join(clue.name for clue in actual_clues)
 
@@ -312,7 +314,7 @@ class ConstraintSolver(BaseSolver):
 
 
 class Constraint(NamedTuple):
-    clues: Sequence[Union[Clue, str]]
+    clues: Sequence[Clue | str] | str
     predicate: Callable[..., bool]
     name: Optional[str] = None
 
