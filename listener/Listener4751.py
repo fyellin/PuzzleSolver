@@ -161,12 +161,10 @@ class Listener4751 (ConstraintSolver):
     #  958, 67, 18, 182, 55, 25, 24, 98, 34, 19, 31, 515, 919, 20, 288, 14, 75, 13)
 
     def show_solution(self, result: KnownClueDict) -> None:
-        return
         self.results.append(result.copy())
         message = self.clue_to_message(result)
         if message == self.message:
             count = len(self.results)
-            print(len(self.results))
             alt_result = self.reverse_solution(result)
             if self.verify_solution(alt_result):
                 self.plot_board(result, subtext=f"Solution #{count}")

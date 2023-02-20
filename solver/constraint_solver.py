@@ -14,7 +14,8 @@ from .clue_types import ClueValue
 from .intersection import Intersection
 
 KnownClueDict = dict[Clue, ClueValue]
-UnknownClueDict = dict[Clue, tuple[ClueValue]]
+UnknownClueDict = dict[Clue, Sequence[ClueValue]]
+
 
 class ConstraintSolver(BaseSolver):
     _step_count: int
@@ -25,7 +26,6 @@ class ConstraintSolver(BaseSolver):
     _max_debug_depth: int
     _constraints: dict[Clue, list[Callable[..., bool]]]
     _singleton_constraint: dict[Clue, list[Callable[..., bool]]]
-    _all_intersections: dict[Clue, Sequence[tuple[Clue, Sequence[Intersection]]]]
     _letter_handler: Optional[LetterCountHandler]
 
     def __init__(self, clue_list: Sequence[Clue], constraints: Sequence[Constraint] = (),
@@ -36,7 +36,9 @@ class ConstraintSolver(BaseSolver):
         self._singleton_constraint = defaultdict(list)
         self._letter_handler = letter_handler
 
-        self.__add_intersection_constraints()
+        for clue, clue2 in itertools.permutations(self._clue_list, 2):
+            for intersection in Intersection.get_intersections(clue, clue2):
+                self.add_intersection_constraint(clue, clue2, intersection)
 
         for constraint in constraints:
             clues, predicate, name = constraint
@@ -135,13 +137,16 @@ class ConstraintSolver(BaseSolver):
         letter_handler = self._letter_handler
 
         try:
-            letter_handler_clue_info = letter_handler and letter_handler.get_clue_info(clue)
+            lh_clue_info = letter_handler and letter_handler.get_clue_info(clue)
             for i, value in enumerate(values):
                 self._step_count += 1
-                is_duplicate = not self._allow_duplicates and value in seen_values and len(value) > 1
-                fails_special_handling = letter_handler and not letter_handler.checking_value(value, letter_handler_clue_info)
+                is_duplicate = (not self._allow_duplicates and value in seen_values
+                                and len(value) > 1)
+                fails_special_handling = letter_handler and \
+                    not letter_handler.checking_value(value, lh_clue_info)
                 if depth < self._max_debug_depth:
-                    print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: {value.__repr__()} -->'
+                    print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: '
+                          f'{value.__repr__()} -->'
                           f'{" dup" if is_duplicate else ""}'
                           f'{" special-handling-fail" if fails_special_handling else ""}'
                           f' [{self._step_count}]')
@@ -156,10 +161,10 @@ class ConstraintSolver(BaseSolver):
                 if not all(constraint(next_unknown_clues) for constraint in constraints):
                     continue
                 if letter_handler:
-                    letter_handler.adding_value(value, letter_handler_clue_info)
+                    letter_handler.adding_value(value, lh_clue_info)
                 self.__solve(next_unknown_clues)
                 if letter_handler:
-                    letter_handler.removing_value(value, letter_handler_clue_info)
+                    letter_handler.removing_value(value, lh_clue_info)
 
         finally:
             self._known_clues.pop(clue, None)
@@ -167,19 +172,20 @@ class ConstraintSolver(BaseSolver):
     def get_initial_values_for_clue(self, clue):
         return self.__get_initial_values_for_clue(clue)
 
-    def __get_initial_values_for_clue(self, clue: Clue) -> tuple[ClueValue]:
+    def __get_initial_values_for_clue(self, clue: Clue) -> Sequence[ClueValue]:
         """
-        Generates all the possible values for the clue, but tosses out those that have a zero in a bad location,
-        or otherwise don't find the expected pattern.
+        Generates all the possible values for the clue, but tosses out those that have a
+        zero in a bad location, or otherwise don't find the expected pattern.
         """
         pattern_generator = Intersection.make_pattern_generator(clue, (), self)
         pattern = pattern_generator({})
-        clue_generator = cast(ClueValueGenerator, clue.generator)  # we know clue_generator isn't None
-        string_values = [(str(x) if isinstance(x, int) else x) for x in clue_generator(clue)]
+        clue_generator = cast(ClueValueGenerator, clue.generator)
+        string_values = [(str(x) if isinstance(x, int) else x)
+                         for x in clue_generator(clue)]
         predicates = self._singleton_constraint[clue]
-        result = tuple(sorted([x for x in string_values
-                               if pattern.fullmatch(x)
-                               if all(predicate(x) for predicate in predicates)]))
+        result = sorted([x for x in string_values
+                         if pattern.fullmatch(x)
+                         if all(predicate(x) for predicate in predicates)])
         if self._max_debug_depth > 0:
             def show_full(x):
                 return [item.__repr__() for item in x]
@@ -192,35 +198,32 @@ class ConstraintSolver(BaseSolver):
                 largest.reverse()
                 print(f'{clue.name}: ({", ".join(show_full(smallest))} '
                       f'[{len(result) - 16} skipped] {", ".join(show_full(largest))})')
-        return cast(tuple[ClueValue], result)
+        return cast(Sequence[ClueValue], result)
 
-    def __add_intersection_constraints(self):
-        def create_single_constraint(clue: Clue, clue2: Clue, intersection: Intersection):
-            constraint_name = str(intersection)
-            this_index, other_index = intersection.this_index, intersection.other_index
+    def add_intersection_constraint(self, this_clue: Clue, other_clue: Clue,
+                                    intersection: Intersection):
+        name = str(intersection)
+        this_index, other_index = intersection.this_index, intersection.other_index
 
-            def check_relationship(unknown_clues: UnknownClueDict) -> bool:
-                if clue2 not in unknown_clues:
-                    return True
-                this_char = self._known_clues[clue][this_index]
-                start_value = unknown_clues[clue2]
-                end_value = tuple(x for x in start_value if this_char == x[other_index])
-                if len(self._known_clues) < self._max_debug_depth:
-                    self.__debug_show_constraint(clue2, constraint_name, start_value, end_value)
-                unknown_clues[clue2] = end_value
-                return bool(end_value)
+        def check_relationship(unknown_clues: UnknownClueDict) -> bool:
+            if other_clue not in unknown_clues:
+                return True
+            this_char = self._known_clues[this_clue][this_index]
+            start_value = unknown_clues[other_clue]
+            end_value = [value for value in start_value
+                         if this_char == value[other_index]]
+            if len(self._known_clues) < self._max_debug_depth:
+                self.__debug_show_constraint(other_clue, name, start_value, end_value)
+            unknown_clues[other_clue] = end_value
+            return bool(end_value)
 
-            return check_relationship
-
-        for clue, clue2 in itertools.permutations(self._clue_list, 2):
-            for intersection in Intersection.get_intersections(clue, clue2):
-                self._constraints[clue].append(create_single_constraint(clue, clue2, intersection))
+        self._constraints[this_clue].append(check_relationship)
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         return True
 
     def show_solution(self, known_clues: KnownClueDict) -> None:
-        """Overridden by subclasses that want to do more than just show a plot of the board."""
+        """Overridden by subclasses that want to do more than just show a plot."""
         self.plot_board(known_clues)
 
     def __check_2_clue_constraint(
@@ -231,23 +234,23 @@ class ConstraintSolver(BaseSolver):
         """
         Used by constraints with two variables.
         Ensures that clue1 and clue2 satisfy a certain relationship.
-        If the value of both clues is already known, it will make sure that the values pass the relationship.
-        If the value of only one clue is known, this will remove all values of the other clue that don't pass the
-        relationship.
+        If the value of only one clue is known, this will remove all values of
+        the other clue that don't pass the relationship.
         """
-        value1, value2 = self._known_clues.get(clue1, None), self._known_clues.get(clue2, None)
+        value1 = self._known_clues.get(clue1, None)
+        value2 = self._known_clues.get(clue2, None)
         unknown_values_count = (value1 is None) + (value2 is None)
         if unknown_values_count == 1:
             if value1 is not None:
                 unknown_clue = clue2
                 start_value = unknown_clues[clue2]
-                end_value = unknown_clues[clue2] = tuple(
-                    x for x in start_value if clue_filter(value1, x))
+                end_value = unknown_clues[clue2] = [
+                    x for x in start_value if clue_filter(value1, x)]
             else:
                 unknown_clue = clue1
                 start_value = unknown_clues[clue1]
-                end_value = unknown_clues[clue1] = tuple(
-                    x for x in start_value if clue_filter(x, cast(ClueValue, value2)))
+                end_value = unknown_clues[clue1] = [
+                    x for x in start_value if clue_filter(x, cast(ClueValue, value2))]
             if len(self._known_clues) < self._max_debug_depth:
                 self.__debug_show_constraint(unknown_clue, name, start_value, end_value)
             return bool(end_value)
@@ -260,9 +263,8 @@ class ConstraintSolver(BaseSolver):
         """
         Used by constraints with more than two variables.
         Ensures that the clues satisfy a certain relationship.
-        If the value of all clues is already known, it will make sure that the values pass the relationship.
-        If the value of all but one is known, this will remove all values of the remaining unknown clue that don't
-        pass the relationship.
+        If the value of all but one is known, this will remove all values of
+        the remaining unknown clue that don't pass the relationship.
         """
         values = [self._known_clues.get(clue, None) for clue in clues]
         unknown_values_count = values.count(None)
@@ -273,9 +275,9 @@ class ConstraintSolver(BaseSolver):
             pre_values, post_values = values[:unknown_index], values[unknown_index + 1:]
 
             start_value = unknown_clues[unknown_clue]
-            end_value = unknown_clues[unknown_clue] = tuple(
+            end_value = unknown_clues[unknown_clue] = [
                 value for value in start_value
-                if clue_filter(*pre_values, value, *post_values))
+                if clue_filter(*pre_values, value, *post_values)]
             if len(self._known_clues) < self._max_debug_depth:
                 self.__debug_show_constraint(unknown_clue, name, start_value, end_value)
             return bool(end_value)
@@ -295,15 +297,15 @@ class ConstraintSolver(BaseSolver):
         unknown_clue = clues[unknown_index]
 
         start_value = unknown_clues[unknown_clue]
-        end_value = unknown_clues[unknown_clue] = tuple(clue_filter(start_value, *values))
+        end_value = unknown_clues[unknown_clue] = list(clue_filter(start_value, *values))
 
         if len(self._known_clues) < self._max_debug_depth:
             self.__debug_show_constraint(unknown_clue, name, start_value, end_value)
         return bool(end_value)
 
     def __debug_show_constraint(self, clue: Clue, constraint_name: str,
-                                start_value: tuple[ClueValue],
-                                end_value: tuple[ClueValue]) -> None:
+                                start_value: Sequence[ClueValue],
+                                end_value: Sequence[ClueValue]) -> None:
         if len(start_value) != len(end_value):
             depth = len(self._known_clues) - 1
             print(f'{"   " * depth}   {clue.name} {len(start_value)} -> '
