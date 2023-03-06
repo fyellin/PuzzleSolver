@@ -6,7 +6,8 @@ from functools import cache
 from misc.factors import divisor_count
 from solver import Clue, Clues, ConstraintSolver, generators
 from solver.constraint_solver import Constraint, KnownClueDict
-from solver.generators import fibonacci, known, palindrome, prime, square, triangular
+from solver.generators import fibonacci, known, palindrome, prime, square, \
+    square_pyramidal_generator, triangular
 
 
 @cache
@@ -71,14 +72,14 @@ ACROSSES = [
     (17, 3, Constraint('17a', lambda x: DS(x) in TRIANGULAR)),
     (19, 2, Constraint('19a 21d', lambda x, y: DP(x) == int(y))),
     (20, 4, prime, Constraint('20a', lambda x: DP(x) in SQUARE),
-                   Constraint('20a 13d', lambda x, y: int(y) % DS(x) == 0)),
+            Constraint('20a 13d', lambda x, y: int(y) % DS(x) == 0)),
     (23, 2, prime, Constraint('23a', lambda x: x[0] == x[1])),
     (25, 2, prime),
     (26, 2, Constraint('26a', lambda x: DP(x) in CUBE)),
     (28, 3, Constraint('28a', lambda x: DP(x) == 180)),
     (29, 3, Constraint('29a', lambda x: DP(x) in CUBE),
             Constraint('29a 21d', lambda x, y: DS(x) == int(y))),
-    ]
+]
 
 DOWNS = [
     (1, 2, Constraint('1d', lambda x: (DS(x) + DP(x)) % 10 == 5)),
@@ -88,7 +89,7 @@ DOWNS = [
            Constraint('4d', lambda x: DS(x) > 9)),
     (5, 2, known(*(2 * x * x for x in range(1, 10)))),
     (6, 3, Constraint('6d', lambda x: divisor_count(int(x)) == 8)),
-    (8, 2, known(1, 5, 14, 30, 55, 91)),
+    (8, 2, square_pyramidal_generator),
     (11, 2, square),
     (12, 2, Constraint('12d', lambda x: DP(x) in {0, 2, 4, 6, 8})),
     (13, 2, Constraint('13d', lambda x: int(x) % 7 == 0)),
@@ -110,20 +111,16 @@ class Listener4751 (ConstraintSolver):
     def run():
         solver = Listener4751()
         solver.solve(debug=False)
-        solver.finish()
 
     def __init__(self) -> None:
         self.results = []
-        self.message = self.translate("REVERSEACROSSENTRIES")
+        self.message = self.translate("REVERSE ACROSS ENTRIES".replace(' ', ''))
         clues, constraints = self.get_clues()
         self.constraints = constraints
         super().__init__(clues, constraints=constraints,)
 
     def translate(self, message):
         return tuple((ord(x) - 64) % 10 for x in message)
-
-    def finish(self) -> None:
-        return
 
     def get_clues(self) -> tuple[Sequence[Clue], Sequence[Constraint]]:
         grid = Clues.get_locations_from_grid(GRID)
@@ -148,17 +145,13 @@ class Listener4751 (ConstraintSolver):
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         values = {int(x) for x in known_clues.values()}
-        if (DP(known_clues[self.clue_named('13a')]) not in values or
-                  DS(known_clues[self.clue_named('4d')]) not in values or
-                  DP(known_clues[self.clue_named('15d')]) not in values or
-                  DP(known_clues[self.clue_named('19d')]) not in values):
-            return False
-        return True
-
-    # AAA = (351, 169, 82, 75, 88, 8552, 29, 135, 384, 45, 1229, 11, 17, 18, 954, 389, 38, 525,
-    #  172, 65, 98, 189, 55, 81, 23, 28, 35, 59, 49, 415, 174, 20, 218, 19, 15, 89)
-    # BBB = (153, 961, 28, 57, 88, 2558, 92, 531, 483, 54, 9221, 11, 71, 81, 459, 983, 12, 585,
-    #  958, 67, 18, 182, 55, 25, 24, 98, 34, 19, 31, 515, 919, 20, 288, 14, 75, 13)
+        expected_values = {
+            DP(known_clues[self.clue_named('13a')]),
+            DS(known_clues[self.clue_named('4d')]),
+            DP(known_clues[self.clue_named('15d')]),
+            DP(known_clues[self.clue_named('19d')]),
+        }
+        return expected_values <= values
 
     def show_solution(self, result: KnownClueDict) -> None:
         self.results.append(result.copy())
@@ -169,9 +162,6 @@ class Listener4751 (ConstraintSolver):
             if self.verify_solution(alt_result):
                 self.plot_board(result, subtext=f"Solution #{count}")
                 self.plot_board(alt_result, subtext=f"Entry #{count}")
-            else:
-                pass
-                # self.plot_board(result, subtext=f"Bad #{count}")
 
     def clue_to_message(self, result):
         return tuple(int(result[clue][-1]) for clue in self._clue_list

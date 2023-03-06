@@ -7,6 +7,7 @@ from typing import Any, Union
 from misc.primes import PRIMES
 from solver import Clue, ClueValue, Clues, ConstraintSolver, generators
 from solver.constraint_solver import Constraint
+from solver.generators import square_pyramidal_generator
 
 
 def digit_sum(value: ClueValue | str | int) -> int:
@@ -52,12 +53,8 @@ X....
 X.X..
 """
 
-even_generator = generators.filterer(lambda x: x % 2 == 0)
-harshad_generator = generators.filterer(lambda x: is_harshad(x))
-
-
-def square_pyramidal_generator(clue: Clue) -> Iterator[int]:
-    return generators.within_clue_limits(clue, itertools.accumulate(i * i for i in itertools.count(1)))
+even_generator = generators.filtering(lambda x: x % 2 == 0)
+harshad_generator = generators.filtering(lambda x: is_harshad(x))
 
 
 def balanced_prime_generator(clue: Clue) -> Iterator[int]:

@@ -19,13 +19,6 @@ def allvalues(clue: Clue) -> Iterable[int]:
     return iter(range(min_value, max_value))
 
 
-def filtering(predicate) -> Callable[[Clue], Iterable[int]]:
-    def result(clue: Clue) -> Iterator[int]:
-        min_value, max_value = get_min_max(clue)
-        return filter(predicate, range(min_value, max_value))
-    return result
-
-
 def palindrome(clue: Clue) -> Iterator[str]:
     """Returns palindromes"""
     half_length = (clue.length + 1) // 2
@@ -53,6 +46,13 @@ def cube(clue: Clue) -> Iterator[int]:
 
 
 def filterer(predicate) -> Callable[[Clue], Iterable[int]]:
+    def result(clue: Clue) -> Iterator[int]:
+        min_value, max_value = get_min_max(clue)
+        return filter(predicate, range(min_value, max_value))
+    return result
+
+
+def filtering(predicate) -> Callable[[Clue], Iterable[int]]:
     def result(clue: Clue) -> Iterator[int]:
         min_value, max_value = get_min_max(clue)
         return filter(predicate, range(min_value, max_value))
@@ -109,6 +109,11 @@ def triangular(clue: Clue) -> Iterator[int]:
     return within_clue_limits(clue, (i * (i + 1) // 2 for i in itertools.count(1)))
 
 
+def square_pyramidal_generator(clue: Clue) -> Iterator[int]:
+    return within_clue_limits(clue,
+                              itertools.accumulate(i * i for i in itertools.count(1)))
+
+
 def fibonacci(clue: Clue) -> Iterator[int]:
     """Returns Fibonacci numbers"""
     return within_clue_limits(clue, __fibonacci_like(1, 2))
@@ -121,8 +126,8 @@ def lucas(clue: Clue) -> Iterator[int]:
 
 def within_clue_limits(clue: Clue, stream: Iterator[int]) -> Iterator[int]:
     """
-    Filters a (possibly infinite) monotonically increasing Iterator so that it only returns those values
-    that are within the limits of this clue.
+    Filters a (possibly infinite) monotonically increasing Iterator so that it only
+    returns those values that are within the limits of this clue.
     """
     min_value, max_value = get_min_max(clue)
     for value in stream:
@@ -146,8 +151,9 @@ def convert_to_base(num: int, base: int) -> str:
 
 def using_current_base(generator: ClueValueGenerator) -> ClueValueGenerator:
     """
-    Converts a ClueValueGenerator into a new ClueValueGenerator that converts all numeric input into strings
-    of the specified base.  Needed when working with bases other then 10.
+    Converts a ClueValueGenerator into a new ClueValueGenerator that converts all numeric
+    input into strings of the specified base.  Needed when working with bases
+    other than 10.
     """
     def result(clue: Clue) -> Iterator[str]:
         def maybe_convert(value: Union[int, str]) -> str:
@@ -179,9 +185,9 @@ def prime_generator() -> Iterator[int]:
         factors.append(next_factor)
 
 #
-# The following two aren't really used.  But they're a fun experiment that I was working on.  Making sure the
-# recursion only goes one deep, by having everyone use the same list of factors.
-#
+# The following two aren't really used.  But they're a fun experiment that I was working
+# on.  Making sure the recursion only goes one deep, by having everyone use the same list
+# of factors.
 
 
 def __prime2() -> Iterator[int]:
@@ -189,7 +195,7 @@ def __prime2() -> Iterator[int]:
     factors = [3]  # i.e. [3]
     factor_sequence = __prime2x(factors)
     for _ in range(1):
-        next(factor_sequence)  # we don't need the 2, since we're only looking at odd numbers
+        next(factor_sequence)  # we don't need the 2, since we're only looking at odds
     while True:
         # The last element we pulled from factor_sequence was factors[-1]
         # We have generated all primes through factor[-1] ** 2 (which can't be a prime).
@@ -206,7 +212,8 @@ def __prime2x(factors: list[int]) -> Iterator[int]:
     yield from [3, 5, 7]
     factor_count = 1
     while True:
-        for value in range((factors[factor_count - 1] ** 2) + 2, factors[factor_count] ** 2, 2):
+        for value in range((factors[factor_count - 1] ** 2) + 2,
+                           factors[factor_count] ** 2, 2):
             if all(value % factors[i] for i in range(factor_count)):
                 yield value
         factor_count += 1

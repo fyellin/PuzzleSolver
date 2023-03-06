@@ -24,7 +24,7 @@ class ConstraintSolver(BaseSolver):
     _debug: bool
     _start_clues: Sequence[Clue]
     _max_debug_depth: int
-    _constraints: dict[Clue, list[Callable[..., bool]]]
+    _multi_constraints: dict[Clue, list[Callable[..., bool]]]
     _singleton_constraint: dict[Clue, list[Callable[..., bool]]]
     _letter_handler: Optional[LetterCountHandler]
 
@@ -32,13 +32,13 @@ class ConstraintSolver(BaseSolver):
                  *, letter_handler: Optional[LetterCountHandler] = None,
                  **kwargs: Any) -> None:
         super().__init__(clue_list, **kwargs)
-        self._constraints = defaultdict(list)
+        self._multi_constraints = defaultdict(list)
         self._singleton_constraint = defaultdict(list)
         self._letter_handler = letter_handler
 
         for clue, clue2 in itertools.permutations(self._clue_list, 2):
             for intersection in Intersection.get_intersections(clue, clue2):
-                self.add_intersection_constraint(clue, clue2, intersection)
+                self.__add_intersection_constraint(clue, clue2, intersection)
 
         for constraint in constraints:
             clues, predicate, name = constraint
@@ -69,7 +69,7 @@ class ConstraintSolver(BaseSolver):
                 return self.__check_n_clue_constraint(actual_clues, unknown_clues,
                                                       predicate, actual_name)
         for clue in actual_clues:
-            self._constraints[clue].append(check_relationship)
+            self._multi_constraints[clue].append(check_relationship)
 
     def add_extended_constraint(self, clues: Sequence[Union[Clue, str]],
                                 predicate: Callable[..., Sequence[ClueValue]],
@@ -84,7 +84,25 @@ class ConstraintSolver(BaseSolver):
                                                     predicate, actual_name)
 
         for clue in actual_clues:
-            self._constraints[clue].append(check_relationship)
+            self._multi_constraints[clue].append(check_relationship)
+
+    def __add_intersection_constraint(self, this_clue: Clue, other_clue: Clue,
+                                      intersection: Intersection):
+        name = str(intersection)
+        this_index, other_index = intersection.this_index, intersection.other_index
+
+        def check_relationship(unknown_clues: UnknownClueDict) -> bool:
+            if other_clue not in unknown_clues:
+                return True
+            char = self._known_clues[this_clue][this_index]
+            start_value = unknown_clues[other_clue]
+            end_value = [value for value in start_value if char == value[other_index]]
+            if len(self._known_clues) < self._max_debug_depth:
+                self.__debug_show_constraint(other_clue, name, start_value, end_value)
+            unknown_clues[other_clue] = end_value
+            return bool(end_value)
+
+        self._multi_constraints[this_clue].append(check_relationship)
 
     def solve(self, *, show_time: bool = True, debug: bool = False,
               max_debug_depth: Optional[int] = None,
@@ -114,8 +132,8 @@ class ConstraintSolver(BaseSolver):
         depth = len(self._known_clues)
         if not unknown_clues:
             if self.check_solution(self._known_clues):
-                self.show_solution(self._known_clues)
                 self._solution_count += 1
+                self.show_solution(self._known_clues)
                 if depth < self._max_debug_depth:
                     print(f'{"***" * depth}***SOLVED***"')
             return
@@ -132,7 +150,7 @@ class ConstraintSolver(BaseSolver):
             if depth < self._max_debug_depth:
                 print(f'{" | " * depth}{clue.name} XX')
             return
-        constraints = self._constraints[clue]
+        constraints = self._multi_constraints[clue]
         seen_values = set(self._known_clues.values())
         letter_handler = self._letter_handler
 
@@ -142,21 +160,21 @@ class ConstraintSolver(BaseSolver):
                 self._step_count += 1
                 is_duplicate = (not self._allow_duplicates and value in seen_values
                                 and len(value) > 1)
-                fails_special_handling = letter_handler and \
+                fails_letter_handler = letter_handler and \
                     not letter_handler.checking_value(value, lh_clue_info)
                 if depth < self._max_debug_depth:
                     print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: '
                           f'{value.__repr__()} -->'
                           f'{" dup" if is_duplicate else ""}'
-                          f'{" special-handling-fail" if fails_special_handling else ""}'
+                          f'{" letter-handling-fail" if fails_letter_handler else ""}'
                           f' [{self._step_count}]')
-                if is_duplicate or fails_special_handling:
+                if is_duplicate or fails_letter_handler:
                     continue
 
                 self._known_clues[clue] = value
                 # Make a shallow copy of unknown_clues, but remove this clue.
                 next_unknown_clues = dict(unknown_clues)
-                next_unknown_clues.pop(clue)
+                del next_unknown_clues[clue]
                 # Check the constraints.
                 if not all(constraint(next_unknown_clues) for constraint in constraints):
                     continue
@@ -199,25 +217,6 @@ class ConstraintSolver(BaseSolver):
                 print(f'{clue.name}: ({", ".join(show_full(smallest))} '
                       f'[{len(result) - 16} skipped] {", ".join(show_full(largest))})')
         return cast(Sequence[ClueValue], result)
-
-    def add_intersection_constraint(self, this_clue: Clue, other_clue: Clue,
-                                    intersection: Intersection):
-        name = str(intersection)
-        this_index, other_index = intersection.this_index, intersection.other_index
-
-        def check_relationship(unknown_clues: UnknownClueDict) -> bool:
-            if other_clue not in unknown_clues:
-                return True
-            this_char = self._known_clues[this_clue][this_index]
-            start_value = unknown_clues[other_clue]
-            end_value = [value for value in start_value
-                         if this_char == value[other_index]]
-            if len(self._known_clues) < self._max_debug_depth:
-                self.__debug_show_constraint(other_clue, name, start_value, end_value)
-            unknown_clues[other_clue] = end_value
-            return bool(end_value)
-
-        self._constraints[this_clue].append(check_relationship)
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         return True

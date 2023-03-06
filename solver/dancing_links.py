@@ -42,7 +42,7 @@ class DancingLinks(Generic[Row, Constraint]):
         self.row_to_constraints = constraints
         self.optional_constraints = optional_constraints or set()
         self.inclusive_constraints = inclusive_constraints or set()
-        self.row_printer = row_printer or (lambda solution: print(sorted(solution)))
+        self.row_printer = row_printer or self._default_row_printer
 
     def solve(self, output: TextIO = sys.stdout, debug: Optional[int] = None,
               recursive: Optional[bool] = False) -> None:
@@ -217,7 +217,7 @@ class DancingLinks(Generic[Row, Constraint]):
             for row_constraint in self.row_to_constraints[row]:
                 if row_constraint != constraint:
                     self.constraint_to_rows[row_constraint].add(row)
-        self.constraint_to_rows[constraint] = rows
+        self.constraint_to_rows[constraint] = rows\
 
     def __print_debug_info(self, min_constraint: Constraint, row: Row, index: int, count: int, depth: int) -> None:
         indent = self.__indent(depth)
@@ -227,6 +227,10 @@ class DancingLinks(Generic[Row, Constraint]):
         else:
             self.output.write(f"{indent}{index}/{count} ")
         self.output.write(f"{min_constraint}: Row {row} ({len(live_rows)} rows)\n")
+
+    @staticmethod
+    def _default_row_printer(solution):
+        print(sorted(solution))
 
     @staticmethod
     def __indent(depth: int) -> str:
