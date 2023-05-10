@@ -325,7 +325,7 @@ class FastDijkstra(Generic[State]):
             this_distance, _, this_state = queue.popleft()
             seen += 1
             if verbose >= 1 and previous_distance < this_distance:
-                print(f"# Distance is now {this_distance}")
+                print(f"# Distance is now {this_distance} (queue={len(queue)})")
                 previous_distance = this_distance
             if minimum_map[this_state] < this_distance:
                 # We've already seen this state with a smaller distance.  No use reprocessing
@@ -352,7 +352,7 @@ class FastDijkstra(Generic[State]):
                 else:
                     if verbose >= 3:
                         print(f"#       - {new_state} at {new_distance} = "
-                              f"{this_distance} + 1 > {minimum_map[new_state]}")
+                              f"{this_distance} + 1 ≥ {minimum_map[new_state]}")
         print("# ❌ FAILURE")
         return this_distance - 1, None
 

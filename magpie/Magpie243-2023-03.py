@@ -91,6 +91,7 @@ class Magpie243(ConstraintSolver):
         for i, constraint in enumerate(type2):
             evaluator = Evaluator.create_evaluator(f'@show(2, {i}, {constraint})', mapping)
             evaluator(vars)
+        super().show_solution(known_clues)
 
     def draw_grid(self, location_to_clue_numbers, **args: Any) -> None:
         for location, clues in location_to_clue_numbers.items():
