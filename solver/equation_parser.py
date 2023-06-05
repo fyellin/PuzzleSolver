@@ -149,37 +149,43 @@ class Parse:
     PARSE_UNOPS: ClassVar[dict[str], str] = {'+': 'pos', '-': 'neg',
                                              '!': 'fact', '√': 'sqrt'}
 
-    def to_string(self, functions: set[str] = frozenset()) -> str:
+    def to_string(self, functions: set[str] = frozenset(), simple=False) -> str:
         functions |= {'fact', 'sqrt'}
 
-        def internal(expression):
+        if simple:
+            ast_expression = self.get_ast_expression(functions)
+            lambda_expression = ast.unparse(ast_expression)
+            return lambda_expression[lambda_expression.index(':') + 2:]
+
+        def internal(expression, paren=True):
+            lparen, rparen = ('(', ')') if paren else ('', '')
             match expression:
                 case ('var', x) | ('const', x):
                     return str(x)
 
                 case ('function', name, args):
-                    return name + '(' + ', '.join(internal(arg) for arg in args) + ')'
+                    return name + '(' + ', '.join(internal(arg, False) for arg in args) + ')'
 
                 case (binop, x, y):
                     func = self.PARSE_BINOPS[binop]
                     if func in functions:
-                        return f'{func}({internal(x)}, {internal(y)})'
+                        return f'{func}({internal(x, False)}, {internal(y, False)})'
                     else:
-                        return f'({internal(x)} {binop} {internal(y)})'
+                        return f'{lparen}{internal(x)} {binop} {internal(y)}{rparen}'
 
                 case (unop, x):
                     func = self.PARSE_UNOPS[unop]
                     if func in functions:
-                        return f'{func}({internal(x)})'
+                        return f'{func}({internal(x, False)})'
                     elif unop != '!':
-                        return f'({unop} {internal(x)})'
+                        return f'{lparen}{unop} {internal(x)}{rparen}'
                     else:
-                        return f'({internal(x)} !)'
+                        return f'{lparen}{internal(x)} !{rparen}'
 
-        return internal(self.expression)
+        return internal(self.expression, False)
 
     def __str__(self) -> str:
-        return self.to_string()
+        return self.to_string(simple=True)
 
     def vars(self) -> Sequence[str]:
         result = set()
@@ -207,7 +213,7 @@ class Parse:
                                             '/': ast.Div, '**': ast.Pow}
     AST_UNOPS: ClassVar[dict[str], str] = {'+': ast.UAdd, '-': ast.USub}
 
-    def get_ast_expression(self, functions):
+    def get_ast_expression(self, functions) -> ast.Expression:
         def ast_function_call(name, args):
             return ast.Call(func=ast.Name(id=name, ctx=ast.Load()),
                             args=[ast_expression(x) for x in args],

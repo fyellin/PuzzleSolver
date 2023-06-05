@@ -19,7 +19,6 @@ Constraint = TypeVar('Constraint', bound=Hashable)
 class DancingLinks(Generic[Row, Constraint]):
     row_to_constraints: dict[Row, list[Constraint]]
     optional_constraints: set[Constraint]
-    inclusive_contraints: set[Constraint]
     row_printer: Any
 
     count: int
@@ -30,29 +29,32 @@ class DancingLinks(Generic[Row, Constraint]):
 
     def __init__(self, constraints: dict[Row, list[Constraint]],
                  *, row_printer: Optional[Callable[[Sequence[Row]], None]] = None,
-                 optional_constraints: Optional[set[Constraint]] = None,
-                 inclusive_constraints: Optional[set[Constraint]] = None):
+                 optional_constraints: Optional[set[Constraint]] = None):
         """The entry to the Dancing Links code.  constraints should be a dictionary.  Each key
         is the name of the row (something meaningful to the user).  The value should
         be a list/tuple of the row_to_constraints satisfied by this row.
 
         The row names and constraint names can be anything immutable and hashable.
-        Typically they are strings, but feel free to use whatever works best.
+        Typically, they are strings, but feel free to use whatever works best. Also,
+        all constraint names must be "comparable" to each other. So strings really do work
+        best
         """
         self.row_to_constraints = constraints
         self.optional_constraints = optional_constraints or set()
-        self.inclusive_constraints = inclusive_constraints or set()
         self.row_printer = row_printer or self._default_row_printer
 
     def solve(self, output: TextIO = sys.stdout, debug: Optional[int] = None,
               recursive: Optional[bool] = False) -> None:
-        # Create the cross reference giving the rows in which each constraint appears
+        # Create the cross-reference giving the rows in which each constraint appears
         constraint_to_rows: dict[Constraint, set[Row]] = collections.defaultdict(set)
         for row, constraints in self.row_to_constraints.items():
+            # having a duplicate constraint in a row will break things.
+            assert len(constraints) == len(set(constraints)), f'{row} has duplicate constraints'
             for constraint in constraints:
                 constraint_to_rows[constraint].add(row)
 
         self.optional_constraints = {x for x in self.optional_constraints if x in constraint_to_rows}
+        # An optional constraint that appears in only one row is pretty useless.  Delete
         unused_constraints = {x for x in self.optional_constraints if len(constraint_to_rows[x]) == 1}
         for constraint in unused_constraints:
             row = constraint_to_rows.pop(constraint).pop()
@@ -98,10 +100,11 @@ class DancingLinks(Generic[Row, Constraint]):
         is_debugging = depth < self.max_debugging_depth
 
         try:
-            min_count, _, min_constraint = min((len(rows), 0 * random.random(), constraint)
-                                               for constraint, rows in self.constraint_to_rows.items()
-                                               if constraint not in self.optional_constraints)
+            min_count, min_constraint = min((len(rows), constraint)
+                                             for constraint, rows in self.constraint_to_rows.items()
+                                             if constraint not in self.optional_constraints)
         except ValueError:
+            # We had nothing but optional constraints left.  We're done!
             if is_debugging:
                 self.output.write(f"{self.__indent(depth)}✓ SOLUTION\n")
             yield []
@@ -109,7 +112,7 @@ class DancingLinks(Generic[Row, Constraint]):
 
         old_depth = depth
 
-        depth += (min_count != 1)
+        depth += (min_count != 1)  # depth is for debugging only
         if min_count == 0:
             if is_debugging:
                 self.output.write(f"{self.__indent(depth)}✕ {min_constraint}\n")
@@ -151,9 +154,9 @@ class DancingLinks(Generic[Row, Constraint]):
             nonlocal solution_count
             self.count += 1
             try:
-                count, _, constraint = min((len(rows), 0.0 * random.random(), constraint)
-                                           for constraint, rows in self.constraint_to_rows.items()
-                                           if constraint not in self.optional_constraints)
+                count, constraint = min((len(rows), constraint)
+                                        for constraint, rows in self.constraint_to_rows.items()
+                                        if constraint not in self.optional_constraints)
             except ValueError:
                 # There is nothing left but optional constraints.  We have a solution!
                 if depth < self.max_debugging_depth:
@@ -202,22 +205,26 @@ class DancingLinks(Generic[Row, Constraint]):
         return run()
 
     def __cover_constraint(self, constraint: Constraint) -> set[Row]:
+        # Remove the constraint and all rows satisfying that constraint from
+        # self.constraint_to_rows.  Returns the list of rows that were removed.
         rows = self.constraint_to_rows.pop(constraint)
         for row in rows:
             # For each constraint in this row about to be deleted
             for row_constraint in self.row_to_constraints[row]:
-                # Mark this feature as now longer available in the row,
-                # unless we're looking at the feature we just chose!
+                # Mark this constraint as now longer available in the row,
+                # unless we're looking at the constraint we just chose!
                 if row_constraint != constraint:
                     self.constraint_to_rows[row_constraint].remove(row)
         return rows
 
     def __uncover_constraint(self, constraint: Constraint, rows: set[Row]) -> None:
+        # Undoes __cover_constraint.  Must be given the exact list that was returned
+        # by __cover_constraint for this to work correctly.
         for row in rows:
             for row_constraint in self.row_to_constraints[row]:
                 if row_constraint != constraint:
                     self.constraint_to_rows[row_constraint].add(row)
-        self.constraint_to_rows[constraint] = rows\
+        self.constraint_to_rows[constraint] = rows
 
     def __print_debug_info(self, min_constraint: Constraint, row: Row, index: int, count: int, depth: int) -> None:
         indent = self.__indent(depth)
@@ -272,6 +279,4 @@ class Encoder:
     def locator(self, location: tuple[int, int], is_across: bool):
         row, column = location
         return f'{self.prefix}r{row}c{column}-{"A" if is_across else "D"}'
-
-
 

@@ -90,7 +90,7 @@ def draw_grid(*, max_row: int, max_column: int,
         color = coloring.get((row, column), 'black')
         axes.text(column + 1 / 2, row + 1 / 2, entry,
                   color=color,
-                  fontsize=points_per_data / 2, fontweight='bold', fontfamily="sans-serif",
+                  fontsize=points_per_data / 2, fontweight='bold', fontfamily="SF Pro Text",
                   va='center', ha='center', rotation=rotation.get((row, column), 0))
 
     if subtext is not None:

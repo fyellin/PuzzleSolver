@@ -1,8 +1,8 @@
 import math
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import Sequence
 from functools import cache
-from typing import Any, Iterable
+from typing import Any, Deque, Iterable
 
 from misc.Tester import FastDijkstra, State
 from solver import Clue, Clues, ConstraintSolver, generators
@@ -115,14 +115,6 @@ class Magpie245 (ConstraintSolver):
                 clues.append(clue)
         return clues, constraints
 
-    PATHS = (((1, 7), (1, 6), (2, 6), (3, 6), (4, 6), (4, 5), (4, 4), (4, 3), (5, 3),
-              (6, 3), (6, 4), (6, 5), (6, 6), (6, 7), (7, 7)),
-             ((2, 4), (2, 3), (2, 2), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1), (7, 1),
-              (7, 2), (7, 3), (7, 4), (7, 5), (7, 6)),
-             ((1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (2, 5), (3, 5), (3, 4), (3, 3),
-              (3, 2), (4, 2), (5, 2), (6, 2)),
-             ((2, 7), (3, 7), (4, 7), (5, 7), (5, 6), (5, 5), (5, 4)))
-
     def draw_grid(self, location_to_entry, **args: Any) -> None:
         paths = self.get_paths(location_to_entry)
 
@@ -160,7 +152,7 @@ class Magpie245 (ConstraintSolver):
         starts = [start for (start, _) in doubles]
         ends = [end for (_, end) in doubles]
         solver = MyDijkstra(starts, ends)
-        _distance, result = solver.run(verbose=0)
+        _distance, result = solver.run(verbose=3)
         return result
 
 
@@ -207,7 +199,6 @@ class MyDijkstra (FastDijkstra):
         for neighbor in neighbors:
             if neighbor not in used:
                 yield *state[0:index], (*path, neighbor), *state[index + 1:]
-
 
 
 if __name__ == '__main__':
