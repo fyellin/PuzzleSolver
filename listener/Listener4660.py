@@ -156,7 +156,7 @@ X.X...
 ACROSSES = [
     (2, 3, generate_if(generate_all, lambda x: x.value % x.entry == 0)),
     (5, 2, generate_special_squares),
-    (7, 3, generate_if(generate_all, lambda x: x.value % x.prime == 0 and x.entry % x.prime == 0)),
+    (7, 3, generate_if(generate_all, lambda x: x.value % x.rev == 0 and x.entry % x.rev == 0)),
     (9, 2, generate_all),
     (11, 2, generate_ascending),
     (12, 2, generate_if(generate_triangle, lambda x: is_triangular(x.entry))),
@@ -164,11 +164,11 @@ ACROSSES = [
     (14, 2, generate_triangle),
     (15, 3, generate_15_across),
     (17, 2, generate_special_squares),
-    (18, 3, generate_if(generate_all, lambda x: x.prime // 10 < x.prime % 10))
+    (18, 3, generate_if(generate_all, lambda x: x.rev // 10 < x.rev % 10))
 ]
 
 DOWNS = [
-    (1, 2, generate_if(generate_all, lambda p: p.value % p.prime == 0)),
+    (1, 2, generate_if(generate_all, lambda p: p.value % p.rev == 0)),
     (3, 2, generate_special_squares),
     (4, 3, generate_all),
     (6, 3, generate_palindrome),
@@ -177,7 +177,7 @@ DOWNS = [
     (11, 3, generate_ascending),
     (12, 3, generate_all),
     (15, 2, generate_special_squares),
-    (16, 2, generate_if(generate_all, lambda x: x.value % x.prime == 0))
+    (16, 2, generate_if(generate_all, lambda x: x.value % x.rev == 0))
 ]
 
 
@@ -207,21 +207,21 @@ class Solver6220 (ConstraintSolver):
         return clues
 
     def add_all_constraints(self) -> None:
-        self.add_constraint(("5a", "17a"), lambda a, b: str(a.prime) == str(b.prime)[::-1])
-        self.add_constraint(("3d", "15d"), lambda a, b: str(a.prime) == str(b.prime)[::-1])
+        self.add_constraint(("5a", "17a"), lambda a, b: str(a.rev) == str(b.rev)[::-1])
+        self.add_constraint(("3d", "15d"), lambda a, b: str(a.rev) == str(b.rev)[::-1])
         self.add_constraint(("17a", "3d"), lambda a, b: str(a.entry) == str(b.entry)[::-1])
-        self.add_constraint(("9a", "4d"), lambda a, b: a.value % b.prime == 0)
-        self.add_constraint(("11a", "11d"), lambda a, b: b.entry % a.entry == 0 and a.prime + b.prime == b.entry)
-        self.add_constraint(("18a", "11d"), lambda a, b: a.entry % b.prime == 0)
-        self.add_constraint(("18a", "12a"), lambda a, b: a.value % b.prime == 0)
+        self.add_constraint(("9a", "4d"), lambda a, b: a.value % b.rev == 0)
+        self.add_constraint(("11a", "11d"), lambda a, b: b.entry % a.entry == 0 and a.rev + b.rev == b.entry)
+        self.add_constraint(("18a", "11d"), lambda a, b: a.entry % b.rev == 0)
+        self.add_constraint(("18a", "12a"), lambda a, b: a.value % b.rev == 0)
 
-        self.add_constraint(("15a", "7a"), lambda a, b:  a.value == b.prime ** 3)
-        self.add_constraint(("15a", "6d"), lambda a, b:  a.entry == b.prime ** 2)
+        self.add_constraint(("15a", "7a"), lambda a, b: a.value == b.rev ** 3)
+        self.add_constraint(("15a", "6d"), lambda a, b: a.entry == b.rev ** 2)
 
 
-        self.add_constraint(("1d", "16d"), lambda a, b: is_triangular(a.prime + b.prime))
-        self.add_constraint(("4d", "2a"), lambda a, b: a.value % b.prime == 0)
-        self.add_constraint(("6d", "14a", "8d"), lambda a, b, c: a.entry == b.prime * c.prime)
+        self.add_constraint(("1d", "16d"), lambda a, b: is_triangular(a.rev + b.rev))
+        self.add_constraint(("4d", "2a"), lambda a, b: a.value % b.rev == 0)
+        self.add_constraint(("6d", "14a", "8d"), lambda a, b, c: a.entry == b.rev * c.rev)
         self.add_constraint(("12d", "18a"), lambda a, b: sorted(str(a.entry)) == sorted(str(b.entry)) and
                             digit_sum(a.value) == digit_sum(b.value))
         self.add_constraint(("16d", "1d"), lambda a, b: is_square(a.entry + b.entry))
@@ -238,7 +238,7 @@ class Solver6220 (ConstraintSolver):
 
         for a, b in itertools.combinations(self._clue_list, 2):
             self.add_constraint((a, b),
-                                lambda x, y: x.prime != y.prime and x.entry != y.entry and x.value != y.value)
+                                lambda x, y: x.rev != y.rev and x.entry != y.entry and x.value != y.value)
 
 
     def show_solution(self, known_clues: KnownClueDict) -> None:

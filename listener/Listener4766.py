@@ -17,6 +17,7 @@ DOWNS = ["ALTERCATE", "ANTITRAGI", "CARPENTRIES", "PRECIPICED",
 
 DOWN_LENGTHS = [9, 9, 11, 10, 8, 7, 7, 8, 12, 10, 11, 12]
 
+
 class Solver:
     def __init__(self):
         self.encoder = Encoder.of_alphabet()
@@ -28,14 +29,15 @@ class Solver:
 
     def handle_solution(self, solution):
         locations = {}
-        for (word, aa, is_across, indices) in solution:
+        for (aa, is_across, word, indices) in solution:
             for bb, letter in zip(indices, word):
                 row, col = (aa, bb) if is_across else (bb, aa)
                 if (row, col) in locations:
                     assert locations[row, col] == letter
                 locations[row, col] = letter
         assert len(locations) == 144
-        result = ''.join(locations[row, col] for row in range(1, 13) for col in range(1, 13))
+        result = ''.join(locations[row, col]
+                         for row in range(1, 13) for col in range(1, 13))
         self.results.add(result)
 
     def solve(self):
@@ -43,18 +45,21 @@ class Solver:
         optionals = set()
         for word_list in (ACROSS, DOWNS):
             is_across = word_list is ACROSS
+            to_rc = (lambda x, y: (x, y)) if is_across else (lambda x, y: (y, x))
             for word_index, word in enumerate(word_list, start=1):
                 for indices in itertools.combinations(range(1, 13), len(word)):
                     for aa in [word_index] if is_across else range(1, 13):
                         constraint = [word, f'{"A" if is_across else "D"}-{aa}']
                         for bb, letter in zip(indices, word):
-                            row, col = (aa, bb) if is_across else (bb, aa)
-                            if letter != '.':
-                                constraint.extend(self.encoder.encode(letter, (row, col), is_across))
-                        constraints[word, aa, is_across, indices] = constraint
+                            constraint.extend(self.encoder.encode(letter, to_rc(aa, bb), is_across))
+                        # for bb in range(1, 13):
+                        #     if bb not in indices:
+                        #         constraint.append(f'EMPTY-{to_rc(aa, bb)}')
+                        constraints[aa, is_across, word, indices] = constraint
                         optionals.update(constraint[2:])
 
-        solver = DancingLinks(constraints, optional_constraints=optionals, row_printer=self.handle_solution)
+        solver = DancingLinks(constraints, optional_constraints=optionals,
+                              row_printer=self.handle_solution)
         solver.solve(debug=0)
         assert len(self.results) == 1
         self.draw_grid(self.results.pop())
@@ -69,4 +74,3 @@ class Solver:
 
 if __name__ == '__main__':
     Solver().solve()
-

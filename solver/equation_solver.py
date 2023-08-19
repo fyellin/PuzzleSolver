@@ -322,7 +322,7 @@ class EquationSolver(BaseSolver):
     # noinspection PyMethodMayBeStatic
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
         self.show_letter_values(known_letters)
-        self.plot_board(known_clues)
+        self.plot_board(known_clues, known_letters=known_letters)
 
     def show_letter_values(self, known_letters: KnownLetterDict) -> None:
         max_length = max(len(str(i)) for i in known_letters.values())

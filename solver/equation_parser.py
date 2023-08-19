@@ -12,7 +12,8 @@ from solver.sly.yacc import Parser
 
 class MyLexer(Lexer):
     tokens = {'NAME', 'LONG_NAME', 'NUMBER', 'FUNCTION', 'OLD_FUNCTION',
-              'POWER', 'EXCLAMATION', 'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'SQUARE_ROOT'}
+              'POWER', 'EXCLAMATION', 'PLUS', 'MINUS', 'TIMES', 'DIVIDE',
+              'SQUARE_ROOT', 'PRIME'}
     ignore = " \t\n"
     literals = ['(', ')', '=', ',']
 
@@ -24,6 +25,7 @@ class MyLexer(Lexer):
     FUNCTION = r'@[a-zA-Z][0-9a-zA-Z]*'
     POWER = r'\*\*|\^'   # must be defined before TIMES
     EXCLAMATION = r'!'
+    PRIME = r'\''
     PLUS = r'\+'
     MINUS = r'-|−|–'    # -, \u2013 = n-dash, \u2212 = subtraction]
     TIMES = r'\*|×'
@@ -80,7 +82,7 @@ class MyParser(Parser):
         return '**', p.postfix, p.prefix
 
     # postfix
-    @_('atom { EXCLAMATION }')
+    @_('atom { EXCLAMATION|PRIME }')
     def postfix(self, p):
         return self.__unary_builder(p[0], p[1])
 
@@ -147,10 +149,10 @@ class Parse:
     PARSE_BINOPS: ClassVar[dict[str, str]] = {'+': 'add', '-': 'sub', '*': 'mul',
                                               '/': 'div', '**': 'pow'}
     PARSE_UNOPS: ClassVar[dict[str], str] = {'+': 'pos', '-': 'neg',
-                                             '!': 'fact', '√': 'sqrt'}
+                                             '!': 'fact', '√': 'sqrt', '\'': 'prime'}
 
     def to_string(self, functions: set[str] = frozenset(), simple=False) -> str:
-        functions |= {'fact', 'sqrt'}
+        functions |= {'fact', 'sqrt', 'prime'}
 
         if simple:
             ast_expression = self.get_ast_expression(functions)
