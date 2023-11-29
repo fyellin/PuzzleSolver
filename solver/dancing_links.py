@@ -49,7 +49,7 @@ class DancingLinks(Generic[Row, Constraint]):
         constraint_to_rows: dict[Constraint, set[Row]] = collections.defaultdict(set)
         for row, constraints in self.row_to_constraints.items():
             # having a duplicate constraint in a row will break things.
-            assert len(constraints) == len(set(constraints)), f'{row} has duplicate constraints'
+            assert len(constraints) == len(set(constraints)), f'{row} has duplicate constraints {constraints}'
             for constraint in constraints:
                 constraint_to_rows[constraint].add(row)
 

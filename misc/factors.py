@@ -88,3 +88,8 @@ def even_factor_count(value: int) -> int:
 
 def product(values: Iterator[int]) -> int:
     return functools.reduce(operator.mul, values, 1)
+
+
+if __name__ == '__main__':
+    for x in (5662, 5663, 5664, 5665, 6661, 6663, 6664, 6666):
+        print(x, factor_list(x))

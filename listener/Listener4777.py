@@ -1,6 +1,6 @@
 import math
 import re
-from itertools import combinations, count
+from itertools import combinations, count, pairwise
 
 from misc.factors import factor_list, prime_factors
 from solver import Clue, ConstraintSolver, EquationSolver, Evaluator, Location, generators
@@ -137,8 +137,13 @@ class Solver2(ConstraintSolver):
 
     def __init__(self, across, down, letters):
         self.letters = letters
+        self.encoding_to_plain = {}
         clues = self.get_clues(across, down)
         super().__init__(clues)
+        for clue1, clue2 in combinations(clues, 2):
+            if clue1.length == clue2.length:
+                self.add_constraint((clue1, clue2),
+                                    lambda x, y: self.encoding_to_plain[x] != self.encoding_to_plain[y])
 
     def get_clues(self, across, down):
         across_values = self.parse_clues(across)
@@ -161,48 +166,40 @@ class Solver2(ConstraintSolver):
         result = []
         for value, length in value_list:
             value = str(value)
-            if value == '116' and length == 2:
-                result.extend(('b6', '1g'))
-            elif value == '7112' and length == 3:
-                result.extend(('7b2', '71c'))
-            elif len(value) != length:
-                v = value.replace('10', 'a').replace('11', 'b').replace('12', 'c') \
-                         .replace('13', 'd').replace('14', 'e').replace('15', 'f') \
-                         .replace('16', 'g')
-                if len(v) != length:
-                    # Note, len(v) < length is actually a separate problem, but it doesn't
-                    # occur, so we're not going to worry about it.  We do need to worry
-                    # about 116, and we didn't.
-                    raise ArithmeticError(f'Cannot reduce {v} to length {length}')
-                value = v
-            result.append(value)
+            if len(value) == length:
+                result.append(value)
+                self.encoding_to_plain[value] = value
+            else:
+                values = { value }
+                for _ in range(len(value) - length):
+                    values = {x for v in values for x in self.shorten(v) }
+                if not values:
+                    raise ArithmeticError(f'Cannot reduce {value} to length {length}')
+                result.extend(values)
+                self.encoding_to_plain |= {v : value for v in values}
         return result
 
+    def shorten(self, value):
+        for i, (a, b) in enumerate(pairwise(value)):
+            if a == '1' and '0' <= b <= '6':
+                yield value[0:i] + chr(ord(b) - ord('0') + ord('a')) + value[i+2:]
+
+
+
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        special_values = set(known_clues.values())
-        if 'b6' in special_values and '1g' in special_values:
-            return False
-        if '7b2' in special_values and '71c' in special_values:
-            return False
         location_to_digit = {location : digit for clue, value in known_clues.items()
                              for location, digit in zip(clue.locations, value)}
         location_to_digit[4,4] = 'X'
         special_clues = [self.clue_named('14D'), self.clue_named('41A')]
         special_values = [''.join(location_to_digit[location] for location in clue.locations)
                           for clue in special_clues]
-        result_digits = []
+        self.result_digits = []
         for digit in '0123456789abcdefg':
             real_values = [value.replace('X', digit).replace('a', '10').replace('b', '11').replace('c', '12') \
                                 .replace('d', '13').replace('e', '14').replace('f', '15').replace('g', '16')
                            for value in special_values]
-
-            """73991683 (38619937 is 17^2 * some prime - 
-               6599594 (4959956 is 2^2 * some prime)"""
-            temp = [int(x[::-1]) for x in real_values]
-            squares = [self.is_prime_square(x) for x in temp]
-            if all(squares):
-                result_digits.append(digit)
-        self.result_digits = result_digits
+            if all(self.is_prime_square(int(x[::-1])) for x in real_values):
+                self.result_digits.append(digit)
         return bool(self.result_digits)
 
     def draw_grid(self, location_to_entry, location_to_clue_numbers, **more_args):

@@ -22,7 +22,7 @@ class MyLexer(Lexer):
     LONG_NAME = r'\$[a-zA-Z][0-9a-zA-Z]*'
     NUMBER = r'\d+'
     OLD_FUNCTION = r'"[^"]*"'
-    FUNCTION = r'@[a-zA-Z][0-9a-zA-Z]*'
+    FUNCTION = r'@[a-zA-Z][0-9a-zA-Z_]*'
     POWER = r'\*\*|\^'   # must be defined before TIMES
     EXCLAMATION = r'!'
     PRIME = r'\''
