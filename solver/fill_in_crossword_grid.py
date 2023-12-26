@@ -396,8 +396,7 @@ class FillInCrosswordGridMushed (FillInCrosswordGridAbstract):
                             location2)
                         # The index of the starting square must be at least as large as the
                         # clue number, and the difference between the starting squares must
-                        # be at least as large as t
-                        # he difference between the clue numbers.
+                        # be at least as large as the difference between the clue numbers.
                         if ix1 < number1 or ix2 < number2 or ix2 - ix1 < number2 - number1:
                             continue
                         self._generate_constraint(is_across,

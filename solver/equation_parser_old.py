@@ -134,11 +134,11 @@ class Parse:
             case Parse('const', _x, None):
                 return set()
             case Parse('function', _name, args):
-                return {x for arg in args for x in arg.vars()}
+                return {x for arg in args for x in arg.VARIABLES()}
             case Parse(_, x, None):
-                return x.vars()
+                return x.VARIABLES()
             case Parse(_, x, y):
-                return x.vars() | y.vars()
+                return x.VARIABLES() | y.VARIABLES()
             case _:
                 raise Exception
 
@@ -201,4 +201,4 @@ MI(X – E)D
 """
     for string in temp.strip().splitlines():
         temp = parser.parse(string)[0]
-        print(string, temp, temp.vars())
+        print(string, temp, temp.VARIABLES())
