@@ -69,10 +69,11 @@ class Magpie252 (EquationSolver):
         vars, values = results[0]
         solver.step2(vars, values)
 
+    VARIABLES = ('A', 'C', 'E', 'M', 'N', 'O', 'S', 'T', 'U', 'W')
+    DELTAS = (0, 3, 4, 5, 9, 10, 10, 10, 12, 15, 15, 16, 18, 18, 20, 25, 25, 27,
+              36, 43, 44, 51, 52, 122, 134, 210, 248, 316, 534, 602, 638, 720)
+
     def __init__(self) -> None:
-        self.vars = ('A', 'C', 'E', 'M', 'N', 'O', 'S', 'T', 'U', 'W')
-        self.deltas = (0, 3, 4, 5, 9, 10, 10, 10, 12, 15, 15, 16, 18, 18, 20, 25, 25, 27,
-                       36, 43, 44, 51, 52, 122, 134, 210, 248, 316, 534, 602, 638, 720)
         self.ok_values = self.get_ok_values()
         clues = self.get_clues()
         super().__init__(clues)
@@ -81,6 +82,7 @@ class Magpie252 (EquationSolver):
         grid = Clues.get_locations_from_grid(GRID)
         clues = Clues.create_from_text(ACROSSES, DOWNS, grid)
         for clue in clues:
+
             clue.evaluators[0].set_wrapper(self.my_wrapper)
         return clues
 
@@ -94,7 +96,7 @@ class Magpie252 (EquationSolver):
 
     def get_ok_values(self):
         result = defaultdict(list)
-        deltas = self.deltas
+        deltas = self.DELTAS
         for x in range(2, 100):
             for delta in set(deltas):
                 y = x + delta
@@ -109,7 +111,7 @@ class Magpie252 (EquationSolver):
         evaluators = [clue.evaluators[0] for clue in clues]
         time1 = datetime.now()
         for count, values in enumerate(permutations(range(10))):
-            my_dict = dict(zip(self.vars, values))
+            my_dict = dict(zip(self.VARIABLES, values))
             try:
                 results = [evaluator(my_dict) for evaluator in evaluators]
                 xresults = [r for r in results if r not in self.ok_values]
@@ -132,7 +134,7 @@ class Magpie252 (EquationSolver):
     @staticmethod
     def run_one_permutation(values):
         solver = mp_solver
-        my_dict = dict(zip(solver.vars, values))
+        my_dict = dict(zip(solver.VARIABLES, values))
         try:
             results = [evaluator(my_dict) for evaluator in solver.evaluators]
             xresults = [r for r in results if r not in solver.ok_values]
@@ -162,7 +164,7 @@ class Magpie252 (EquationSolver):
 
     def step2(self, values=VALUES, results=RESULTS):
         encoder = Encoder.digits()
-        counter = Counter(self.deltas)
+        counter = Counter(self.DELTAS)
         # self.show_letter_values(dict(zip(self.vars, values)))
 
         double_delta_clues = defaultdict(set)
@@ -209,8 +211,9 @@ class Magpie252 (EquationSolver):
                               row_printer=my_row_printer)
         solver.solve(debug=False)
 
+
     def draw_grid(self, location_to_entry, values, **args) -> None:
-        number_to_letter = {str(digit): var for var, digit in zip(self.vars, values)}
+        number_to_letter = {str(digit): var for var, digit in zip(self.VARIABLES, values)}
         for x, y in ((1, 2), (2, 1), (3, 3), (4, 4)):
             for location in ((x, y), (9 - y, x), (9 - x, 9 - y), (y, 9 - x)):
                 old = location_to_entry[location]

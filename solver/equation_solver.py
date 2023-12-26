@@ -65,7 +65,7 @@ class EquationSolver(BaseSolver):
     def solve(self, *, show_time: bool = True, debug: bool = False,
               max_debug_depth: int = 1000, multiprocessing: bool = False):
         self._step_count = 0
-        self._solutions= []
+        self._solutions = []
         self._known_letters = {}
         self._known_clues = {}
         self._debug = debug

@@ -1,7 +1,7 @@
 import itertools
 import re
 from abc import ABC, abstractmethod
-from collections import Counter, OrderedDict
+from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Sequence, Mapping
 from typing import Any, Optional
 
@@ -31,7 +31,9 @@ class BaseSolver(ABC):
         self.__max_row = 1 + max(row for (row, _) in all_locations)
         self.__max_column = 1 + max(column for (_, column) in all_locations)
         self.__start_locations = frozenset(clue.base_location for clue in clue_list)
-        self.__intersections = frozenset(location for location, count in all_locations.items() if count >= 2)
+        self.__intersections = frozenset(location
+                                         for location, count in all_locations.items()
+                                         if count >= 2)
 
     def clue_named(self, name: str) -> Clue:
         """Returns the new with the specified name"""
@@ -106,7 +108,7 @@ class BaseSolver(ABC):
         location_to_entry: dict[Location, str] = {}
 
         # A map from location to clue number to put in that location
-        location_to_clue_numbers: dict[Location, list[str]] = {}
+        location_to_clue_numbers: dict[Location, list[str]] = defaultdict(list)
 
         # Location of squares that have a heavy bar on their left.
         left_bars = set(itertools.product(range(1, max_row), range(2, max_column)))
@@ -121,9 +123,7 @@ class BaseSolver(ABC):
             match = re.search(r'\d+', clue.name)
             location = clue.base_location
             clue_name = match.group(0) if match else clue.name
-            if location not in location_to_clue_numbers:
-                location_to_clue_numbers[location] = [clue_name]
-            elif clue_name not in location_to_clue_numbers[location]:
+            if clue_name not in location_to_clue_numbers[location]:
                 location_to_clue_numbers[location].append(clue_name)
 
             # These squares are filled.
