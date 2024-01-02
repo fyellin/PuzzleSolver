@@ -64,7 +64,7 @@ class Magpie253 (ConstraintSolver):
     def __init__(self):
         clues = self.get_clues()
         super().__init__(clues, letter_handler=self.MyLetterHandler())
-        self.fixup()
+        self.__get_constraints()
         self.coloring = None
 
     def get_clues(self):
@@ -78,27 +78,20 @@ class Magpie253 (ConstraintSolver):
             clue.generator = allvalues
         return clues
 
-    def get_allowed_regexp(self, location: Location) -> str:
-        return '[1-5]'
-
-    def plot_board(self, clue_values: Optional[dict[Clue, ClueValue]] = None,
-                   **more_args: Any) -> None:
+    def draw_grid(self, location_to_entry, **more_args: Any) -> None:
         shading = {}
-        if clue_values:
+        if location_to_entry:
             # Figure out how to divide the graph into pentominos
-            values = {square: int(ch)
-                      for clue, value in clue_values.items()
-                      for square, ch in zip(clue.locations, value)}
-            one_of_each = {1, 2, 3, 4, 5}
+            one_of_each = {"1", "2", "3", "4", "5"}
 
             def predicate(squares):
-                return {values.get(square) for square in squares} == one_of_each
+                return {location_to_entry.get(square) for square in squares} == one_of_each
 
             solutions = PentominoSolver().solve(8, 8, predicate)
             if solutions:
                 solution, = solutions
                 shading = self.get_graph_shading(solution)
-        super().plot_board(clue_values, shading=shading)
+        super().draw_grid(location_to_entry=location_to_entry, shading=shading, **more_args)
 
     def get_graph_shading(self, solution, colors=None):
         import matplotlib
@@ -123,9 +116,9 @@ class Magpie253 (ConstraintSolver):
     class MyLetterHandler(LetterCountHandler):
         def real_checking_value(self, value: ClueValue, info: Any) -> bool:
             counter = self._counter
-            return max(counter.values()) <= 12
+            return sum(x > 0 for x in counter.values()) <= 5 and max(counter.values()) <= 12
 
-    def fixup(self):
+    def __get_constraints(self):
         self.add_constraint("4a 26d", lambda x, y: ds(x) == int(y))
         self.clue_named("7a").generator = known(*{y * (y + 1) for y in range(50)})
         self.clue_named("8a").generator = known(*{5 * y * y for y in range(50)})
@@ -137,7 +130,7 @@ class Magpie253 (ConstraintSolver):
         self.clue_named("17a").generator = fibonacci
         self.add_constraint("18a", lambda x: is_harshad(int(x)) and is_cube(int(x) + 1))
         self.add_constraint("19a", lambda x: x[0] > x[1] > x[2])
-        self.add_constraint("21a", lambda x: int(x) % dp(x) == 0 and int(x) % ds(x) == 0
+        self.add_constraint("21a", lambda x: dp(x) > 0 and int(x) % dp(x) == 0 and int(x) % ds(x) == 0
                                              and (ds(x) * dp(x)) % int(x) == 0)
         self.clue_named("22a").generator = triangular
         self.clue_named("23a").generator = known(1, 5, 12, 22, 35, 51, 70, 92, 117, 145, 176, 210, 247, 287, 330, 376, 425, 477, 532, 590, 651, 715, 782, 852, 925)
@@ -159,6 +152,8 @@ class Magpie253 (ConstraintSolver):
         self.clue_named("13d").generator = known(176, 225, 280, 341, 408, 481, 560, 645,
                                                  736, 833, 936)
         self.add_constraint("15d", lambda x: dp(x) == 2 * ds(x))
+        # We don't have an easy way of integrating this with MyLetterHandler.  Once we
+        # know the five digits, the dp(x) has to be 12 times the sum.
         self.add_constraint("17d", lambda x: dp(x) == 180)
         self.add_constraint("20d", lambda x: is_square(dp(x)))
         self.add_constraint("21d 19a", lambda x, y: x == y[::-1])

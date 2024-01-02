@@ -296,7 +296,7 @@ class Solver251 (ConstraintSolver):
     def draw_grid(self, location_to_clue_numbers, location_to_entry, **args) -> None:
         self.COLORS[1] = '#A0A0A0'
         # shading = {square : 'red' for square in squares}
-        # shading = {square: self.COLORS[int(value) + 1] for square, value in location_to_entry.items()}
+        #shading = {square: self.COLORS[int(value) + 1] for square, value in location_to_entry.items()}
         self.location_to_entry = location_to_entry
         super().draw_grid(location_to_entry=location_to_entry,
                           location_to_clue_numbers={},
@@ -319,17 +319,7 @@ class Solver251 (ConstraintSolver):
                     axes.plot([column, column + 1], [row, row], 'red', linewidth=15)
 
 
-
-
-"""
-
-
-
-"""
-
-
 if __name__ == '__main__':
-    foo()
-    # Solver251.run(tuple(sorted({x for numbers in NUMBERS for x in numbers})))  # 1654
+    Solver251.run(tuple(sorted({x for numbers in NUMBERS for x in numbers})))  # 1654
     # Solver251.run(NUMBERS[0])  # 3859
 
