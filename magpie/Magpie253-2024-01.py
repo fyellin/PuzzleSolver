@@ -7,6 +7,7 @@ from networkx import Graph, greedy_color
 from misc.Pentomino import PentominoSolver
 from solver import Clue, ClueValue, Clues, ConstraintSolver, Location
 from solver.constraint_solver import LetterCountHandler
+from solver.equation_solver import KnownClueDict
 from solver.generators import allvalues, fibonacci, known, palindrome, prime, \
     triangular
 
@@ -82,6 +83,7 @@ class Magpie253 (ConstraintSolver):
         shading = {}
         if location_to_entry:
             # Figure out how to divide the graph into pentominos
+
             one_of_each = {"1", "2", "3", "4", "5"}
 
             def predicate(squares):
@@ -112,6 +114,12 @@ class Magpie253 (ConstraintSolver):
                    for color in [colors[color_assignment[letter]]]
                    for square in squares}
         return shading
+
+    def check_solution(self, known_clues: KnownClueDict) -> bool:
+        value = dp(known_clues[self.clue_named('17d')])
+        counter = self._letter_handler._counter
+        expected_value = sum(int(key) for key, value in counter.items() if value) * 12
+        return value == expected_value
 
     class MyLetterHandler(LetterCountHandler):
         def real_checking_value(self, value: ClueValue, info: Any) -> bool:
@@ -153,8 +161,9 @@ class Magpie253 (ConstraintSolver):
                                                  736, 833, 936)
         self.add_constraint("15d", lambda x: dp(x) == 2 * ds(x))
         # We don't have an easy way of integrating this with MyLetterHandler.  Once we
-        # know the five digits, the dp(x) has to be 12 times the sum.
-        self.add_constraint("17d", lambda x: dp(x) == 180)
+        # know the five digits, the dp(x) has to be 12 times the sum. But it does have to
+        # be a multiple of 12, and 0+1+2+3+4=10, 5+6+7+8+9=35.
+        self.add_constraint("17d", lambda x: dp(x) % 12 == 0 and 10 <= dp(x) // 12 <= 35)
         self.add_constraint("20d", lambda x: is_square(dp(x)))
         self.add_constraint("21d 19a", lambda x, y: x == y[::-1])
         self.clue_named("22d").generator = known(*{y**3 + z**3
@@ -163,5 +172,3 @@ class Magpie253 (ConstraintSolver):
         self.clue_named("26d").generator = known(14, 30, 55, 91,)
 
 
-if __name__ == '__main__':
-    Magpie253().run()
