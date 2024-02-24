@@ -31,7 +31,9 @@ class BaseSolver(ABC):
         self.__max_row = 1 + max(row for (row, _) in all_locations)
         self.__max_column = 1 + max(column for (_, column) in all_locations)
         self.__start_locations = frozenset(clue.base_location for clue in clue_list)
-        self.__intersections = frozenset(location for location, count in all_locations.items() if count >= 2)
+        self.__intersections = frozenset(location
+                                         for location, count in all_locations.items()
+                                         if count >= 2)
 
     def clue_named(self, name: str) -> Clue:
         """Returns the new with the specified name"""
