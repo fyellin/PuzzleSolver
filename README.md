@@ -1,4 +1,4 @@
-# Puzzle Solver.
+#  bnPuzzle Solver.
 
 The solver/ directory contains code to help you solve generic numeric crossword puzzles.
 It is designed to solve two different sorts of numeric crossword puzzles:

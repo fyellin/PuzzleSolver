@@ -1,3 +1,7 @@
+from collections.abc import Iterator, Sequence
+
+from typing import Callable, Optional
+
 import itertools
 from collections import defaultdict
 from itertools import product
@@ -14,7 +18,6 @@ X..XX...
 .XX...XX
 X..XXX..
 X...X..."""
-
 
 
 def fibonacci_generator(max_val):
@@ -50,29 +53,29 @@ CLUES = [
 ]
 
 
-def make_generator(condition):
+def make_generator(predicate: Callable[[int], bool]) -> Callable[[Clue], Iterator[int]]:
     def generator(clue):
         for left in range(10 ** (clue.length - 1), 10 ** clue.length):
             if left % 10 == 0:
                 continue
-            if condition(left + int(str(left)[::-1])):
+            if predicate(left + int(str(left)[::-1])):
                 yield left
     return generator
 
 
 class Listener4803(ConstraintSolver):
     @staticmethod
-    def run(fancy=False):
+    def run(fancy=False) -> None:
         solver = Listener4803(fancy)
         solver.solve(debug=True)
 
     @staticmethod
-    def run2(fancy=False):
+    def run2(fancy=False) -> None:
         solver = Listener4803(fancy)
         solver.show_union_find()
         solver.print_arrows()
 
-    def __init__(self, fancy):
+    def __init__(self, fancy) -> None:
         self.fancy = fancy
         clues = self.get_clues()
         super().__init__(clues)
@@ -118,26 +121,28 @@ class Listener4803(ConstraintSolver):
                                 name=f"{across}a-rev-{down}d")
 
     def add_all_same_value_constraints(self):
-        location_to_clues = defaultdict(list)
+        location_to_id = {
+            location: id for id, equivalence in enumerate(self.get_equivalences())
+            for location in equivalence}
+
+        id_to_clues = defaultdict(list)
         for clue in self._clue_list:
             for i, location in enumerate(clue.locations):
-                location_to_clues[location].append((clue, i))
+                id_to_clues[location_to_id[location]].append((location, clue, i))
 
-        for location_set in self.get_equivalences():
-            temp = [(location, clue, i) for location in location_set
-                    for clue, i in location_to_clues[location]]
-            for (location1, clue1, i1), (location2, clue2, i2) in itertools.combinations(temp, 2):
+        for common_spots in id_to_clues.values():
+            for (location1, clue1, i1), (location2, clue2, i2) in (
+                    itertools.combinations(common_spots, 2)):
                 if location1 != location2:
                     self.add_constraint((clue1, clue2),
                                         lambda x, y, xi=i1, yi=i2: x[xi] == y[yi],
                                         name=f"{location1}={location2}")
 
-    def get_equivalences(self):
+    def get_equivalences(self, clues: Optional[Sequence[Clue]] = None):
+        clues = clues or self._clue_list
         uf = UnionFind[tuple[int, int]]()
-        for (across, down, length, _) in CLUES:
-            clue1 = self.clue_named(f'{across}a')
-            clue2 = self.clue_named(f'{down}d')
-            for location1, location2 in zip(clue1.locations, reversed(clue2.locations)):
+        for (across, down) in itertools.batched(clues, 2):
+            for location1, location2 in zip(across.locations, reversed(down.locations)):
                 uf.union(location1, location2)
         result = defaultdict(set)
         for location in product(range(1, 9), repeat=2):
@@ -151,7 +156,8 @@ class Listener4803(ConstraintSolver):
             for locations, letter in zip(equivalences, "ABCDEFGHJKLMNPRSTUVWXYZ")
             for location in locations
         }
-        clue_values = {clue: ClueValue(''.join(loc_to_letter[loc] for loc in clue.locations))
+        clue_values = {clue: ClueValue(''.join(loc_to_letter[loc]
+                                               for loc in clue.locations))
                        for clue in self._clue_list}
         self.plot_board(clue_values)
 

@@ -4,7 +4,6 @@ from typing import Any, Iterator, Sequence, Union
 
 from misc.factors import prime_factors
 from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, generators
-from solver.constraint_solver import KnownClueDict
 
 
 def digit_sum(number: int) -> int:

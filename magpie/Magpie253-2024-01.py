@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from networkx import Graph, greedy_color
 
-from misc.Pentomino import PentominoSolver
+from misc.Pentomino import PentominoSolver, get_graph_shading
 from solver import Clue, ClueValue, Clues, ConstraintSolver, Location
 from solver.constraint_solver import LetterCountHandler
 from solver.equation_solver import KnownClueDict
@@ -92,28 +92,8 @@ class Magpie253 (ConstraintSolver):
             solutions = PentominoSolver().solve(8, 8, predicate)
             if solutions:
                 solution, = solutions
-                shading = self.get_graph_shading(solution)
+                shading = get_graph_shading(solution)
         super().draw_grid(location_to_entry=location_to_entry, shading=shading, **more_args)
-
-    def get_graph_shading(self, solution, colors=None):
-        import matplotlib
-        colors = colors or matplotlib.colormaps['Set3'].colors
-        # Figure out a nice coloring for the pentominos, so that we use a
-        # minimum number of colors, but adjacent pentominos are different colors
-        graph = Graph()
-        graph.add_nodes_from(key for key in solution)
-        for (key1, squares1), (key2, squares2) \
-                in itertools.combinations(solution.items(), 2):
-            # Make a path between two nodes if they're touching, even diagonally
-            if any(abs(r1 - r2) <= 1 and abs(c1 - c2) <= 1
-                   for (r1, c1) in squares1 for (r2, c2) in squares2):
-                graph.add_edge(key1, key2)
-        color_assignment = greedy_color(graph)
-        shading = {square: color
-                   for letter, squares in solution.items()
-                   for color in [colors[color_assignment[letter]]]
-                   for square in squares}
-        return shading
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         value = dp(known_clues[self.clue_named('17d')])
@@ -172,3 +152,5 @@ class Magpie253 (ConstraintSolver):
         self.clue_named("26d").generator = known(14, 30, 55, 91,)
 
 
+if __name__ == '__main__':
+    Magpie253.run()
