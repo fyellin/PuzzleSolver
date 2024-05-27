@@ -88,7 +88,10 @@ class PlayfairSolver(object):
             self.__solve(depth + 1 if min_count > 1 else depth, next_pending_constraints, next_rows_so_far)
 
 if __name__ == '__main__':
-    solver = PlayfairSolver("THIR" "TIME" "VELE" "HARP", "RK.S" "SKBL" "E.OL" "FCSQ", 16)
+    solver = PlayfairSolver(cipher_text=".P..EA" "O.IB.." "..NT.L" "IM..G." "..RI.K" "SI..E." ".T..ED" "U.TO..",
+                            plain_text ="BONERS" "MENDED" "SIRING" "RUMPLE" "AGENTS" "DENNIS" "KERMIS" "PIECER",
+                            tail=12)
+
     results = solver.solve(debug=False)
     for result in results:
         print(result, ''.join(sorted(result.missing_letters())))
