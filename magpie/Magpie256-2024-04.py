@@ -1,5 +1,6 @@
 import itertools
 import time
+from abc import abstractmethod
 from typing import Any, Sequence, cast
 
 from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, Letter
@@ -35,15 +36,19 @@ XX.....
 X..X...
 """
 
-# A D E G H I L M N O R S T W Y
-# D and S are (1, 10)
-# A, I, L, N, R, Y are (4, 7, 9, 13, 14, 15)
-# E, G, H, M, O, T, W are (2, 3, 5, 6, 8, 11, 12)
 ACROSS_LENGTHS = ((1, 4), (4, 3), (7, 5), (9, 3), (10, 3), (13, 5), (14, 3), (15, 4))
 DOWN_LENGTHS = ((1, 3), (12, 2), (2, 5), (3, 3), (8, 3), (10, 3), (5, 5), (6, 2), (11, 3))
 
+BOTH_CLUES = (1, 10)
+ACROSS_CLUES = (4, 7, 9, 13, 14, 15)
+DOWN_CLUES = (2, 3, 5, 6, 8, 11, 12)
+
+BOTH_LETTERS = list('DS')
+ACROSS_LETTERS = list('AILNRY')
+DOWN_LETTERS = list('EGHMOTW')
+
 DEBUG = True
-DRAW_GRID = False
+DRAW_GRID = True
 
 """
 A→ (A * (W ** T)) - (G ** I)
@@ -66,26 +71,59 @@ W↓ (W ** H) - (G * G)
 """
 
 
-class Magpie256 (EquationSolver):
-    steps: int
-    parsed_expressions: Sequence[tuple[tuple[Letter, bool], Evaluator]]
-
-    @staticmethod
-    def run():
-        solver = Magpie256()
-        solver.verify_is_180_symmetric()
-        solver.alt_solver1()
-
+class Magpie256Base(EquationSolver):
     def __init__(self) -> None:
         clues, self.clue_names = self.get_clues()
         super().__init__(clues)
         self.expressions = self.parse_expressions()
 
-    def main_solver(self):
-        def execute(outer_step):
-            function, args = outer_step
-            function({}, set(), {}, args)
+    @classmethod
+    def run(cls):
+        solver = cls()
+        solver.verify_is_180_symmetric()
+        solver.solver()
 
+    @abstractmethod
+    def solver(self): ...
+
+    def get_clues(self) -> tuple[Sequence[Clue], dict[tuple[int, bool], Clue]]:
+        clues = []
+        clue_from_location = {}
+        locations = Clues.get_locations_from_grid(GRID)
+        for clue_list in (ACROSS_LENGTHS, DOWN_LENGTHS):
+            is_across = clue_list == ACROSS_LENGTHS
+            for number, length in clue_list:
+                clue = Clue(f'{number}{'a' if is_across else 'd'}', is_across,
+                            locations[number - 1], length)
+                clues.append(clue)
+                clue_from_location[number, is_across] = clue
+        return clues, clue_from_location
+
+    def parse_expressions(self) -> Sequence[tuple[tuple[Letter, bool], Evaluator]]:
+        return [((Letter(key), is_across),  evaluator)
+                for expressions in (ACROSS, DOWN)
+                for is_across in [expressions is ACROSS]
+                for line in expressions.strip().splitlines()
+                for key in [line[0]]
+                for evaluator in [Evaluator.create_evaluator(line[1:])]]
+
+    def draw_grid(self, location_to_entry, known_letters,
+                  location_to_clue_numbers, left_bars, top_bars,
+                  **args: Any) -> None:
+        if not DRAW_GRID:
+            return
+        letter_map = {str(value): letter for letter, value in known_letters.items()}
+        location_to_entry = {location: letter_map.get(value, value)
+                             for location, value in location_to_entry.items()}
+        zeros = sorted(location for location, entry in location_to_entry.items()
+                       if entry == '0')
+        location_to_entry |= dict(zip(zeros, "WDGYLR"))   # WDGYRL
+        super().draw_grid(location_to_entry=location_to_entry,
+                          **args)
+
+
+class Magpie256 (Magpie256Base):
+    def solver(self):
         def get_value_for_var(known_letters, used_values, board, args):
             letter, allowed_values, next_function, next_args = args
             for value in allowed_values:
@@ -117,7 +155,6 @@ class Magpie256 (EquationSolver):
                     del board[location]
 
         def print_result(known_letters, _used_values, _board, _args):
-            print(known_letters)
             known_clues = {
                 clue: ClueValue(value)
                 for (letter, is_across), expression in self.expressions
@@ -126,57 +163,36 @@ class Magpie256 (EquationSolver):
             }
             self.show_solution(known_clues, known_letters)
 
-        def get_steps():
+        def get_runner(expressions):
             steps = []
             known_vars = set()
-            for (letter, is_across), evaluator in self.get_sorted_expressions():
+            for (letter, is_across), evaluator in expressions:
                 unknown_vars = [var for var in evaluator.vars if var not in known_vars]
                 if not (letter in known_vars or letter in unknown_vars):
                     unknown_vars.append(letter)
                 known_vars.update(unknown_vars)
                 for var in unknown_vars:
-                    allowed = (1, 10) if var in "DS" \
-                              else (4, 7, 9, 13, 14, 15) if var in "AILNRY" \
-                              else (2, 3, 5, 6, 8, 11, 12)
+                    allowed = BOTH_CLUES if var in "DS" \
+                              else ACROSS_CLUES if var in "AILNRY" \
+                              else DOWN_CLUES
                     steps.append((get_value_for_var, (var, allowed)))
                 steps.append((add_to_board, (letter, is_across, evaluator)))
             steps.append((print_result, ()))
 
-            outer_function, outer_args = (lambda *x: None), None
+            current_function, current_args = (lambda *x: None), None
             for (func, args) in reversed(steps):
-                outer_args = (*args, outer_function, outer_args)
-                outer_function = func
-            return outer_function, outer_args
+                current_args = (*args, current_function, current_args)
+                current_function = func
+            return lambda: current_function({}, set(), {}, current_args)
 
-        steps = get_steps()
-
+        evaluation_order = self.get_evaluation_order()
+        runner = get_runner(evaluation_order)
         start = time.perf_counter_ns()
-        execute(steps)
+        runner()
         end = time.perf_counter_ns()
         print(f'{(end - start) / 1_000}us')
 
-    def get_clues(self) -> tuple[Sequence[Clue], dict[tuple[int, bool], Clue]]:
-        clues = []
-        clue_from_location = {}
-        locations = Clues.get_locations_from_grid(GRID)
-        for clue_list in (ACROSS_LENGTHS, DOWN_LENGTHS):
-            is_across = clue_list == ACROSS_LENGTHS
-            for number, length in clue_list:
-                clue = Clue(f'{number}{'a' if is_across else 'd'}', is_across,
-                            locations[number - 1], length)
-                clues.append(clue)
-                clue_from_location[number, is_across] = clue
-        return clues, clue_from_location
-
-    def parse_expressions(self) -> Sequence[tuple[tuple[Letter, bool], Evaluator]]:
-        return [((Letter(key), is_across),  evaluator)
-                for expressions in (ACROSS, DOWN)
-                for is_across in [expressions is ACROSS]
-                for line in expressions.strip().splitlines()
-                for key in [line[0]]
-                for evaluator in [Evaluator.create_evaluator(line[1:])]]
-
-    def get_sorted_expressions(self) -> Sequence[tuple[tuple[Letter, bool], Evaluator]]:
+    def get_evaluation_order(self) -> list[tuple[tuple[Letter, bool], Evaluator]]:
         result = []
         expressions = {key: value for key, value in self.expressions}
         seen = set()
@@ -184,8 +200,7 @@ class Magpie256 (EquationSolver):
         def cost(item):
             (key, _is_across), evaluator = item
             variables = (set(evaluator.vars) | {key}) - seen
-            total = sum(2 if var in "DS" else 6 if var in "AILNRY" else 6
-                        for var in variables)
+            total = sum(2 if var in BOTH_LETTERS else 6 for var in variables)
             return total
 
         while expressions:
@@ -198,33 +213,23 @@ class Magpie256 (EquationSolver):
             seen.add(key_pair[0])
         return result
 
-    def draw_grid(self, location_to_entry, known_letters,
-                  location_to_clue_numbers, left_bars, top_bars,
-                  **args: Any) -> None:
-        if not DRAW_GRID:
-            return
-        letter_map = {str(value): letter for letter, value in known_letters.items()}
-        location_to_entry = {location: letter_map.get(value, value)
-                             for location, value in location_to_entry.items()}
-        zeros = sorted(location for location, entry in location_to_entry.items()
-                       if entry == '0')
-        location_to_entry |= dict(zip(zeros, "WDGYLR"))   # WDGYRL
-        super().draw_grid(location_to_entry=location_to_entry,
-                          **args)
 
-    def alt_solver1(self):
+class Magpie256Alt(Magpie256Base):
+    def solver(self):
         start = time.perf_counter_ns()
-        sorted_clues = self.get_sorted_expressions()
+        sorted_clues = sorted(self.expressions)
 
         across_lengths = dict(ACROSS_LENGTHS)
         down_lengths = dict(DOWN_LENGTHS)
-        dict1 = [dict(D=D, S=S) for D, S in itertools.permutations((1, 10))]
-        dict2 = [dict(A=A, I=I, L=L, N=N, R=R, Y=Y)
-                 for (A, I, L, N, R, Y) in itertools.permutations((4, 7, 9, 13, 14, 15))]
-        dict3 = [dict(E=E, G=G, H=H, M=M, O=O, T=T, W=W)
-                 for (E, G, H, M, O, T, W) in itertools.permutations((2, 3, 5, 6, 8, 11, 12))]
+        dict1 = [dict(zip(BOTH_LETTERS, values))
+                 for values in itertools.permutations(BOTH_CLUES)]
+        dict2 = [dict(zip(ACROSS_LETTERS, values))
+                 for values in itertools.permutations(ACROSS_CLUES)]
+        dict3 = [dict(zip(DOWN_LETTERS, values))
+                 for values in itertools.permutations(DOWN_CLUES)]
 
         variables = {}
+        count = 0
         for a in dict1:
             variables |= a
             for b in dict2:
@@ -232,35 +237,20 @@ class Magpie256 (EquationSolver):
                 for c in dict3:
                     variables |= c
                     for (letter, is_across), expression in sorted_clues:
+                        count += 1
                         value = cast(int, expression.raw_call(variables))
-                        if value <= 0 or len(str(value)) != (across_lengths if is_across else down_lengths)[variables[letter]]:
+                        if value <= 0:
+                            break
+                        lengths = across_lengths if is_across else down_lengths
+                        if len(str(value)) != lengths[variables[letter]]:
                             break
                     else:
                         print(variables)
 
         end = time.perf_counter_ns()
-        print(f'{(end - start) / 1_000_000_000}sec')
-
-    def alt_solver2(self):
-        start = time.perf_counter_ns()
-        across_lengths = dict(ACROSS_LENGTHS)
-        down_lengths = dict(DOWN_LENGTHS)
-        all_variables = [dict(A=A, D=D, E=E, G=G, H=H, I=I, L=L, M=M, N=N, O=O, R=R, S=S, T=T, W=W, Y=Y)
-                         for (D, S) in itertools.permutations((1, 10))
-                         for (A, I, L, N, R, Y) in itertools.permutations((4, 7, 9, 13, 14, 15))
-                         for (E, G, H, M, O, T, W) in itertools.permutations((2, 3, 5, 6, 8, 11, 12))]
-        for (letter, is_across), expression in self.get_sorted_expressions():
-            print(f'Looking at {letter} := {expression} with {len(all_variables)}')
-            lengths = across_lengths if is_across else down_lengths
-            all_variables = [variables for variables in all_variables
-                             for result in [cast(int, expression.raw_call(variables))]
-                             if result >= 10 and len(str(result)) == lengths[variables[letter]]]
-        for local in all_variables:
-            print(local)
-        end = time.perf_counter_ns()
-        print(f'{(end - start) / 1_000_000_000}sec')
-
+        print(f'{(end - start) / 1_000_000_000}sec with {count=}')
 
 
 if __name__ == '__main__':
-    Magpie256().alt_solver1()
+    Magpie256.run()
+    # Magpie256Alt.run()

@@ -26,7 +26,8 @@ class PlayfairEncoder:
             r1, c1 = divmod(self.box.index(char1), 5)
             r2, c2 = divmod(self.box.index(char2), 5)
             if r1 == r2:
-                c1, c2 = (c1 + delta) % 5, (c2 + delta) % 5
+                if c1 != c2:
+                    c1, c2 = (c1 + delta) % 5, (c2 + delta) % 5
             elif c1 == c2:
                 r1, r2 = (r1 + delta) % 5, (r2 + delta) % 5
             else:
