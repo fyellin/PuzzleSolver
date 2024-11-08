@@ -93,7 +93,8 @@ class Magpie253 (ConstraintSolver):
             if solutions:
                 solution, = solutions
                 shading = get_graph_shading(solution)
-        super().draw_grid(location_to_entry=location_to_entry, shading=shading, **more_args)
+        super().draw_grid(location_to_entry=location_to_entry,
+                          shading=shading, **more_args)
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         value = dp(known_clues[self.clue_named('17d')])

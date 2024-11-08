@@ -48,6 +48,8 @@ class EquationSolver(BaseSolver):
         self._items = tuple(items)
         self._all_constraints = []
 
+        self._solve_me_first = ()
+
     def add_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., bool], *,
                        name: Optional[str] = None) -> None:
         assert len(clues) >= 1
@@ -219,7 +221,8 @@ class EquationSolver(BaseSolver):
         def grading_function(clue_info: ClueInfo) -> Sequence[float]:
             letters = frozenset(clue_info.unbound_letters)
             clue_length = clue_info.clue.length
-            return (-len(letters),
+            return (-1000 if clue_info.clue not in self._solve_me_first else self._solve_me_first.index(clue_info.clue),
+                    -len(letters),
                     len(clue_info.known_locations) / clue_length, clue_length,
                     unbound_letters_to_clue_count[letters],
                     unbound_letters_to_letter_count[letters])

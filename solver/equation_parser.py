@@ -139,7 +139,11 @@ class EquationParser:
         self.parser = MyParser()
 
     def parse(self, text: str) -> list[Parse]:
-        return [Parse(x) for x in self.parser.parse(self.lexer.tokenize(text))]
+        try:
+            return [Parse(x) for x in self.parser.parse(self.lexer.tokenize(text))]
+        except SyntaxError:
+            print(f"Syntax error parsing f{text}")
+            raise
 
 
 @dataclass

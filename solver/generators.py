@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 import math
-from collections.abc import Callable, Iterator, Iterable
+from collections.abc import Callable, Iterator, Iterable, Sequence
 from typing import Union
 
 from .clue import Clue
@@ -44,6 +44,14 @@ def cube(clue: Clue) -> Iterator[int]:
     upper = int(math.ceil(max_value ** (1 / 3)))
     return map(lambda x: x * x * x, range(lower, upper))
 
+
+def sum_of_2_cubes(clue: Clue) -> Sequence[int]:
+    min_value, max_value = get_min_max(clue)
+    upper = int(math.ceil(max_value ** (1 / 3)))
+    cubes = [x * x * x for x in range(1, upper)]
+    sums = {sum(pair) for pair in itertools.combinations_with_replacement(cubes, 2)}
+    result = sorted(x for x in sums if min_value <= x < max_value)
+    return result
 
 def filterer(predicate) -> Callable[[Clue], Iterable[int]]:
     def result(clue: Clue) -> Iterator[int]:
