@@ -115,10 +115,11 @@ def draw_grid(*, max_row: int, max_column: int,
                 axes.text(column + .95, row + .95, text,
                           va='bottom', ha='right', **font_info)
 
+    if extra:
+        extra(plt, axes)
+
     if file is not None:
         plt.savefig(file)
 
-    if extra:
-        extra(plt, axes)
     if not _axes:
         plt.show()

@@ -11,5 +11,3 @@ from .evaluator import Evaluator
 from .generators import ClueValueGenerator
 from .intersection import Intersection
 from .playfair import PlayfairSolver
-
-
