@@ -7,6 +7,7 @@ import random
 import string
 import sys
 from collections.abc import Hashable, Sequence, Iterator
+from datetime import datetime
 from itertools import combinations, count
 from typing import Optional, Callable, Any, TypeVar, Generic
 
@@ -45,6 +46,7 @@ class DancingLinks(Generic[Row, Constraint]):
 
     def solve(self, output: TextIO = sys.stdout, debug: Optional[int] = None,
               recursive: Optional[bool] = False) -> None:
+        time1 = datetime.now()
         # Create the cross-reference giving the rows in which each constraint appears
         constraint_to_rows: dict[Constraint, set[Row]] = collections.defaultdict(set)
         for row, constraints in self.row_to_constraints.items():
@@ -89,8 +91,10 @@ class DancingLinks(Generic[Row, Constraint]):
             solutions_count = runner.__solve_constraints_iterative()
 
         if runner.debug:
+            time2 = datetime.now()
             print("Count =", runner.count, file=output)
             print("Solutions =", solutions_count, file=output)
+            print("Time =", (time2 - time1))
 
     def __solve_constraints_recursive(self, depth: int) -> Iterator[list[Row]]:
         """Returns a set of rows that satisfies the row_to_constraints of constraint_to_rows
