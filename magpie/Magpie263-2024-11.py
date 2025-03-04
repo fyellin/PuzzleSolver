@@ -204,7 +204,7 @@ class Magpie263b(ConstraintSolver):
     DOWN = "314/152/44/3311/1133/44/251/413"
 
     def get_clues(self):
-        return Clues.grid_from_clue_sizes(self.ACROSS, self.DOWN)
+        return Clues.clues_from_clue_sizes(self.ACROSS, self.DOWN)
 
 
 if __name__ == '__main__':
