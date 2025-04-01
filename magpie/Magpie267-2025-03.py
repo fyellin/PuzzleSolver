@@ -116,7 +116,7 @@ class Magpie267 (EquationSolver):
                 print('***', solution)
                 clue_values = {self.clue_named(name): ClueValue(str(value))
                                for name, value in self.SOLUTION.items()}
-                # self.plot_board(clue_values, subtext=1.2)
+                self.plot_board(clue_values, subtext=1.2)
 
         solver = DancingLinks(constraints,
                               optional_constraints=optional_constraints,
