@@ -13,9 +13,9 @@ from solver.sly.yacc import Parser
 class MyLexer(Lexer):
     tokens = {'NAME', 'LONG_NAME', 'NUMBER', 'FUNCTION', 'OLD_FUNCTION',
               'POWER', 'EXCLAMATION', 'PLUS', 'MINUS', 'TIMES', 'DIVIDE',
-              'SQUARE_ROOT', 'PRIME'}
+              'SQUARE_ROOT', 'PRIME',}
     ignore = " \t\n"
-    literals = ['(', ')', '=', ',']
+    literals = ['(', ')', '=', ',', '[', ']']
 
     # Tokens
     NAME = r'[a-zA-Z]'
@@ -107,9 +107,17 @@ class MyParser(Parser):
     def atom(self, p):
         return 'function', p.FUNCTION[1:], tuple(p.arglist or ())
 
+    @_('FUNCTION "[" [ arglist ] "]"')
+    def atom(self, p):
+        return 'getitem', p.FUNCTION[1:], tuple(p.arglist or ())
+
     @_('OLD_FUNCTION "(" [ arglist ] ")"')
     def atom(self, p):
         return 'function', p.OLD_FUNCTION[1:-1], tuple(p.arglist or ())
+
+    @_('OLD_FUNCTION "[" [ arglist ] "]"')
+    def atom(self, p):
+        return 'getitem', p.OLD_FUNCTION[1:-1], tuple(p.arglist or ())
 
     @_('expression { "," expression }')
     def arglist(self, p):
@@ -172,6 +180,9 @@ class Parse:
                 case ('function', name, args):
                     return name + '(' + ', '.join(internal(arg, False) for arg in args) + ')'
 
+                case ('getitem', name, args):
+                    return name + '[' + ', '.join(internal(arg, False) for arg in args) + ']'
+
                 case (binop, x, y):
                     func = self.PARSE_BINOPS[binop]
                     if func in functions:
@@ -202,7 +213,7 @@ class Parse:
                     result.add(x)
                 case ('const', _x):
                     pass
-                case ('function', _name, args):
+                case ('function', _name, args) | ('getitem', _name, args):
                     for x in args:
                         internal(x)
                 case (_, x):
