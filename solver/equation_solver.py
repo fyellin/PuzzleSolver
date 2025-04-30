@@ -117,7 +117,10 @@ class EquationSolver(BaseSolver):
                     if not self._allow_duplicates and clue_value in self._known_clues.values():
                         continue
                     self._known_clues[clue] = clue_value
-                    if not all(constraint() for constraint in constraints):
+                    bad_constraint = next((constraint for constraint in constraints if not constraint()), None)
+                    if bad_constraint:
+                        # print(f'{" | " * current_index} {clue.name} {"".join(clue_letters)} '
+                        #       f'{next_letter_values} {clue_value} ({clue.length}): --> X {bad_constraint.__name__}')
                         continue
                     if current_index <= self._max_debug_depth:
                         print(f'{" | " * current_index} {clue.name} {"".join(clue_letters)} '
