@@ -272,7 +272,7 @@ class Part2:
 
 
 if __name__ == '__main__':
-    # Solver4686().run()
+    Solver4686().run()
     #  PartSecond.run()
     # temp = Solver6220()
     # clue = temp.clue_named("15a")

@@ -103,7 +103,7 @@ class Magpie253 (ConstraintSolver):
         return value == expected_value
 
     class MyLetterHandler(LetterCountHandler):
-        def real_checking_value(self, value: ClueValue, info: Any) -> bool:
+        def real_checking_value(self, value: ClueValue, _info: Any) -> bool:
             counter = self._counter
             return sum(x > 0 for x in counter.values()) <= 5 and max(counter.values()) <= 12
 

@@ -4,7 +4,7 @@ from collections import Counter, defaultdict
 from functools import cache
 
 from misc.primes import PRIMES
-from solver import ClueValue, Clues, DancingLinks, Encoder
+from solver import ClueValue, Clues, DancingLinks
 from solver.equation_solver import EquationSolver
 
 
@@ -40,10 +40,9 @@ class Magpie267 (EquationSolver):
 
     def solve(self):
         constraints = {}
-        optional_constraints = set()
+        optional_constraints = set(f'r{r}c{c}' for r in range(1, 6) for c in range(1, 6))
         by_number_and_alt = defaultdict(list)
         by_number_and_location = defaultdict(list)
-        encoder = Encoder.digits()
         all_numbers = [value for value in range(10, 1000) if DP(value) in self.OK_DPS]
         all_squares = [x for x in all_numbers if x in self.SQUARES]
 
@@ -63,10 +62,8 @@ class Magpie267 (EquationSolver):
                     if clue.length == len(str(number)):
                         optional_constraints.add(temp := f'{clue.name}-{number}')
                         constraint = [clue.name, f"DP-{dp}-{alt}", f"#{number}", temp]
-                        for location, letter in zip(clue.locations, str(number)):
-                            if self.is_intersection(location):
-                                encodes = encoder.encode(letter, location, clue.is_across)
-                                constraint.extend(encodes)
+                        constraint.extend((f'r{r}c{c}', letter)
+                                          for (r, c), letter in zip(clue.locations, str(number)))
                         constraints[(clue.name, number, dp, alt)] = constraint
                         by_number_and_alt[number, alt].append(constraint)
                         by_number_and_location[number, clue].append(constraint)

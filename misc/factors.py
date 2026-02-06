@@ -89,7 +89,41 @@ def even_factor_count(value: int) -> int:
 def product(values: Iterator[int]) -> int:
     return functools.reduce(operator.mul, values, 1)
 
+superscript_mapping = str.maketrans({
+    "0": "⁰",
+    "1": "¹",
+    "2": "²",
+    "3": "³",
+    "4": "⁴",
+    "5": "⁵",
+    "6": "⁶",
+    "7": "⁷",
+    "8": "⁸",
+    "9": "⁹"
+})
+subscript_mapping = str.maketrans({
+    "0": "₀",
+    "1": "₁",
+    "2": "₂",
+    "3": "₃",
+    "4": "₄",
+    "5": "₅",
+    "6": "₆",
+    "7": "₇",
+    "8": "₈",
+    "9": "₉"
+})
+
+def prime_factors_as_string(value: int, show_one=False, separator='·') -> str:
+    results = []
+    for prime, count in prime_factors(value):
+        if count == 1 and not show_one:
+            results.append(str(prime))
+        else:
+            results.append(f"{prime}{str(count).translate(superscript_mapping)}")
+    return separator.join(results)
+
 
 if __name__ == '__main__':
     for x in (5662, 5663, 5664, 5665, 6661, 6663, 6664, 6666):
-        print(x, factor_list(x))
+        print(prime_factors_as_string(x))

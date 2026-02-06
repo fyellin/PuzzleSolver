@@ -1,6 +1,6 @@
 import itertools
 
-from solver import DancingLinks, Encoder
+from solver import DancingLinks
 from solver.draw_grid import draw_grid
 
 ACROSS = [
@@ -20,7 +20,6 @@ DOWN_LENGTHS = [9, 9, 11, 10, 8, 7, 7, 8, 12, 10, 11, 12]
 
 class Solver:
     def __init__(self):
-        self.encoder = Encoder.of_alphabet()
         for word, length in zip(ACROSS, ACROSS_LENGTHS):
             assert len(word) == length, f"{word} has wrong length {length}"
         for word, length in zip(DOWNS, DOWN_LENGTHS):
@@ -42,21 +41,20 @@ class Solver:
 
     def solve(self):
         constraints = {}
-        optionals = set()
+        optionals = set(f'r{r}c{c}' for r in range(1, 13) for c in range(1, 13))
         for word_list in (ACROSS, DOWNS):
             is_across = word_list is ACROSS
-            to_rc = (lambda x, y: (x, y)) if is_across else (lambda x, y: (y, x))
             for word_index, word in enumerate(word_list, start=1):
                 for indices in itertools.combinations(range(1, 13), len(word)):
                     for aa in [word_index] if is_across else range(1, 13):
                         constraint = [word, f'{"A" if is_across else "D"}-{aa}']
                         for bb, letter in zip(indices, word):
-                            constraint.extend(self.encoder.encode(letter, to_rc(aa, bb), is_across))
+                            name = f'r{aa}c{bb}' if is_across else f'r{bb}c{aa}'
+                            constraint.append((name, letter))
                         # for bb in range(1, 13):
                         #     if bb not in indices:
                         #         constraint.append(f'EMPTY-{to_rc(aa, bb)}')
                         constraints[aa, is_across, word, indices] = constraint
-                        optionals.update(constraint[2:])
 
         solver = DancingLinks(constraints, optional_constraints=optionals,
                               row_printer=self.handle_solution)

@@ -60,13 +60,6 @@ def filterer(predicate) -> Callable[[Clue], Iterable[int]]:
     return result
 
 
-def filtering(predicate) -> Callable[[Clue], Iterable[int]]:
-    def result(clue: Clue) -> Iterator[int]:
-        min_value, max_value = get_min_max(clue)
-        return filter(predicate, range(min_value, max_value))
-    return result
-
-
 def nth_power(n: int) -> Callable[[Clue], Iterable[int]]:
     def result(clue: Clue) -> Iterator[int]:
         min_value, max_value = get_min_max(clue)

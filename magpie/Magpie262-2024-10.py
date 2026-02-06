@@ -1,12 +1,13 @@
 import itertools
-import math
 import re
-from collections import deque
+from pathlib import Path
 from typing import Any, Iterable
 
-from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, Location
+import math
+
+from solver import Clue, ClueValue, Clues, Evaluator, Location, \
+    MultiEquationSolver
 from solver.equation_solver import KnownClueDict, KnownLetterDict
-from pathlib import Path
 
 GRID = """
 XXXXX.XX
@@ -68,11 +69,11 @@ LETTERS = (6, 16, 17, 5, 12, 20, 13, 10, 3, 19, 9, 25, 26, 28, 11, 2,
            14, 21, 1, 15, 7, 22, 4,  8, 18, 0)
 
 
-class Magpie260 (EquationSolver):
+class Magpie260 (MultiEquationSolver):
     @classmethod
     def run(cls):
         solver = cls()
-        solver.solve(debug=False, multiprocessing=True, max_debug_depth=2)
+        solver.solve(debug=False, multiprocessing=False, max_debug_depth=2)
 
     @classmethod
     def run2(cls):
@@ -88,9 +89,9 @@ class Magpie260 (EquationSolver):
         self.triples2, self.triples3, self.triples4 = make_triples()
         clues = self.get_clues()
         self.doubles = {location for clue in clues if clue.length == 2
-                   for location in clue.locations}
+                        for location in clue.locations}
         super().__init__(clues, items=range(0, 29))
-        self._solve_me_first = self.clue_named("18d"),
+        self.clue_named("18d").priority = 1
 
     def get_allowed_regexp(self, location: Location) -> str:
         if location in self.doubles:
@@ -133,7 +134,7 @@ class Magpie260 (EquationSolver):
         return super().check_solution(known_clues, known_letters)
 
     def draw_gridx(self, location_to_entry, clued_locations, **args: Any) -> None:
-        location_to_entry = {location: str(ALPHABET.index(value) )
+        location_to_entry = {location: str(ALPHABET.index(value))
                                            for location, value in location_to_entry.items()}
         clued_locations = set(itertools.product(range(1, 9), repeat=2))
         location_to_entry[4, 3] = '2'
@@ -156,7 +157,7 @@ class Magpie260 (EquationSolver):
     def part2(self):
         info = dict(zip("ABCDEFGHIJKLMNOPQRSTUVWXYZ",
                         (6, 16, 17, 5, 12, 20, 13, 10, 3, 19, 9, 25, 26, 28, 11, 2, 14, 21, 1, 15, 7, 22, 4, 8, 18, 0)))
-        pairs = {clue : int(clue.evaluators[0].raw_call(info)) for clue in self._clue_list if clue.evaluators}
+        pairs = {clue: int(clue.evaluators[0].raw_call(info)) for clue in self._clue_list if clue.evaluators}
         lefts, rights = [], []
         for i in range(16):
             clueA, clueB = self._clue_list[i], self._clue_list[i + 17]
@@ -268,4 +269,4 @@ def make_wrapper(encoder):
     return wrapper
 
 if __name__ == '__main__':
-    Magpie260.run3()
+    Magpie260.run()

@@ -154,7 +154,7 @@ class Magpie233 (ConstraintSolver):
             for i in range(10):
                 assert self._counter[chr(48 + i)] == -counts[i]
 
-        def real_checking_value(self, value: ClueValue, info: Any) -> bool:
+        def real_checking_value(self, value: ClueValue, _info: Any) -> bool:
             counter = self._counter
             assert counter['0'] == 0
             result = all(value <= 0 for value in counter.values())

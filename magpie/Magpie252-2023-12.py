@@ -211,7 +211,6 @@ class Magpie252 (EquationSolver):
                               row_printer=my_row_printer)
         solver.solve(debug=False)
 
-
     def draw_grid(self, location_to_entry, values, **args) -> None:
         number_to_letter = {str(digit): var for var, digit in zip(self.VARIABLES, values)}
         for x, y in ((1, 2), (2, 1), (3, 3), (4, 4)):

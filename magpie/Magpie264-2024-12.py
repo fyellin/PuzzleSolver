@@ -1,14 +1,9 @@
-import ast
+import itertools
 import itertools
 import math
-from collections import defaultdict
 from fractions import Fraction
 
-from solver import Clue, Clues, ConstraintSolver, DancingLinks, Encoder, generators
-from solver.constraint_solver import Constraint
-from solver.equation_parser import EquationParser
-from solver.equation_solver import KnownClueDict
-from solver.generators import known, prime_generator
+from solver import Clues, ConstraintSolver, generators
 
 
 def hmean(*x):

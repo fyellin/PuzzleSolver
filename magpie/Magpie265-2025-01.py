@@ -1,14 +1,8 @@
-import ast
-import itertools
-from collections import defaultdict
-from typing import Any, Optional
+from typing import Any
 
 from misc.Pentomino import get_graph_shading
-from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, Encoder
-from solver.constraint_solver import Constraint
-from solver.equation_parser import EquationParser
-from solver.equation_solver import EquationSolver, KnownClueDict
-from solver.generators import known, prime_generator
+from solver import Clue, Clues, ConstraintSolver
+from solver.equation_solver import EquationSolver
 
 ACROSS = """
 1 O(TV – W) – N (4) 

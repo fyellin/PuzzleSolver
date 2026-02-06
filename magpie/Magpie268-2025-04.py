@@ -1,8 +1,7 @@
 import math
-import string
 from functools import cache
 
-from solver import ClueValue, Clues, DancingLinks, Encoder
+from solver import ClueValue, Clues, DancingLinks
 from solver.equation_solver import EquationSolver
 
 
@@ -43,9 +42,8 @@ class Magpie268 (EquationSolver):
         super().__init__(clues)
 
     def solve(self):
-        encoder = Encoder.digits()
         constraints = {}
-        optional = set()
+        optional = {f'r{r}c{c}' for r in range(1, 5) for c in range(1, 5)}
         across_pairs = ((1, 10), (2, 9), (4, 7))
         down_pairs = ((1, 8), (2, 5), (3, 6))
 
@@ -68,11 +66,9 @@ class Magpie268 (EquationSolver):
                         constraint = [clue1.name, clue2.name, str(low), str(high), str(start)]
                         optional.update(constraint[2:])
                         # Add to the constraint that clue1 = value1 and clue2 = value2
-                        for clue, value in zip(clues, values):
-                            for location, letter in zip(clue.locations, str(value)):
-                                if self.is_intersection(location):
-                                    constraint.extend(
-                                        encoder.encode(letter, location, is_across))
+                        constraint.extend((f'r{r}c{c}', letter)
+                                          for clue, value in zip(clues, values)
+                                          for (r, c), letter in zip(clue.locations, str(value)))
                         if str(start) == str(start)[::-1]:
                             # There is to be one "start" value that's a palindrome.
                             constraint.append('palindrome')

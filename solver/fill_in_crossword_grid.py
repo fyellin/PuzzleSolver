@@ -1,12 +1,12 @@
-import operator
+import re
 from collections import Counter, defaultdict
 from collections.abc import Hashable, Sequence
 from datetime import datetime
 from functools import cache
-from itertools import chain, combinations, count, permutations
-from typing import Optional
+from itertools import combinations, count, pairwise
+from typing import Iterable, Optional
 
-from solver import Clue, DancingLinks, Encoder, EquationSolver
+from solver import Clue, DancingLinks, EquationSolver, Orderer
 
 Square = tuple[int, int]
 
@@ -20,7 +20,7 @@ class FillInCrosswordGridAbstract:
     results: list
 
     def __init__(self, *, width: Optional[int] = None, height: Optional[int] = None,
-                 size: Optional[int] = None, alphabet: str):
+                 size: Optional[int] = None):
         if size is not None:
             self.width = self.height = size
         if width is not None:
@@ -28,17 +28,17 @@ class FillInCrosswordGridAbstract:
         if height is not None:
             self.height = height
         assert self.width is not None and self.height is not None
-        self.encoder = Encoder.of(alphabet)
         self.constraints = {}
         self.optional_constraints = set()
         self.finder = defaultdict(lambda: defaultdict(list))
         self.results = []
 
     def run(self, *, debug=0,
-            full: bool = False, numbering: bool = True, black_squares_okay: bool = False):
+            full: bool = True, numbering: bool = True, black_squares_okay: bool = False):
         self.constraints.clear()
         self.finder.clear()
-        self.optional_constraints.clear()
+        self.optional_constraints = {f'r{r}c{c}' for r in range(1, self.height + 1)
+                                     for c in range(1, self.width + 1)}
         self.results.clear()
 
         time1 = datetime.now()
@@ -47,8 +47,7 @@ class FillInCrosswordGridAbstract:
             self.get_grid_constraints(full)
             if numbering:
                 self.handle_numbering()
-            if not black_squares_okay:
-                self.prohibit_black_squares()
+            self.handle_black_squares(black_squares_okay);
             if not self.verify():
                 return []
             self.finder.clear()  # big, and not needed anymore
@@ -62,9 +61,10 @@ class FillInCrosswordGridAbstract:
 
             total = sum(len(items) for items in self.constraints.values())
             print(f"The constraints have total length {total}")
-            solver = DancingLinks(self.constraints,
-                                  optional_constraints=self.optional_constraints,
-                                  row_printer=print_me)
+            solver = DancingLinks(
+                self.constraints,
+                optional_constraints=self.optional_constraints,
+                row_printer=print_me)
 
             solver.solve(debug=debug)
             return self.results
@@ -85,7 +85,7 @@ class FillInCrosswordGridAbstract:
         return ok
 
     def display(self, clues: list[Clue]) -> None:
-        clue_answers = {clue: clue.context for clue in clues}
+        clue_answers = {clue: clue.context for clue in clues if clue.context}
         printer = EquationSolver(clues)
         printer.plot_board(clue_answers, font_multiplier=1)
 
@@ -93,53 +93,25 @@ class FillInCrosswordGridAbstract:
         """
         Add constraints items to the clues to ensure that the numbering is in order.
 
-        This generates constraint items of the form clue1@location|clue2,
-        for example, 4A@r2c3|7D.
-
-        This constraint is added to two sets of constraint rows:
-        A) All rows that place clue1 at the indicated location, In this case, all
-           constraint rows indicating that 4A starts at r2c3
-        B) All rows that place clue2 at a location that is inconsistent with clue1 being
-           at location.  In this example, since 7 - 4 = 3, clue 7D must start at least
-           three squares after 4A, and so we mark all constraint rows indicating that
-           7D starts before r2c6.
-
-        Normally, we need a unique optional constraint item for each pair of rows that
-        are mutually exclusive.  If we make both A mutually exclusive with both B1 and B2
-        using the same constraint item, B1 and B2 end up being mutually exclusive.  It's
-        okay here.
+        The clues are sorted by number, and then adjacent clues are looked at. If they
+        are equal, (one being across, the other down), then we ensure they both go into
+        the same location.  If they are not equal, we ensure that the first goes to a
+        location prior to the second.
         """
-        clues = list(self.finder.keys())
-        for clue1, clue2 in permutations(clues, 2):
-            finder1, finder2 = self.finder[clue1], self.finder[clue2]
+        clues = sorted(self.finder.keys())
+        for index, (clue1, clue2) in enumerate(pairwise(clues)):
             (number1, letter1), (number2, letter2) = clue1, clue2
-            # Create a function consistent() such that consistent(location1, location2)
-            # indicates whether clue number1 in location1 and clue number2 in location2
-            # are consistent possibilites
-            delta = number2 - number1
-            if delta > 0:
-                def consistent(loc1: Square, loc2: Square) -> bool:
-                    return self._square_index(loc2) - self._square_index(loc1) >= delta
-            elif delta < 0:
-                def consistent(loc1: Square, loc2: Square) -> bool:
-                    return self._square_index(loc2) - self._square_index(loc1) <= delta
-            else:
-                consistent = operator.eq
-
-            for location1, values1 in finder1.items():
-                row1, column1 = location1
-                item = None  # only set item if we need it.
-                for location2, values2 in finder2.items():
-                    if not consistent(location1, location2):
-                        item = item or \
-                               f'{number1}{letter1}@r{row1}c{column1}|{number2}{letter2}'
-                        for value in values2:
-                            value.append(item)
-                if item is not None:
-                    assert item not in self.optional_constraints
-                    self.optional_constraints.add(item)
-                    for value in values1:
-                        value.append(item)
+            locations = sorted(self.finder[clue1].keys() | self.finder[clue2].keys())
+            locations_map = {location: index for index, location in enumerate(locations)}
+            prefix = f'{number1}{'da'[letter1]}/{number2}{'da'[letter2]}'
+            orderer_type = Orderer.LT if number1 < number2 else Orderer.EQ
+            orderer = orderer_type(prefix, len(locations_map))
+            self.optional_constraints.update(orderer.all_codes())
+            for clue, ordering in ((clue1, orderer.left), (clue2, orderer.right)):
+                for location, values in self.finder[clue].items():
+                    ordering_constraints = ordering(locations_map[location])
+                    for value in values:
+                        value.extend(ordering_constraints)
 
     def _square_index(self, square: Square) -> int:
         """Converts the square into a one-based index"""
@@ -157,6 +129,7 @@ class FillInCrosswordGridAbstract:
                 if row1 == row2 and column2 < column1 + size:
                     continue
                 result.append(((row1, column1), (row2, column2)))
+        return result
 
     def _locations_for_size_down(self, size: int) -> Sequence[tuple[Square, Square]]:
         height, width = self.height, self.width
@@ -169,8 +142,9 @@ class FillInCrosswordGridAbstract:
                 if column1 == column2 and row2 < row1 + size:
                     continue
                 result.append(((row1, column1), (row2, column2)))
+        return result
 
-    def prohibit_black_squares(self) -> None:
+    def handle_black_squares(self, black_squares_okay: bool) -> None:
         """
         Prohibit black squares by creating height * width * 2 constraints indicating that
         each square has been covered by an across clue and a bottom clue.  We also
@@ -178,51 +152,75 @@ class FillInCrosswordGridAbstract:
         so that the missing constraints can be added if necessary.  But we don't allow
         both missing across and missing down for the same square.
         """
-        encoder = self.encoder
-        locators = {((row, column), is_across): encoder.locator((row, column), is_across)
-                    for row in range(1, self.height + 1)
-                    for column in range(1, self.width + 1)
-                    for is_across in [True, False]}
-        not_both = {(row, column): f'r{row}c{column}-not-both-unclued'
-                    for row in range(1, self.height + 1)
-                    for column in range(1, self.width + 1)
-                    }
+        if black_squares_okay:
+            self.optional_constraints |= {f'r{r}c{c}{suffix}'
+                                          for r in range(1, self.height + 1)
+                                          for c in range(1, self.width + 1)
+                                          for suffix in ("-a", "-d")}
+        else:
+            for row in range(1, self.height + 1):
+                for column in range(1, self.width + 1):
+                    t = f'r{row}c{column}'
+                    needer = f"At-Least-One-{t}"
+                    self.constraints[f'Provide-{t}-a'] = [f'{t}-a', needer]
+                    self.constraints[f'Provide-{t}-d'] = [f'{t}-d', needer]
+                    self.optional_constraints.add(needer)
 
-        for constraint_name, constraint in self.constraints.items():
-            if isinstance(constraint_name, Sequence):
-                constraint.extend(locators[location, clue.is_across]
-                                  for clue in constraint_name
-                                  for location in clue.locations)
 
-        for ((row, col), is_across), locator in locators.items():
-            constraint_name = f'Unclued-{row}-{col}-{is_across}'
-            self.constraints[constraint_name] = [locator, not_both[row, col]]
-
-        self.optional_constraints.update(not_both.values())
-
-    def _generate_constraint(self, is_across: bool,
-                             *clue_location_entry: tuple[int, Square, str],
+    def _generate_constraint(self,
+                             *clue_location_entry: tuple[int, bool, Square, str | int],
                              extras: Sequence[str] = ()) -> None:
         name = tuple(self._get_clue(number, entry, row, column, is_across)
-                     for number, (row, column), entry in clue_location_entry)
+                     for number, is_across, (row, column), entry in clue_location_entry)
         # The optional items, first
-        info = [item
-                for clue in name
-                for location, ch in zip(clue.locations, clue.context)
-                for item in self.encoder.encode(ch, location, is_across)]
-        self.optional_constraints.update(info)
-        info.extend(f'Clue-{clue.context}' for clue in name)
+        info: list[str | tuple[str, str]] = [
+            f'r{r}c{c}-{"da"[clue.is_across]}'
+            for clue in name for (r, c) in clue.locations]
+
+        info.extend(
+            (f'r{r}c{c}', ch)
+            for clue in name if clue.context
+            for (r, c), ch in zip(clue.locations, clue.context))
+        info.extend(f'Clue-{clue.context if clue.context else clue.name}' for clue in name)
         info.extend(extras)
         self.constraints[name] = info
 
-        for number, (row, column), entry in clue_location_entry:
+        for number, is_across, (row, column), entry in clue_location_entry:
             self.finder[(number, is_across)][row, column].append(info)
 
-    @staticmethod
+    def _iterate_squares(self, size: int, min_location: Square, max_location: Square
+                          ) -> Iterable[Square]:
+        r, c = min_location
+        end_row, end_column = max_location
+        while True:
+            yield r, c
+            if (r, c) == (end_row, end_column):
+                break
+            if c + size - 1 == self.width:
+                r, c = r + 1, 1
+            else:
+                c += 1
+
+
+    class MyClue(Clue):
+        def __str__(self):
+            r, c = self.base_location
+            return f"<{self.name}@r{r}c{c}>"
+
+    @classmethod
     @cache
-    def _get_clue(number, entry, row, column, is_across):
-        letter = 'A' if is_across else 'D'
-        return Clue(f'{number}{letter}', is_across, (row, column), len(entry), context=entry)
+    def _get_clue(cls, number, entry, row, column, is_across):
+        clue_name = cls._get_clue_name(number, is_across)
+        if isinstance(entry, str):
+            length, context = len(entry), entry
+        else:
+            length, context = entry, None
+        return cls.MyClue(clue_name, is_across,
+                          (row, column), length, context=context)
+
+    @classmethod
+    def _get_clue_name(cls, number, is_across):
+        return f'{number}{"DA"[is_across]}'
 
 
 class FillInCrosswordGrid (FillInCrosswordGridAbstract):
@@ -233,11 +231,9 @@ class FillInCrosswordGrid (FillInCrosswordGridAbstract):
                  downs: Sequence[tuple[int, str]],
                  *, width: Optional[int] = None, height: Optional[int] = None,
                  size: Optional[int] = None):
-        alphabet = ''.join(sorted({x for _, entry in chain(acrosses, downs)
-                                   for x in entry}))
         self.acrosses = acrosses
         self.downs = downs
-        super().__init__(width=width, height=height, size=size, alphabet=alphabet)
+        super().__init__(width=width, height=height, size=size)
 
     def get_grid_constraints(self, full):
         if not full:
@@ -276,12 +272,11 @@ class FillInCrosswordGrid (FillInCrosswordGridAbstract):
         for index, (number1, entry1) in enumerate(acrosses[:length // 2]):
             number2, entry2 = acrosses[~index]
             assert len(entry1) == len(entry2)
-            for row1, col1 in self.__iterate_squares(
+            for row1, col1 in self._iterate_squares(
                     len(entry1), min_locations[number1], max_locations[number1]):
                 row2, col2 = height + 1 - row1, width + 2 - col1 - len(entry1)
-                self._generate_constraint(True,
-                                          (number1, (row1, col1), entry1),
-                                          (number2, (row2, col2), entry2))
+                self._generate_constraint((number1, True, (row1, col1), entry1),
+                                          (number2, True, (row2, col2), entry2))
 
     def get_across_constraints_full(self) -> None:
         acrosses = self.acrosses
@@ -299,8 +294,8 @@ class FillInCrosswordGrid (FillInCrosswordGridAbstract):
                 # be at least as large as the difference between the clue numbers.
                 if ix1 < number1 or ix2 < number2 or ix2 - ix1 < number2 - number1:
                     continue
-                self._generate_constraint(True, (number1, location1, entry1),
-                                                (number2, location2, entry2))
+                self._generate_constraint((number1, True, location1, entry1),
+                                          (number2, True, location2, entry2))
 
     def _handle_central_across(self) -> Square:
         acrosses, width, height = self.acrosses, self.width, self.height
@@ -309,7 +304,7 @@ class FillInCrosswordGrid (FillInCrosswordGridAbstract):
         assert (width - len(entry)) & 1 == 0  # width and central entry have same parity
         # Set row, column to the starting location of this entry
         row, column = (height + 1) // 2, 1 + (width - len(entry)) // 2
-        self._generate_constraint(True, (number, (row, column), entry))
+        self._generate_constraint((number, True, (row, column), entry))
         return row, column
 
     def get_down_constraints(self) -> None:
@@ -317,7 +312,6 @@ class FillInCrosswordGrid (FillInCrosswordGridAbstract):
         clues_by_size = defaultdict(list)
         for (number, entry) in downs:
             clues_by_size[len(entry)].append((number, entry))
-
         odd_counts = [length for length, v in clues_by_size.items() if len(v) & 1]
         if len(downs) & 1 == 0:
             # There must be an even number of every clue length
@@ -329,38 +323,125 @@ class FillInCrosswordGrid (FillInCrosswordGridAbstract):
             assert self.width & 1 == 1  # must be odd width
             assert (self.height - entry_length) & 1 == 0  # same parity
             location = 1 + (self.height - entry_length) // 2, (self.width + 1) // 2
-            for number, entry in clues_by_size[entry_length]:
-                # There should only be a few clues that can go in the middle, so
-                # adding a special constraint item should be helpful.
-                self._generate_constraint(False, (number, location, entry),
-                                          extras=['Middle'])
+            # We want the middle clue from the list of clues with an odd count.
+            entry_length_clues = clues_by_size[entry_length]
+            number, entry = entry_length_clues[len(entry_length_clues) // 2]
+            self._generate_constraint((number, False, location, entry))
 
         for size, entries in clues_by_size.items():
-            locations = self._locations_for_size_down(size)
-            for (number1, entry1), (number2, entry2) in combinations(entries, 2):
+            for index, (number1, entry1) in enumerate(entries[:len(entries) // 2]):
+                number2, entry2 = entries[~index]
+                locations = self._locations_for_size_down(size)
                 for location1, location2 in locations:
-                    ix1, ix2 = self._square_index(location1), self._square_index(location2)
+                    ix1 = self._square_index(location1)
+                    ix2 = self._square_index(location2)
                     # The index of the starting square must be at least as large as the
                     # clue number, and the difference between the starting squares must
                     # be at least as large as the difference between the clue numbers.
                     if ix1 < number1 or ix2 < number2 or ix2 - ix1 < number2 - number1:
                         continue
-                    self._generate_constraint(False,
-                                              (number1, location1, entry1),
-                                              (number2, location2, entry2))
+                    self._generate_constraint(
+                        (number1, False, location1, entry1),
+                        (number2, False, location2, entry2))
 
-    def __iterate_squares(self, size: int, min_location: Square, max_location: Square
-                          ) -> Sequence[Square]:
-        r, c = min_location
-        end_row, end_column = max_location
-        while True:
-            yield r, c
-            if (r, c) == (end_row, end_column):
-                break
-            if c + size - 1 == self.width:
-                r, c = r + 1, 1
+
+class FillInCrosswordGrid4Way (FillInCrosswordGridAbstract):
+    acrosses: Sequence[int]
+    downs: Sequence[int]
+
+    def __init__(self, acrosses: Sequence[int],
+                 downs: Sequence[int],
+                 *, width: int):
+        self.acrosses = acrosses
+        self.downs = downs
+        assert len(acrosses) == len(downs)
+        assert acrosses == acrosses[::-1]
+        assert Counter(acrosses) == Counter(downs)
+        super().__init__(width=width, height=width)
+
+    def get_grid_constraints(self, full):
+        self.get_four_way_constraints()
+
+    def get_four_way_constraints(self) -> None:
+        width = self.width
+        acrosses = self.acrosses
+        downs = self.downs
+        length = len(acrosses)
+        down_by_size = defaultdict(list)
+        for index, size in enumerate(downs):
+            down_by_size[size].append(index)
+        if len(self.acrosses) & 1 == 0:
+            assert all(len(x) & 1 == 0 for x in down_by_size.values())
+            if width & 1 == 0:
+                row, column = width // 2, width + 1
             else:
-                c += 1
+                row, column = (width + 1) // 2, 1 + width // 2
+        else:
+            extra_size = acrosses[length // 2]
+            assert len(down_by_size[extra_size]) & 1
+            assert width & 1 == 1
+            row, column = (width + 1) // 2, 1 + (width - extra_size) // 2
+            number1 = length // 2
+            number2 = (t := down_by_size[extra_size])[len(t) // 2]
+            self._generate_constraint((number1, True, (row, column), extra_size),
+                                      (number2, False, (column, row), extra_size))
+
+        down_pairs_by_size = {size: [(indices[i], indices[~i]) for i in range(len(indices) // 2)]
+                              for size, indices in down_by_size.items()}
+
+        max_locations = {}
+        for number, entry in list(enumerate(acrosses[:length // 2]))[::-1]:
+            if column <= entry:
+                row, column = row - 1, width + 1
+            column -= entry
+            max_locations[number] = (row, column)
+
+        min_locations, row, column = {}, 1, 1
+        for (number, entry) in enumerate(acrosses[:length // 2]):
+            if column + entry > width + 1:
+                row, column = row + 1, 1
+            min_locations[number] = (row, column)
+            column += entry
+
+        for index, size in enumerate(acrosses[:length // 2]):
+            assert acrosses[length - 1 - index] == size
+            for row1, col1 in self._iterate_squares(
+                    size, min_locations[index], max_locations[index]):
+                row2, col2 = width + 1 - row1, width + 2 - col1 - size
+                row3, col3 = col1, width + 1 - row1
+                row4, col4 = col2, width + 1 - row2
+                for (i3, i4) in down_pairs_by_size[size]:
+                    self._generate_constraint((index, True, (row1, col1), size),
+                                              (length - index - 1, True, (row2, col2), size),
+                                              (i3, False, min((row3, col3), (row4, col4)), size),
+                                              (i4, False, max((row3, col3), (row4, col4)), size))
+
+
+    def handle_numbering(self) -> None:
+        """
+        Add constraints items to the clues to ensure that the numbering is in order.
+
+        The clues are sorted by number, and then adjacent clues are looked at. If they
+        are equal, (one being across, the other down), then we ensure they both go into
+        the same location.  If they are not equal, we ensure that the first goes to a
+        location prior to the second.
+        """
+        for is_across in (True, False):
+            for index1, index2 in pairwise(range(len(self.acrosses))):
+                locations = sorted(self.finder[index1, is_across] | self.finder[index2, is_across])
+                locations_map = {location: index for index, location in enumerate(locations)}
+                prefix = f'{index1}<{index2}{"da"[is_across]}'
+                orderer = Orderer.LT(prefix, len(locations_map))
+                self.optional_constraints.update(orderer.all_codes())
+                for index, ordering in (index1, orderer.left), (index2, orderer.right):
+                    for location, values in self.finder[index, is_across].items():
+                        ordering_constraints = ordering(locations_map[location])
+                        for value in values:
+                            value.extend(ordering_constraints)
+
+    @classmethod
+    def _get_clue_name(cls, number, is_across):
+        return chr(number + ord("A" if is_across else "a"))
 
 
 class FillInCrosswordGridMushed (FillInCrosswordGridAbstract):
@@ -369,9 +450,8 @@ class FillInCrosswordGridMushed (FillInCrosswordGridAbstract):
     def __init__(self, clues: Sequence[tuple[int, str]],
                  *, width: Optional[int] = None, height: Optional[int] = None,
                  size: Optional[int] = None):
-        alphabet = ''.join(sorted({x for _, entry in clues for x in entry}))
         self.clues = clues
-        super().__init__(width=width, height=height, size=size, alphabet=alphabet)
+        super().__init__(width=width, height=height, size=size)
 
     def get_grid_constraints(self, _full: bool) -> None:
         clues = self.clues
@@ -382,7 +462,7 @@ class FillInCrosswordGridMushed (FillInCrosswordGridAbstract):
         self.handle_odd_size_counts(clues_by_size)
         self.handle_paired_entries(clues_by_size)
 
-    def handle_paired_entries(self, clues_by_size: dict[int, list[tuple[int, str]]]) -> None:
+    def handle_paired_entries(self, clues_by_size: dict[int, list[tuple[int, str]]]):
         for size, entries in clues_by_size.items():
             across_locations = self._locations_for_size_across(size)
             down_locations = self._locations_for_size_down(size)
@@ -394,16 +474,16 @@ class FillInCrosswordGridMushed (FillInCrosswordGridAbstract):
                     for location1, location2 in locations:
                         ix1, ix2 = self._square_index(location1), self._square_index(
                             location2)
-                        # The index of the starting square must be at least as large as the
-                        # clue number, and the difference between the starting squares must
-                        # be at least as large as the difference between the clue numbers.
+                        # The index of the starting square must be at least as large as
+                        # the clue number, and the difference between the starting squares
+                        # must be at least as large as the difference between the clue
+                        # numbers.
                         if ix1 < number1 or ix2 < number2 or ix2 - ix1 < number2 - number1:
                             continue
-                        self._generate_constraint(is_across,
-                                                  (number1, location1, entry1),
-                                                  (number2, location2, entry2))
+                        self._generate_constraint((number1, is_across, location1, entry1),
+                                                  (number2, is_across, location2, entry2))
 
-    def handle_odd_size_counts(self, clues_by_size: dict[int, list[tuple[int, str]]]) -> None:
+    def handle_odd_size_counts(self, clues_by_size: dict[int, list[tuple[int, str]]]):
         # This code is not yet tested.
         # We also need to add additional items, such as MIDDLE or MIDDLE-ACROSS and
         # MIDDLE-DOWN to ensure we get at least one of these when necessary
@@ -420,7 +500,7 @@ class FillInCrosswordGridMushed (FillInCrosswordGridAbstract):
                     return 0
                 location = 1 + (self.height - size) // 2, (self.width + 1) // 2
             for number, entry in clues_by_size[size]:
-                self._generate_constraint(is_across, (number, location, entry),
+                self._generate_constraint((number, is_across, location, entry),
                                           extras=extras)
             return len(clues_by_size[size])
 
@@ -454,8 +534,10 @@ class FillInCrosswordGridMushed (FillInCrosswordGridAbstract):
                 # we need exactly one across, one down, and one for each odd length, so
                 # we might as well use that fact
                 extra = f'Middle-{odd_count}'
-                generate_centered_entry_for_size(odd_count, False, (extra, 'MIDDLE-DOWN'))
-                generate_centered_entry_for_size(odd_count, True, (extra, 'MIDDLE-ACROSS'))
+                generate_centered_entry_for_size(odd_count, False,
+                                                 (extra, 'MIDDLE-DOWN'))
+                generate_centered_entry_for_size(odd_count, True,
+                                                 (extra, 'MIDDLE-ACROSS'))
 
         else:
             raise Exception("No way to handle more than three odd counts")
@@ -485,7 +567,7 @@ def test1():
         (33, '10368'), (34, '70972'), (35, '149.4'), (36, '85.8'))
 
     filler = FillInCrosswordGrid(acrosses, downs, size=13)
-    results = filler.run(debug=3, black_squares_okay=False, numbering=True, full=True)
+    results = filler.run(debug=0, black_squares_okay=False, numbering=True, full=False)
     for result in results:
         filler.display(result)
 
@@ -500,7 +582,7 @@ def test2():
              (20, '143641'), (22, '45325'), (24, '265'), (26, '1463'), (28, '2116'),
              (32, '35'), (34, '23')]
     filler = FillInCrosswordGrid(acrosses, downs, width=8, height=10)
-    results = filler.run(debug=3, black_squares_okay=False, full=True)
+    results = filler.run(debug=0, black_squares_okay=False, full=False)
     # results = filler.no_numbering().run(debug=3)
     for result in results:
         filler.display(result)
@@ -515,12 +597,36 @@ def test3():
     )
     filler = FillInCrosswordGridMushed(info, width=6, height=5)
     # filler = FillInCrosswordGrid(info, width=7, height=7)
-    results = filler.run(debug=3, black_squares_okay=False, numbering=True)
+    results = filler.run(debug=0, black_squares_okay=False, numbering=True)
+    for result in results:
+        filler.display(result)
+
+
+def test4():
+    across_lengths = [6, 7, 4, 9, 10, 7, 4, 7, 5, 7, 5, 7, 5, 7, 4, 7, 10, 9, 4, 7, 6]
+    down_lengths = [ 7, 9, 7, 7, 5, 4, 10, 4, 6, 7, 10, 5, 7, 9, 7, 7, 7, 6, 5, 4, 4]
+    # across_lengths = across_lengths[1:-1]
+    # down_lengths = [ 7, 9, 7, 7, 5, 4, 10, 4,  7, 10, 5, 7, 9, 7, 7, 7, 5, 4, 4]
+
+    across_lengths = [6, 7, 4, 9, 10, 7, 4, 7, 5, 7,  7, 5, 7, 4, 7, 10, 9, 4, 7, 6]
+    down_lengths = [ 7, 9, 7, 7, 5, 4, 10, 4, 6, 7, 10,  7, 9, 7, 7, 7, 6, 5, 4, 4]
+
+
+
+    filler = FillInCrosswordGrid4Way(across_lengths, down_lengths, width=13)
+    results = filler.run(debug=100, black_squares_okay=True, numbering=True)
     for result in results:
         filler.display(result)
 
 
 if __name__ == '__main__':
+    start = datetime.now()
     test1()
     test2()
     test3()
+    test4()
+    end = datetime.now()
+    print("total time", end - start)
+
+# 7.91   recursive=False
+# 7.85   recursive=True

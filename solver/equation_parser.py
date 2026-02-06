@@ -93,7 +93,7 @@ class MyParser(Parser):
 
     @_('NUMBER')
     def atom(self, p):
-        return 'const', p.NUMBER
+        return 'const', int(p.NUMBER)
 
     @_('NAME')
     def atom(self, p):

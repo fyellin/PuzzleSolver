@@ -4,7 +4,7 @@ from functools import cache
 from sortedcontainers import SortedDict
 
 from misc.primes import PRIMES
-from solver import Clue, ConstraintSolver, DancingLinks, Encoder, generators
+from solver import Clue, ConstraintSolver, DancingLinks, generators
 
 C = [x for i in range(2, 100) for x in [i ** 3] if 2 <= x < 10_000]
 S = [x for i in range(2, 1000) for x in [i ** 2] if 2 <= x < 10_000]
@@ -195,7 +195,7 @@ def handle_t2():
             continue
         for a17, a20, a23, a26, a29, a33, a38 in itertools.combinations(items[1:], 7):
             if a29 not in T: continue
-            print (a14, a17, a20, a23, a26, a29, a33, a38)
+            print(a14, a17, a20, a23, a26, a29, a33, a38)
 
 
 @cache
@@ -258,19 +258,18 @@ class Solver251 (ConstraintSolver):
         super().__init__(clues)
 
     def dancing_links(self, numbers):
-        encoder = Encoder.digits()
         numbers = [str(x) for x in numbers]
         constraints = {}
+        optional_constraints = set(f'r{r}c{c}' for r in range(1, 10) for c in range(1, 10))
         mapper = {'999': '888', '227': '223', '229': '223'}
         for clue in self._clue_list:
             for number in numbers:
                 if clue.length == len(number):
-                    constraint = [mapper.get(number, number), clue.name]
-                    for location, letter in zip(clue.locations, number):
-                        if self.is_intersection(location):
-                            constraint.extend(encoder.encode(letter, location, clue.is_across))
+                    constraint = [mapper.get(number, number), clue.name,
+                                  *((f'r{r}c{c}', letter)
+                                    for (r, c), letter in zip(clue.locations, number))]
                     constraints[f'{clue.name}-{number}'] = constraint
-        solver = DancingLinks(constraints)
+        solver = DancingLinks(constraints, optional_constraints=optional_constraints)
         solver.solve(debug=100)
 
     def get_clues(self, numbers):
@@ -308,7 +307,7 @@ class Solver251 (ConstraintSolver):
 
 
     def extra(self, plt, axes):
-        la = self.location_to_entry;
+        la = self.location_to_entry
         for row in range(1, 10):
             for column in range(2, 10):
                 if la[row, column - 1] != la[row, column]:

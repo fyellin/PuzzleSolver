@@ -1,5 +1,6 @@
 import itertools
 import multiprocessing
+import pickle
 from collections import Counter
 from collections.abc import Iterable
 from datetime import datetime
@@ -47,18 +48,21 @@ class EquationSolver(BaseSolver):
         super().__init__(clue_list, **args)
         self._items = tuple(items)
         self._all_constraints = []
-
-        self._solve_me_first = ()
+        Clue.set_pickle_solver(self)
 
     def add_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., bool], *,
                        name: Optional[str] = None) -> None:
+        if isinstance(clues, str):
+            clues = clues.split()
         assert len(clues) >= 1
         actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue) for clue in clues)
         if not name:
             name = '_'.join(clue.name for clue in actual_clues)
 
-        def check_relationship() -> bool:
-            return predicate(*(self._known_clues[clue] for clue in actual_clues))
+        def check_relationship(known_clues = None) -> bool:
+            if known_clues is None:
+                known_clues = self._known_clues
+            return predicate(*(known_clues[clue] for clue in actual_clues))
 
         check_relationship.__name__ = name
 
@@ -164,32 +168,35 @@ class EquationSolver(BaseSolver):
         elif len(items) == 1:
             self._solve_mp(current_index + 1)
         else:
-            known_clues = self._pickle_encode_known_clues_dict(self._known_clues)
+            known_clues = self._known_clues
             known_letters = self._known_letters
             args = [(id, type(self), current_index,
-                     known_clues | {clue.name: clue_value},
+                     pickle.dumps(known_clues | {clue: clue_value}),
                      known_letters | dict(zip(clue_letters, letter_values)))
                     for id, (clue_value, *letter_values) in enumerate(items)]
+            seen = set(id for id, *_ in args)
+            print(f'There are {len(args)} processes')
+            max_id = 0
             with multiprocessing.Pool() as pool:
                 results =  pool.imap_unordered(self._mp_bridge, args)
-                for count, (id, solutions) in enumerate(results, start=1):
+                for (id, solutions) in results:
+                    seen.remove(id)
+                    max_id = max(max_id, id)
                     clue_value, *letter_values = items[id]
-                    print(f'{clue.name} {"".join(clue_letters)} '
-                          f'{letter_values} {clue_value} ({clue.length}): --> {len(solutions)}')
+                    unfinished_ids = sorted(x for x in seen if x < max_id)
+                    unfinished_letters = [items[id][1:] for id in unfinished_ids]
+                    print(f'{id} {clue.name} {"".join(clue_letters)} '
+                          f'{letter_values} {clue_value} ({clue.length}): --> {len(solutions)} {unfinished_letters} {len(seen)}')
                     for clue_values, letter_values in solutions:
-                        clue_values = self._pickle_decode_known_clues_dict(clue_values)
                         self._solutions.append((clue_values, letter_values))
-
-    def _pickle_encode_known_clues_dict(self, clue_dict: KnownClueDict) -> dict[str, ClueValue]:
-        return {clue.name: value for clue, value in clue_dict.items()}
-
-    def _pickle_decode_known_clues_dict(self, encoding: dict[str, ClueValue]) -> KnownClueDict:
-        return {self.clue_named(name): value for name, value in encoding.items()}
 
     @staticmethod
     def _mp_bridge(arg):
-        id, mytype, current_index, known_clues, known_letters = arg
+        id, mytype, current_index, pickled_known_clues, known_letters = arg
         self = mytype()
+        # known_clues can't be unpickled until we call Clue.set_pickle_solver.
+        Clue.set_pickle_solver(self)
+        known_clues = pickle.loads(pickled_known_clues)
         return self._handle_multiprocessing(id, current_index, known_clues, known_letters)
 
     def _handle_multiprocessing(self, id, current_index, known_clues, known_letters):
@@ -197,7 +204,7 @@ class EquationSolver(BaseSolver):
         self._solutions = []
 
         self._known_letters = known_letters
-        self._known_clues = self._pickle_decode_known_clues_dict(known_clues)
+        self._known_clues = known_clues
         self._debug = False
         self._max_debug_depth = -1
         self._solving_order = self._get_solving_order()
@@ -205,7 +212,7 @@ class EquationSolver(BaseSolver):
             clue, *_ = self._solving_order[i]
             assert clue in self._known_clues
         self._solve(current_index + 1)
-        return id, [(self._pickle_encode_known_clues_dict(known_clues), known_letters)
+        return id, [(known_clues, known_letters)
                     for known_clues, known_letters in self._solutions]
 
     def _get_solving_order(self) -> Sequence[SolvingStep]:
@@ -224,7 +231,7 @@ class EquationSolver(BaseSolver):
         def grading_function(clue_info: ClueInfo) -> Sequence[float]:
             letters = frozenset(clue_info.unbound_letters)
             clue_length = clue_info.clue.length
-            return (-1000 if clue_info.clue not in self._solve_me_first else self._solve_me_first.index(clue_info.clue),
+            return (clue_info.clue.priority,
                     -len(letters),
                     len(clue_info.known_locations) / clue_length, clue_length,
                     unbound_letters_to_clue_count[letters],
@@ -275,6 +282,7 @@ class EquationSolver(BaseSolver):
                 print(item.clue, item.letters)
         return tuple(result)
 
+
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
             Callable[[dict[Clue, ClueValue]], Pattern[str]]:
         """
@@ -303,7 +311,8 @@ class EquationSolver(BaseSolver):
         if count == 0:
             yield ()
             return
-        unused_values = (i for i in self._items if i not in set(known_letters.values()))
+        known_letters = set(known_letters.values())
+        unused_values = [i for i in self._items if i not in known_letters]
         yield from itertools.permutations(unused_values, count)
 
     def get_letter_values_with_duplicates(self, known_letters: KnownLetterDict, count: int, max_per_item: int) -> \

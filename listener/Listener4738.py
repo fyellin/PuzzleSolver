@@ -2,8 +2,9 @@ import itertools
 from collections.abc import Iterable
 from typing import Any, Sequence
 
-from solver import ClueValue, Clues, EquationSolver, Evaluator, Letter, Location
-from solver.equation_solver import KnownLetterDict
+from solver import ClueValue, Clues, EquationSolver, Evaluator, Letter, Location, \
+    MultiEquationSolver
+from solver.equation_solver import KnownClueDict, KnownLetterDict
 
 GRID = """
 X.XXXXXXXX
@@ -71,16 +72,36 @@ DOWN = """
 39 −S + T + R + I + N − G (2)
 """
 
+SOLUTION_CLUES = {
+    '11a': '40320', '14d': '720', '25a': '1430', '2d': '17', '33a': '120',
+    '9d': '70', '8d': '125', '16a': '58', '26d': '3684', '22d': '22479',
+    '6a': '7817', '28d': '2100', '41a': '90', '27a': '221', '34d': '239',
+    '19a': '104', '19d': '1308', '37a': '10857', '37d': '11', '1a': '5117',
+    '12a': '92', '35a': '54', '1d': '569', '5d': '84949', '32d': '500',
+    '31a': '25', '18d': '1112', '23a': '9896', '15d': '7581', '4d': '3200',
+    '4a': '38', '14a': '730', '18a': '122', '39d': '40', '13d': '22',
+    '21a': '5032', '40a': '1046', '3d': '793', '10a': '6579',
+    '24d': '960', '38a': '3417', '36d': '479', '42a': '9039', '7d': '8385',
+    '20a': '5564', '17d': '8464', '29a': '694', '30d': '95'}
 
-class Listener4738(EquationSolver):
+SOLUTION_LETTERS = {
+    'P': 31, 'U': 25, 'O': 4, 'T': 26, 'A': 15, 'H': 33, 'N': 2, 'I': 18,
+    'S': 7, 'R': 9, 'B': 13, 'C': 17, 'M': 28, 'E': 23, 'G': 10, 'L': 21}
+
+
+class Listener4738(MultiEquationSolver):
     @staticmethod
     def run() -> None:
         solver = Listener4738()
-        solver.solve(debug=True, max_debug_depth=2, multiprocessing=True)
+        mp = not isinstance(solver, MultiEquationSolver)
+        solver.solve(debug=True, max_debug_depth=2, multiprocessing=mp)
 
     def __init__(self):
         clues = self.get_clues()
         super().__init__(clues, items=range(2, 34, 2))
+        self.solution_clues = {self.clue_named(key): value
+                               for key, value in SOLUTION_CLUES.items()}
+        self.solution_letters = SOLUTION_LETTERS
 
     def get_clues(self):
         locations = Clues.get_locations_from_grid(GRID)
@@ -120,10 +141,16 @@ class Listener4738(EquationSolver):
         if count == 0:
             yield ()
             return
-        unused_values = [i for i in self._items if (i & ~1) not in set(known_letters.values())]
+        known_letters = set(known_letters.values())
+        unused_values = [i for i in self._items if (i & ~1) not in known_letters]
         for values in itertools.permutations(unused_values, count):
             for xors in itertools.product((0, 1), repeat=count):
                 yield [value ^ xor for value, xor in zip(values, xors)]
+
+    def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
+        temp = {clue.name: value for clue, value in known_clues.items()}
+        print(temp)
+        print(known_letters)
 
     def draw_grid(self, max_row, clue_values, left_bars, top_bars, location_to_entry,
                   clued_locations, **args: Any) -> None:

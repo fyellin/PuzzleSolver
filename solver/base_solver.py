@@ -137,13 +137,15 @@ class BaseSolver(ABC):
             # These are internal locations of an answer, so a heavy bar isn't needed.
             (left_bars if clue.is_across else top_bars).difference_update(clue.locations[1:])
 
-        self.draw_grid(max_row=max_row, max_column=max_column,
-                       clued_locations=clued_locations,
-                       clue_values=clue_values,
-                       location_to_entry=location_to_entry,
-                       location_to_clue_numbers=location_to_clue_numbers,
-                       top_bars=top_bars,
-                       left_bars=left_bars, **more_args)
+        args = dict(max_row=max_row, max_column=max_column,
+                   clued_locations=clued_locations,
+                   clue_values=clue_values,
+                   location_to_entry=location_to_entry,
+                   location_to_clue_numbers=location_to_clue_numbers,
+                   top_bars=top_bars,
+                   left_bars=left_bars) | more_args
+
+        self.draw_grid(**args)
 
     def draw_grid(self, **args: Any) -> None:
         """Override this method if you need to intercept the call to the draw_grid() function."""
