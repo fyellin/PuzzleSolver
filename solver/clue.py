@@ -19,12 +19,14 @@ class Clue:
     locations: Sequence[Location]
     location_set:  FrozenSet[Location]
     expression: str
+    priority: int  # When ordering in the evaluation solver
 
     def __init__(self, name: str, is_across: bool, base_location: Location, length: int, *,
                  expression: str = '',
                  generator: Optional[ClueValueGenerator] = None,
                  context: Any = None,
-                 locations: Optional[Iterable[Location]] = None):
+                 locations: Optional[Iterable[Location]] = None,
+                 priority = 0):
         self.name = name
         self.is_across = is_across
         if locations:
@@ -47,6 +49,7 @@ class Clue:
         self.generator = generator
         self.context = context
         self.location_set = frozenset(self.locations)
+        self.priority = priority
 
     def location(self, i: int) -> Location:
         return self.locations[i]
@@ -60,3 +63,17 @@ class Clue:
 
     def __repr__(self) -> str:
         return str(self)
+
+    # The following let us pickle and unpickle clues. We need to set a global indicating
+    # the solver that was used for creating the clues by calling set_pickle solver.
+
+    def __reduce__(self):
+        return Clue._pickle_get_named, (self.name,)
+
+    @staticmethod
+    def set_pickle_solver(solver: Any):
+        Clue._pickle_solver = solver
+
+    @staticmethod
+    def _pickle_get_named(name: str):
+        return Clue._pickle_solver.clue_named(name)

@@ -1,7 +1,5 @@
 import itertools
-import math
 import re
-from fractions import Fraction
 from typing import Any, Iterable, Sequence
 
 from solver import Clue, Clues, EquationSolver, Evaluator, equation_parser
@@ -103,7 +101,6 @@ class Listener4843(EquationSolver):
         clue_list = self.get_clues()
         self.fake_clues = clue_list[-4:]
         super().__init__(clue_list, items=range(1, 27))
-        # self._solve_me_first = [self.clue_named("12d")]
 
         self.clue_extras = [self.clue_from_name(name) for name in CLUE_EXTRAS]
 
@@ -205,4 +202,7 @@ class Listener4843(EquationSolver):
             except:
                 clue = self.clue_named(name + 'd')
         return clue
+
+if __name__ == '__main__':
+    Listener4843.run()
 

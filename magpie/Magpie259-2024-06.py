@@ -74,7 +74,7 @@ class Magpie253 (ConstraintSolver):
         return '[1-6]' if self.is_start_location(location) else '[0-6]'
 
     class MyLetterHandler(LetterCountHandler):
-        def real_checking_value(self, value: ClueValue, info: Any) -> bool:
+        def real_checking_value(self, value: ClueValue, _info: Any) -> bool:
             counter = self._counter
             return all(x <= 8 for x in counter.values())
 

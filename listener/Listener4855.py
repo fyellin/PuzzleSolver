@@ -1,12 +1,8 @@
-import itertools
-import math
-import re
 from collections import defaultdict
-from fractions import Fraction
-from typing import Any, Iterable, Sequence
+from collections import defaultdict
+from typing import Iterable, Sequence
 
-from solver import Clue, Clues, EquationSolver, Evaluator, Letter, equation_parser
-from solver.equation_parser import Parse
+from solver import Clues, EquationSolver, Letter
 from solver.equation_solver import KnownClueDict, KnownLetterDict
 
 ACROSS = """

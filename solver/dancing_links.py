@@ -1,286 +1,360 @@
 from __future__ import annotations
 
-import collections
-import copy
-import math
-import random
-import string
-import sys
-from collections.abc import Hashable, Sequence, Iterator
+import bisect
+from itertools import chain, count
+from collections import Counter
+from collections.abc import Hashable, Sequence
 from datetime import datetime
-from itertools import combinations, count
-from typing import Optional, Callable, Any, TypeVar, Generic
+from functools import cache
+from typing import Any, Callable, Final, Optional
 
-from typing.io import TextIO
+import math
 
-Row = TypeVar('Row', bound=Hashable)
-Constraint = TypeVar('Constraint', bound=Hashable)
+class _Purified:
+    __slots__ = ()
 
 
-class DancingLinks(Generic[Row, Constraint]):
-    row_to_constraints: dict[Row, list[Constraint]]
-    optional_constraints: set[Constraint]
-    row_printer: Any
+PURIFIED: Final = _Purified()
 
-    count: int
+
+class DancingLinks[Row: Hashable]:
+    constraints: dict[Row, list[str | tuple[str, str]]]
+    optional_constraints: set[str]
+    row_printer: Optional[Callable[[Sequence[Row]], None]]
+    names: dict[int, str]
+    spacer_indices: list[int]
+    memory: list[list[Optional[int]]]
+    colors: dict[int, str | _Purified]
+    debug: Optional[int]
     max_debugging_depth: int
-    output: TextIO
-    debug: int
-    constraint_to_rows: dict[Constraint, set[Row]]
 
-    def __init__(self, constraints: dict[Row, list[Constraint]],
+    def __init__(self, constraints: dict[Row, list[str | tuple[str, str]]],
                  *, row_printer: Optional[Callable[[Sequence[Row]], None]] = None,
-                 optional_constraints: Optional[set[Constraint]] = None):
-        """The entry to the Dancing Links code.  constraints should be a dictionary.  Each key
-        is the name of the row (something meaningful to the user).  The value should
-        be a list/tuple of the row_to_constraints satisfied by this row.
+                 optional_constraints: Optional[set[str]] = None):
+        """The entry to the Dancing Links code.  constraints should be a dictionary.
+        Each key is the name of the row (something meaningful to the user).
+        The value should be a list/tuple of the row_to_constraints satisfied by this row.
 
         The row names and constraint names can be anything immutable and hashable.
         Typically, they are strings, but feel free to use whatever works best. Also,
         all constraint names must be "comparable" to each other. So strings really do work
         best
         """
-        self.row_to_constraints = constraints
+        self.constraints = constraints
         self.optional_constraints = optional_constraints or set()
         self.row_printer = row_printer or self._default_row_printer
 
-    def solve(self, output: TextIO = sys.stdout, debug: Optional[int] = None,
-              recursive: Optional[bool] = False) -> None:
+    def solve(self, debug: Optional[int] = 0) -> None:
         time1 = datetime.now()
-        # Create the cross-reference giving the rows in which each constraint appears
-        constraint_to_rows: dict[Constraint, set[Row]] = collections.defaultdict(set)
-        for row, constraints in self.row_to_constraints.items():
-            # having a duplicate constraint in a row will break things.
-            assert len(constraints) == len(set(constraints)), f'{row} has duplicate constraints {constraints}'
-            for constraint in constraints:
-                constraint_to_rows[constraint].add(row)
+        self.debug = debug is not None
+        self.max_debugging_depth = debug if debug is not None else -1
 
-        self.optional_constraints = {x for x in self.optional_constraints if x in constraint_to_rows}
-        # An optional constraint that appears in only one row is pretty useless.  Delete
-        unused_constraints = {x for x in self.optional_constraints if len(constraint_to_rows[x]) == 1}
-        for constraint in unused_constraints:
-            row = constraint_to_rows.pop(constraint).pop()
-            self.row_to_constraints[row].remove(constraint)
-            self.optional_constraints.remove(constraint)
+        (*self.memory, self.colors, self.names, self.spacer_indices) = (
+            self.create_data_structure()
+        )
+        steps, solutions = self.inner_solve()
 
-        runner = copy.copy(self)
+        time2 = datetime.now()
+        print("Steps =", steps)
+        print("Solutions =", solutions)
+        print("Time =", (time2 - time1))
 
-        runner.constraint_to_rows = constraint_to_rows
-        runner.output = output
-        runner.count = 0
-        runner.debug = debug is not None
-        runner.max_debugging_depth = debug if debug is not None else -1
+    def inner_solve(self) -> tuple[int, int]:
+        down: list[int]
+        left, right, lengths, up, down, top = self.memory
+        colors = self.colors
+        visible_rows = len(self.spacer_indices)
 
-        if runner.debug:
-            optional_count = len(self.optional_constraints)
-            required_count = len(constraint_to_rows) - optional_count
-            output.write(f"There are {len(runner.row_to_constraints)} rows; "
-                         f"{required_count} required constraints; "
-                         f"{optional_count} optional constraints\n")
+        def search_iterative() -> tuple[int, int]:
+            steps = solutions = 0
+            stack: list[list[int]] = [[0, 0, 0, 0]]
 
-        if recursive:
-            recursion_depth = len(constraint_to_rows) + 100
-            if sys.getrecursionlimit() < recursion_depth:
-                sys.setrecursionlimit(recursion_depth)
-
-            solutions_count = 0
-            for solution in runner.__solve_constraints_recursive(0):
-                solutions_count += 1
-                self.row_printer(solution)
-        else:
-            solutions_count = runner.__solve_constraints_iterative()
-
-        if runner.debug:
-            time2 = datetime.now()
-            print("Count =", runner.count, file=output)
-            print("Solutions =", solutions_count, file=output)
-            print("Time =", (time2 - time1))
-
-    def __solve_constraints_recursive(self, depth: int) -> Iterator[list[Row]]:
-        """Returns a set of rows that satisfies the row_to_constraints of constraint_to_rows
-        """
-        # Note that "depth" is meaningful only when debugging.
-        self.count += 1
-        is_debugging = depth < self.max_debugging_depth
-
-        try:
-            min_count, min_constraint = min((len(rows), constraint)
-                                             for constraint, rows in self.constraint_to_rows.items()
-                                             if constraint not in self.optional_constraints)
-        except ValueError:
-            # We had nothing but optional constraints left.  We're done!
-            if is_debugging:
-                self.output.write(f"{self.__indent(depth)}✓ SOLUTION\n")
-            yield []
-            return
-
-        old_depth = depth
-
-        depth += (min_count != 1)  # depth is for debugging only
-        if min_count == 0:
-            if is_debugging:
-                self.output.write(f"{self.__indent(depth)}✕ {min_constraint}\n")
-            return
-
-        # Look at each possible row that can resolve the min_constraint.
-        min_constraint_rows = self.__cover_constraint(min_constraint)
-
-        for index, row in enumerate(min_constraint_rows, start=1):
-            cols = [self.__cover_constraint(row_constraint)
-                    for row_constraint in self.row_to_constraints[row] if row_constraint != min_constraint]
-
-            if is_debugging:
-                self.__print_debug_info(min_constraint, row, index, min_count, old_depth)
-
-            for solution in self.__solve_constraints_recursive(depth):
-                solution.append(row)
-                yield solution
-
-            for row_constraint in reversed(self.row_to_constraints[row]):
-                if row_constraint != min_constraint:
-                    self.__uncover_constraint(row_constraint, cols.pop())
-
-        self.__uncover_constraint(min_constraint, min_constraint_rows)
-
-    def __solve_constraints_iterative(self) -> int:
-        # Note that "depth" is meaningful only when debugging.
-        stack: list[tuple[Callable[..., None], Sequence[Any]]] = []
-        solution_count = 0
-
-        def run() -> int:
-            stack.append((find_minimum_constraint, (0,)))
             while stack:
-                function, args = stack.pop()
-                function(*args)
-            return solution_count
+                depth, r, min_constraint, index = frame = stack.pop()
+                if r > 0:
+                    # r is the row before the one I want to scan.  If r == min_constraint,
+                    # then this is the first row, and I don't have a row to uncover
+                    if r != min_constraint:
+                        uncover_row(r)
 
-        def find_minimum_constraint(depth: int) -> None:
-            nonlocal solution_count
-            self.count += 1
-            try:
-                count, constraint = min((len(rows), constraint)
-                                        for constraint, rows in self.constraint_to_rows.items()
-                                        if constraint not in self.optional_constraints)
-            except ValueError:
-                # There is nothing left but optional constraints.  We have a solution!
-                if depth < self.max_debugging_depth:
-                    self.output.write(f"{self.__indent(depth)}✓ SOLUTION\n")
-                # row_cleanup on the stack indicates that we are currently working on that item
-                solution = [args[1] for (func, args) in stack if func == row_cleanup]
-                solution_count += 1
-                self.row_printer(solution)
-                return
+                    r = down[r]
+                    # The next time we reach min_constraint, the column is exhausted.
+                    if r == min_constraint:
+                        uncover_item(min_constraint)
+                        continue
 
-            if count > 0:
-                stack.append((look_at_constraint, (constraint, depth)))
-            else:
-                # No rows satisfy this constraint.  Dead end.
-                if depth < self.max_debugging_depth:
-                    self.output.write(f"{self.__indent(depth)}✕ {constraint}\n")
+                    cover_row(r)
 
-        def look_at_constraint(constraint: Constraint, depth: int) -> None:
-            # Look at each possible row that can resolve the constraint.
-            rows = self.__cover_constraint(constraint)
-            count = len(rows)
+                    frame[1], frame[3] = r, index + 1  # reuse previous frame.
+                    stack.append(frame)
+                    if self.debug <= self.max_debugging_depth:
+                        self.__print_debug_info(
+                            depth, min_constraint, self.get_name(r),
+                            index, lengths[min_constraint], visible_rows)
+                        depth += (lengths[min_constraint] != 1)
 
-            stack.append((constraint_cleanup, (constraint, rows)))
-            entries = [(look_at_row, (constraint, row, index, count, depth)) for index, row in enumerate(rows, start=1)]
-            stack.extend(reversed(entries))
+                    # stack.append((depth, 0, 0, 0))
+                    # Fall through
 
-        def look_at_row(constraint: Constraint, row: Row, index: int, count: int, depth: int) -> None:
-            cleanups = [(row_constraint, self.__cover_constraint(row_constraint))
-                        for row_constraint in self.row_to_constraints[row]
-                        if row_constraint != constraint]
-            if depth < self.max_debugging_depth:
-                self.__print_debug_info(constraint, row, index, count, depth)
+                steps += 1
+                if right[0] == 0:
+                    if self.debug <= self.max_debugging_depth:
+                        print(f"{self.__indent(depth)}✓ SOLUTION")
+                    # There can't be any frames with r == 0.
+                    solution = [s[1] for s in stack if s[1] != s[2]]
+                    solutions += 1
+                    self.row_printer([self.get_name(r) for r in solution])
+                    continue
 
-            # Remember we are adding things in reverse order.  Recurse on the smaller subproblem, and then cleanup
-            # what we just did above.
-            stack.append((row_cleanup, (cleanups, row)))
-            stack.append((find_minimum_constraint, (depth + (count > 1),)))
+                min_constraint, min_count = choose_column()
 
-        def row_cleanup(cleanups: list[tuple[Constraint, set[Row]]], _row: Row, ) -> None:
-            for constraint, rows in reversed(cleanups):
-                self.__uncover_constraint(constraint, rows)
+                if min_count == 0:
+                    if self.debug <= self.max_debugging_depth:
+                        print(f"{self.__indent(depth)}✕ {self.names[min_constraint]}")
+                    continue
 
-        def constraint_cleanup(constraint: Constraint, rows: set[Row]) -> None:
-            self.__uncover_constraint(constraint, rows)
+                cover_item(min_constraint)
+                stack.append([depth, min_constraint, min_constraint, 1])
+            return steps, solutions
 
-        return run()
+        def cover_row(r: int) -> None:
+            """Called when we're adding row r to the solution set"""
+            j = r + 1
+            while j != r:
+                tt = top[j]
+                if tt <= 0:
+                    # This is a spacer, and spacers form a proper vertical chain
+                    j = up[j]
+                else:
+                    commit_item(j, tt)
+                j += 1
 
-    def __cover_constraint(self, constraint: Constraint) -> set[Row]:
-        # Remove the constraint and all rows satisfying that constraint from
-        # self.constraint_to_rows.  Returns the list of rows that were removed.
-        rows = self.constraint_to_rows.pop(constraint)
-        for row in rows:
-            # For each constraint in this row about to be deleted
-            for row_constraint in self.row_to_constraints[row]:
-                # Mark this constraint as now longer available in the row,
-                # unless we're looking at the constraint we just chose!
-                if row_constraint != constraint:
-                    self.constraint_to_rows[row_constraint].remove(row)
-        return rows
+        def uncover_row(r: int) -> None:
+            """Called when we're removing row r from the solution set"""
+            j = r - 1
+            while j != r:
+                tt = top[j]
+                if tt <= 0:
+                    # This is a spacer, and spacers form a proper vertical chain.
+                    j = down[j]
+                else:
+                    uncommit_item(j, tt)
+                j -= 1
 
-    def __uncover_constraint(self, constraint: Constraint, rows: set[Row]) -> None:
-        # Undoes __cover_constraint.  Must be given the exact list that was returned
-        # by __cover_constraint for this to work correctly.
-        for row in rows:
-            for row_constraint in self.row_to_constraints[row]:
-                if row_constraint != constraint:
-                    self.constraint_to_rows[row_constraint].add(row)
-        self.constraint_to_rows[constraint] = rows
+        def cover_item(item: int) -> None:  # Remove the item i
+            ll, rr = left[item], right[item]
+            left[rr], right[ll] = ll, rr
+            row = down[item]
+            while row != item:
+                hide(row)
+                row = down[row]
 
-    def __print_debug_info(self, min_constraint: Constraint, row: Row, index: int, count: int, depth: int) -> None:
+        def uncover_item(item) -> None:
+            row = up[item]
+            while row != item:
+                unhide(row)
+                row = up[row]
+            ll, rr = left[item], right[item]
+            right[ll] = left[rr] = item
+
+        def hide(row: int) -> None:
+            nonlocal visible_rows
+            visible_rows -= 1
+            j = row + 1
+            while j != row:
+                tt, uu, dd = top[j], up[j], down[j]
+                if tt <= 0:
+                    j = uu  # goto previous spacer
+                elif colors.get(j) is not PURIFIED:
+                    up[dd], down[uu] = uu, dd
+                    lengths[tt] -= 1
+                j += 1
+
+        def unhide(row: int) -> None:
+            nonlocal visible_rows
+            visible_rows += 1
+            j = row - 1
+            while j != row:
+                tt, uu, dd = top[j], up[j], down[j]
+                if tt <= 0:
+                    j = dd
+                elif colors.get(j) is not PURIFIED:
+                    lengths[tt] += 1
+                    down[uu] = up[dd] = j
+                j -= 1
+
+        def commit_item(item: int, item_top: int) -> None:
+            assert item_top == top[item]
+            color = colors.get(item)
+            if color is None:
+                cover_item(item_top)
+            elif color is not PURIFIED:
+                purify(item, color, item_top)
+
+        def uncommit_item(item: int, item_top: int) -> None:
+            assert item_top == top[item]
+            color = colors.get(item)
+            if color is None:
+                uncover_item(item_top)
+            elif color is not PURIFIED:
+                unpurify(item, color, item_top)
+
+        def purify(p: int, color: str, top: int) -> None:
+            assert color == colors[p] and color is not None
+            q = down[top]
+            while q != top:
+                if colors.get(q) != color:
+                    hide(q)
+                else:
+                    colors[q] = PURIFIED
+                q = down[q]
+
+        def unpurify(p: int, color: str, top: int) -> None:
+            assert color == colors[p] and color is not None
+            q = up[top]
+            while q != top:
+                if colors.get(q) is PURIFIED:
+                    colors[q] = color
+                else:
+                    unhide(q)
+                q = up[q]
+
+        def choose_column() -> tuple[int, int]:
+            c = right[0]
+            best = -1
+            min_size = math.inf
+            while c != 0:
+                if lengths[c] < min_size:
+                    best, min_size = c, lengths[c]
+                    if min_size == 0:
+                        return c, 0
+                c = right[c]
+            return best, min_size
+
+        return search_iterative()
+
+    def create_data_structure(self) -> tuple[Any, ...]:
+        all_constraints = Counter()
+        for name, items in self.constraints.items():
+            # having a duplicate constraint in a row will break things.
+            names_only = [item[0] if isinstance(item, tuple) else item for item in items]
+            assert len(names_only) == len(set(names_only)), \
+                f'Row {name} has duplicate items {items}'
+            all_constraints.update(
+                item[0] if isinstance(item, tuple) else item for item in items)
+        primary_constraints = set(all_constraints.keys()) - self.optional_constraints
+        secondary_constraints = {x for x in self.optional_constraints if
+                                 all_constraints[x] > 1}
+
+        if self.debug:
+            print(f"There are {len(self.constraints)} rows; " 
+                  f"{len(primary_constraints)} required constraints; "
+                  f"{len(secondary_constraints)} optional constraints;")
+
+        primary_length = len(primary_constraints)
+        secondary_length = len(secondary_constraints)
+        total_length = primary_length + secondary_length
+        right = [*range(1, total_length + 2), 0]
+        left = [total_length + 1, *range(total_length + 1)]
+        right[primary_length] = 0
+        left[0] = primary_length
+        right[-1] = primary_length + 1
+        left[primary_length + 1] = len(right) - 1
+        lengths = [0] * (total_length + 2)
+
+        names = {index: name
+                 for index, name in enumerate(chain(sorted(primary_constraints),
+                                                    sorted(secondary_constraints)),
+                                              start=1)}
+        names_map = {name: index for index, name in names.items()}
+        spacer_indices = []
+        constraints_length = sum(1 + len(x) for x in self.constraints.values()) + 1
+        colors: dict[int, str | _Purified] = {}
+        up = [*range(total_length + 2), *([0] * constraints_length)]
+        down = up[:]
+        top = [0] * len(up)
+        current_index = total_length + 1
+
+        def new_node(my_top: int) -> None:
+            nonlocal current_index
+            current_index += 1
+            up[current_index] = my_top_previous_up = up[my_top]
+            top[current_index] = down[current_index] = my_top
+            up[my_top] = down[my_top_previous_up] = current_index
+            if my_top:
+                lengths[my_top] += 1
+
+        for name, items in self.constraints.items():
+            new_node(0)  # add a spacer node
+            spacer_indices.append(current_index)
+            names[current_index] = name
+            for item in items:
+                color = None
+                if isinstance(item, tuple):
+                    item, color = item
+                if (my_top := names_map.get(item)) is None:
+                    continue
+                new_node(my_top)
+                if color:
+                    colors[current_index] = color
+        new_node(0)  # Add a final spacer
+        current_index += 1
+        up[current_index:] = down[current_index:] = top[current_index:] = []
+
+        return left, right, lengths, up, down, top, colors, names, spacer_indices
+
+    def __print_debug_info(self, depth: int, min_constraint: int, row: Row,
+                           index: int, count: int, visible_rows: int) -> None:
         indent = self.__indent(depth)
-        live_rows = {x for rows in self.constraint_to_rows.values() for x in rows}
         if count == 1:
-            self.output.write(f"{indent}• ")
+            print(f"{indent}• ", end='')
         else:
-            self.output.write(f"{indent}{index}/{count} ")
-        self.output.write(f"{min_constraint}: Row {row} ({len(live_rows)} rows)\n")
+            print(f"{indent}{index}/{count} ", end='')
+        print(f"{self.names[min_constraint]}: Row {row} ({visible_rows})")
+
+    def get_name(self, index: int) -> str:
+        spacer_index = bisect.bisect_right(self.spacer_indices, index) - 1
+        next_smallest = self.spacer_indices[spacer_index]
+        return self.names[next_smallest]
 
     @staticmethod
-    def _default_row_printer(solution):
+    def _default_row_printer(solution: Sequence[Row]) -> None:
         print(sorted(solution))
 
     @staticmethod
+    @cache
     def __indent(depth: int) -> str:
         return ' | ' * depth
 
-
-class Encoder:
-    prefix: str
-    alphabet: str
-    table: dict[str, tuple[Sequence[int], Sequence[int]]]
-
-    @staticmethod
-    def of_alphabet(prefix: str = "") -> Encoder:
-        return Encoder(string.ascii_uppercase, prefix)
-
-    @staticmethod
-    def digits(prefix: str = "") -> Encoder:
-        return Encoder(string.digits, prefix)
-
-    @staticmethod
-    def of(alphabet: str, prefix: str = "") -> Encoder:
-        return Encoder(alphabet, prefix)
-
-    def __init__(self, alphabet: str, prefix: str = ""):
-        self.alphabet = alphabet
-        self.prefix = prefix
-        size = next(i for i in count(3, 2) if math.comb(i, i // 2) >= len(alphabet))
-        self.table = {
-            ch: (down, (*across, size + 1))
-            for ch, across in zip(alphabet, combinations(range(size), size // 2))
-            for down in [tuple(x for x in range(size) if x not in across)]
-        }
-
-    def encode(self, letter: str, location: tuple[int, int], is_across: bool) -> Sequence[str]:
-        row, column = location
-        return [f'{self.prefix}r{row}c{column}-{value}'
-                for value in self.table[letter][is_across]]
-
-    def locator(self, location: tuple[int, int], is_across: bool):
-        row, column = location
-        return f'{self.prefix}r{row}c{column}-{"A" if is_across else "D"}'
-
+    def show(self, index: int, verbose=False) -> str:
+        left, right, lengths, up, down, top = self.memory
+        if index < len(left):
+            if index == 0:
+                return "ROOT"
+            elif index == len(left) - 1:
+                return "SECOND_ROOT"
+            else:
+                return self.names[index]
+        else:
+            spacer_index = bisect.bisect_right(self.spacer_indices, index) - 1
+            spacer = self.spacer_indices[spacer_index]
+            if spacer == index:
+                result = f"<{self.names[spacer]}>"
+                if not verbose:
+                    return result
+                items = []
+                for ix in count(index + 1):
+                    if top[ix] == 0:
+                        break
+                    name = self.names[top[ix]]
+                    color = self.colors.get(ix)
+                    if color:
+                        name = f"{name}/{color}"
+                    items.append(name)
+                return result + ": " + ",".join(items)
+            else:
+                color = self.colors.get(index)
+                if color:
+                    return f"<{self.names[spacer]} {self.names[top[index]]}/{color}>"
+                else:
+                    return f"<{self.names[spacer]} {self.names[top[index]]}>"

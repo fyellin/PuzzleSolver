@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Sequence
 from datetime import datetime
 from heapq import nlargest, nsmallest
-from typing import Any, NamedTuple, Optional, Union, cast
+from typing import Any, NamedTuple, Optional, Protocol, Union, cast
 
 from .base_solver import BaseSolver
 from .clue import Clue, ClueValueGenerator
@@ -26,10 +26,10 @@ class ConstraintSolver(BaseSolver):
     _max_debug_depth: int
     _multi_constraints: dict[Clue, list[Callable[..., bool]]]
     _singleton_constraint: dict[Clue, list[Callable[..., bool]]]
-    _letter_handler: Optional[LetterCountHandler]
+    _letter_handler: Optional[AbstractLetterCountHandler]
 
     def __init__(self, clue_list: Sequence[Clue], constraints: Sequence[Constraint] = (),
-                 *, letter_handler: Optional[LetterCountHandler] = None,
+                 *, letter_handler: Optional[AbstractLetterCountHandler] = None,
                  **kwargs: Any) -> None:
         super().__init__(clue_list, **kwargs)
         self._multi_constraints = defaultdict(list)
@@ -222,7 +222,7 @@ class ConstraintSolver(BaseSolver):
         return True
 
     def show_solution(self, known_clues: KnownClueDict) -> None:
-        """Overridden by subclasses that want to do more than just show a plot."""
+        """Overridden by subclasses that want to do more than show a plot."""
         self.plot_board(known_clues)
 
     def __check_2_clue_constraint(
@@ -317,7 +317,19 @@ class Constraint(NamedTuple):
     name: Optional[str] = None
 
 
-class LetterCountHandler(abc.ABC):
+type LCH_Info = tuple[Sequence[int], set[tuple[int, int]]]
+
+
+class AbstractLetterCountHandler(Protocol):
+    def start(self) -> None: ...
+    def get_clue_info(self, clue: Clue) -> Any: ...
+    def checking_value(self, value: ClueValue, info: Any) -> bool: ...
+    def adding_value(self, value: ClueValue, info: Any) -> None: ...
+    def removing_value(self, value: ClueValue, info: Any) -> None: ...
+    def close(self) -> None: ...
+
+
+class LetterCountHandler(AbstractLetterCountHandler):
     _locations: set[tuple[int, int]]
     _counter: Counter[str]
 
@@ -329,14 +341,14 @@ class LetterCountHandler(abc.ABC):
         self._locations = set()
         self._counter = Counter()
 
-    def get_clue_info(self, clue: Clue) -> Any:
+    def get_clue_info(self, clue: Clue) -> LCH_Info:
         temp = [(index, location) for index, location in enumerate(clue.locations)
                 if location not in self._locations]
         new_locations = {location for _, location in temp}
         new_indices = [index for index, _ in temp]
         return new_indices, new_locations
 
-    def checking_value(self, value: ClueValue, info: Any) -> bool:
+    def checking_value(self, value: ClueValue, info: LCH_Info) -> bool:
         counter = self._counter
         indices, _locations = info
         counter.update(value[index] for index in indices)
@@ -344,16 +356,16 @@ class LetterCountHandler(abc.ABC):
         counter.subtract(value[index] for index in indices)
         return result
 
-    def adding_value(self, value: ClueValue, info: Any) -> None:
+    def adding_value(self, value: ClueValue, info: LCH_Info) -> None:
         indices, locations = info
         self._counter.update(value[index] for index in indices)
         self._locations |= locations
 
-    def removing_value(self, value: ClueValue, info: Any) -> None:
+    def removing_value(self, value: ClueValue, info: LCH_Info) -> None:
         indices, locations = info
         self._counter.subtract(value[index] for index in indices)
         self._locations -= locations
 
-    def close(self):
+    def close(self) -> None:
         assert len(self._locations) == 0
         assert all(x == 0 for x in self._counter.values())

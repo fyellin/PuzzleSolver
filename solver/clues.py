@@ -86,7 +86,6 @@ class Clues:
     @classmethod
     def clues_from_clue_sizes(cls, across, down):
         info = cls.clue_info_from_clue_sizes(across, down)
-        clues = []
         return [Clue(name, is_across, location, length)
                 for (number, is_across), (name, location, length) in info.items()]
 

@@ -4,7 +4,7 @@ from itertools import permutations
 from typing import Any
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, Letter, Location, generators
-from solver.constraint_solver import LetterCountHandler
+from solver.constraint_solver import LCH_Info, LetterCountHandler
 
 GRID = """
 XXXXXX
@@ -137,7 +137,7 @@ class Magpie288(ConstraintSolver):
         return '[' + ''.join(str(x) for x in sorted(result)) + ']'
 
     class MyLetterCountHandler(LetterCountHandler):
-        def real_checking_value(self, value: ClueValue, info: Any) -> bool:
+        def real_checking_value(self, value: ClueValue, _info: LCH_Info) -> bool:
             count1 = sum(1 for x in self._counter.values() if x > 0)
             count2 = max(self._counter.values())
             result = (count1 <= 9 and count2 <= 4) or (count1 <= 6 and count2 <= 6) \

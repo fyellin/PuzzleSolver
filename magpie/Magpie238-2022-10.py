@@ -61,7 +61,7 @@ class Magpie238(EquationSolver):
                   for clue in self._clue_list]
         result.sort()
         filler = FillInCrosswordGridMushed(result, width=6, height=5)
-        results = filler.run(debug=3, black_squares_okay=False, numbering=True)
+        results = filler.run(debug=3, black_squares_okay=False)
         if results:
             self.show_letter_values(known_letters)
 

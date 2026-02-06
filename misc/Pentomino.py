@@ -1,6 +1,8 @@
 from itertools import combinations
 from typing import NamedTuple
 
+import matplotlib
+
 from solver import DancingLinks
 
 PENTOMINOS = dict(
@@ -11,7 +13,7 @@ PENTOMINOS = dict(
 
 
 class Pentomino(NamedTuple):
-    pixels: tuple[tuple[int, int]]
+    pixels: tuple[tuple[int, int], ...]
     width: int
     height: int
 
@@ -87,8 +89,7 @@ class PentominoSolver:
         return results
 
 
-def get_graph_shading(solution, colors=None):
-    import matplotlib
+def get_graph_shading(solution, colors=None, white=True):
     from networkx import Graph, greedy_color
     # Figure out a nice coloring for the pentominos, so that we use a
     # minimum number of colors, but adjacent pentominos are different colors
@@ -105,13 +106,23 @@ def get_graph_shading(solution, colors=None):
     color_assignment = greedy_color(graph)
     if colors is None:
         color_count = max(color_assignment.values()) + 1
-        colors = [matplotlib.colors.hsv_to_rgb((i/color_count, .6, 1))
-                  for i in range(color_count - 2)] + [(1, 1, 1), (.7, .7, .7)]
+        colors = get_graph_colors(color_count, white)
+
     shading = {square: color
                for letter, squares in solution.items()
                for color in [colors[color_assignment[letter]]]
                for square in squares}
     return shading
+
+
+def get_graph_colors(color_count: int, white=True):
+    if white:
+        colors = [matplotlib.colors.hsv_to_rgb((i / color_count, .6, 1))
+                  for i in range(color_count - 2)] + [(1, 1, 1), (.7, .7, .7)]
+    else:
+        colors = [matplotlib.colors.hsv_to_rgb((i / color_count, .6, 1))
+                  for i in range(color_count - 1)] + [(.7, .7, .7)]
+    return colors
 
 
 def get_hard_bars(solution):
