@@ -56,7 +56,7 @@ class FillInCrosswordGridAbstract(ABC):
             self.get_grid_constraints()
             if numbering:
                 self.handle_numbering()
-            self.handle_black_squares(black_squares_okay)
+            self.handle_square_filling(black_squares_okay)
             if not self.verify():
                 return []
             self.finder.clear()  # big, and not needed anymore
@@ -106,20 +106,26 @@ class FillInCrosswordGridAbstract(ABC):
         are equal, (one being across, the other down), then we ensure they both go into
         the same location.  If they are not equal, we ensure that the first goes to a
         location prior to the second.
+
+        If self.ACROSS_DOWN_NUMBERED_SEPARATELY, then the order of the across clues is
+        separate from the ordering of the down clues, and they should be numbered
+        separately.
         """
-        sorted_finder_keys = sorted(self.finder.keys())
+
+        finder = self.finder
+        sorted_finder_keys = sorted(finder.keys())
         if not self.ACROSS_DOWN_NUMBERED_SEPARATELY:
             clue_lists = [sorted_finder_keys]
         else:
-            clue_lists = [
-                [(n, True) for n, is_across in sorted_finder_keys if is_across],
-                [(n, False) for n, is_across in sorted_finder_keys if not is_across]
-            ]
+            across, down = [], []
+            for clue in sorted_finder_keys:
+                (across if clue[1] else down).append(clue)
+            clue_lists = [across, down]
 
         for clues in clue_lists:
             for clue1, clue2 in pairwise(clues):
                 (number1, is_across1), (number2, is_across2) = clue1, clue2
-                locations = sorted(self.finder[clue1].keys() | self.finder[clue2].keys())
+                locations = sorted(finder[clue1].keys() | finder[clue2].keys())
                 locations_map = {location: index
                                  for index, location in enumerate(locations)}
                 assert number1 <= number2
@@ -129,7 +135,7 @@ class FillInCrosswordGridAbstract(ABC):
                 orderer = orderer_type(prefix, len(locations_map))
                 self.optional_constraints.update(orderer.all_codes())
                 for clue, ordering in ((clue1, orderer.left), (clue2, orderer.right)):
-                    for location, values in self.finder[clue].items():
+                    for location, values in finder[clue].items():
                         ordering_constraints = ordering(locations_map[location])
                         for value in values:
                             value.extend(ordering_constraints)
@@ -175,8 +181,9 @@ class FillInCrosswordGridAbstract(ABC):
                         result.append(((row1, column1), (row2, column2)))
         return result
 
-    def handle_black_squares(self, black_squares_function: bool | Callable[[Square],
-                             SquareType]) -> None:
+    def handle_square_filling(
+            self,
+            black_squares_function: bool | Callable[[Square], SquareType]) -> None:
         """
         If it's okay for a square to be empty, we just make it's rRcC-a and rRcC-d fields
         be optional.
@@ -201,43 +208,49 @@ class FillInCrosswordGridAbstract(ABC):
                 t = f'r{row}c{column}'
                 match square_type := black_squares_function(row, column):
                     case SquareType.FILLED | SquareType.UNCHECKED:
-                        provider = f"At-Least-One-{t}"
+                        # Filled squares have one or both of f'{t}-a' and f'{t}-d'
+                        # already satisfied. We need to provide rows that can optionally
+                        # add a missing constraint (but not both).
+                        # Unchecked squares have exactly one of those two constraints
+                        # already satisfied.  We need to provide rows that is required
+                        # to add the missing constraint.
+                        provider = f'At-Least-One-{t}'
                         self.constraints[f'At-Least-One-{t}-a'] = [provider, f'{t}-a']
                         self.constraints[f'At-Least-One-{t}-d'] = [provider, f'{t}-d']
                         if square_type == SquareType.FILLED:
-                            # for an unchecked square, we *must* use one of the above
-                            # constraints. For a filled square, we can use one or none
-                            # of the above constraints (if the clue is checked.)
                             self.optional_constraints.add(provider)
                     case SquareType.ANY:
-                        self.optional_constraints |= {f"{t}-a", f"{t}-d"}
+                        # Just make f'{t}-a' and f'{t}-d' optional.
+                        self.optional_constraints |= {f'{t}-a', f'{t}-d'}
                     case SquareType.CHECKED:
                         # My default f'{t}-a' and f'{t}-d' are both required, so the
                         # square will end up being double clued.
                         pass
                     case SquareType.BLANK:
-                        # Create a new unique constraint that doesn't allow
+                        # Create a new unique constraint that forces f'{t}-d' and f'{t}-a'
+                        # to be filled here, so they can't be filled in by a clue.
                         self.constraints[f'{t}-blank'] = ['{t}-blank', f'{t}-d', f'{t}-a']
 
     def _generate_constraint(self,
-                             *clue_location_entry: tuple[int, bool, Square, str | int],
+                             *clue_location_entries: tuple[int, bool, Square, str | int],
                              extras: Sequence[str] = ()) -> None:
-        name = tuple(self._get_clue(number, entry, base_location, is_across)
-                     for number, is_across, base_location, entry in clue_location_entry)
-        # The optional items, first
+        name = tuple(self._get_clue(*entry) for entry in clue_location_entries)
+        # Indicate that we've filled the square with an across or down.
         info: list[str | tuple[str, str]] = [
-            f'r{r}c{c}-{"da"[clue.is_across]}'
+            f'r{r}c{c}-{'da'[clue.is_across]}'
             for clue in name for (r, c) in clue.locations]
-
+        # If any of the clues have a value, add that as a color the square.
+        # Should we only do this for intersections?
         info.extend(
             (f'r{r}c{c}', ch)
             for clue in name if clue.context
             for (r, c), ch in zip(clue.locations, clue.context))
+        # Indicate that we've used the clue. Each clue needs to be used once.
         info.extend(f'Clue-{clue.context if clue.context else clue.name}' for clue in name)
         info.extend(extras)
         self.constraints[name] = info
 
-        for number, is_across, (row, column), entry in clue_location_entry:
+        for number, is_across, (row, column), entry in clue_location_entries:
             self.finder[(number, is_across)][row, column].append(info)
 
     @staticmethod
@@ -252,7 +265,7 @@ class FillInCrosswordGridAbstract(ABC):
 
     @classmethod
     @cache
-    def _get_clue(cls, number, entry, base_location, is_across):
+    def _get_clue(cls, number, is_across, base_location, entry):
         clue_name = cls._get_clue_name(number, is_across)
         if isinstance(entry, str):
             length, context = len(entry), entry
@@ -418,7 +431,6 @@ class FillInCrosswordGrid4Way (FillInCrosswordGrid):
                 if self.is_legal_pair_index(number3, location3, number4, location4):
                     super()._generate_constraint(
                         *clue_location_entry,
-
        (number3, False, location3, value3),
                         (number4, False, location4, value4), extras=extras)
 
