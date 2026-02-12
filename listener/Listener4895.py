@@ -1,10 +1,10 @@
-import math
 from collections import defaultdict
-from collections.abc import Sequence
 from itertools import combinations
 from typing import Any, Optional
 
-from misc.factors import factor_list, prime_factors
+import math
+
+from misc.factors import prime_factors
 from misc.primes import PRIMES
 from solver import Clue, ClueValue, ConstraintSolver
 from solver.constraint_solver import KnownClueDict

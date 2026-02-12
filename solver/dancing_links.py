@@ -6,11 +6,9 @@ from collections import Counter
 from collections.abc import Hashable, Sequence
 from datetime import datetime
 from functools import cache
-from typing import Callable, Final, Optional, TypeVar
+from typing import Any, Callable, Final, Optional
 
 import math
-
-Row = TypeVar("Row", bound=Hashable)
 
 class _Purified:
     __slots__ = ()
@@ -19,8 +17,8 @@ class _Purified:
 PURIFIED: Final = _Purified()
 
 
-class DancingLinks[Row]:
-    constraints: dict[Row, list[str]]
+class DancingLinks[Row: Hashable]:
+    constraints: dict[Row, list[str | tuple[str, str]]]
     optional_constraints: set[str]
     row_printer: Optional[Callable[[Sequence[Row]], None]]
     names: dict[int, str]
@@ -30,7 +28,7 @@ class DancingLinks[Row]:
     debug: Optional[int]
     max_debugging_depth: int
 
-    def __init__(self, constraints: dict[Row, list[str]],
+    def __init__(self, constraints: dict[Row, list[str | tuple[str, str]]],
                  *, row_printer: Optional[Callable[[Sequence[Row]], None]] = None,
                  optional_constraints: Optional[set[str]] = None):
         """The entry to the Dancing Links code.  constraints should be a dictionary.
@@ -62,11 +60,12 @@ class DancingLinks[Row]:
         print("Time =", (time2 - time1))
 
     def inner_solve(self) -> tuple[int, int]:
+        down: list[int]
         left, right, lengths, up, down, top = self.memory
         colors = self.colors
         visible_rows = len(self.spacer_indices)
 
-        def search_iterative():
+        def search_iterative() -> tuple[int, int]:
             steps = solutions = 0
             stack: list[list[int]] = [[0, 0, 0, 0]]
 
@@ -118,7 +117,7 @@ class DancingLinks[Row]:
                 stack.append([depth, min_constraint, min_constraint, 1])
             return steps, solutions
 
-        def cover_row(r: int):
+        def cover_row(r: int) -> None:
             """Called when we're adding row r to the solution set"""
             j = r + 1
             while j != r:
@@ -130,7 +129,7 @@ class DancingLinks[Row]:
                     commit_item(j, tt)
                 j += 1
 
-        def uncover_row(r: int):
+        def uncover_row(r: int) -> None:
             """Called when we're removing row r from the solution set"""
             j = r - 1
             while j != r:
@@ -142,7 +141,7 @@ class DancingLinks[Row]:
                     uncommit_item(j, tt)
                 j -= 1
 
-        def cover_item(item):  # Remove the item i
+        def cover_item(item: int) -> None:  # Remove the item i
             ll, rr = left[item], right[item]
             left[rr], right[ll] = ll, rr
             row = down[item]
@@ -150,7 +149,7 @@ class DancingLinks[Row]:
                 hide(row)
                 row = down[row]
 
-        def uncover_item(item):
+        def uncover_item(item) -> None:
             row = up[item]
             while row != item:
                 unhide(row)
@@ -158,7 +157,7 @@ class DancingLinks[Row]:
             ll, rr = left[item], right[item]
             right[ll] = left[rr] = item
 
-        def hide(row):
+        def hide(row: int) -> None:
             nonlocal visible_rows
             visible_rows -= 1
             j = row + 1
@@ -171,7 +170,7 @@ class DancingLinks[Row]:
                     lengths[tt] -= 1
                 j += 1
 
-        def unhide(row):
+        def unhide(row: int) -> None:
             nonlocal visible_rows
             visible_rows += 1
             j = row - 1
@@ -184,7 +183,7 @@ class DancingLinks[Row]:
                     down[uu] = up[dd] = j
                 j -= 1
 
-        def commit_item(item, item_top):
+        def commit_item(item: int, item_top: int) -> None:
             assert item_top == top[item]
             color = colors.get(item)
             if color is None:
@@ -192,7 +191,7 @@ class DancingLinks[Row]:
             elif color is not PURIFIED:
                 purify(item, color, item_top)
 
-        def uncommit_item(item, item_top):
+        def uncommit_item(item: int, item_top: int) -> None:
             assert item_top == top[item]
             color = colors.get(item)
             if color is None:
@@ -200,7 +199,7 @@ class DancingLinks[Row]:
             elif color is not PURIFIED:
                 unpurify(item, color, item_top)
 
-        def purify(p, color, top):
+        def purify(p: int, color: str, top: int) -> None:
             assert color == colors[p] and color is not None
             q = down[top]
             while q != top:
@@ -210,7 +209,7 @@ class DancingLinks[Row]:
                     colors[q] = PURIFIED
                 q = down[q]
 
-        def unpurify(p, color, top):
+        def unpurify(p: int, color: str, top: int) -> None:
             assert color == colors[p] and color is not None
             q = up[top]
             while q != top:
@@ -234,7 +233,7 @@ class DancingLinks[Row]:
 
         return search_iterative()
 
-    def create_data_structure(self):
+    def create_data_structure(self) -> tuple[Any, ...]:
         all_constraints = Counter()
         for name, items in self.constraints.items():
             # having a duplicate constraint in a row will break things.
@@ -270,13 +269,13 @@ class DancingLinks[Row]:
         names_map = {name: index for index, name in names.items()}
         spacer_indices = []
         constraints_length = sum(1 + len(x) for x in self.constraints.values()) + 1
-        colors = {}
+        colors: dict[int, str | _Purified] = {}
         up = [*range(total_length + 2), *([0] * constraints_length)]
         down = up[:]
         top = [0] * len(up)
         current_index = total_length + 1
 
-        def new_node(my_top):
+        def new_node(my_top: int) -> None:
             nonlocal current_index
             current_index += 1
             up[current_index] = my_top_previous_up = up[my_top]
@@ -313,13 +312,13 @@ class DancingLinks[Row]:
             print(f"{indent}{index}/{count} ", end='')
         print(f"{self.names[min_constraint]}: Row {row} ({visible_rows})")
 
-    def get_name(self, index):
+    def get_name(self, index: int) -> str:
         spacer_index = bisect.bisect_right(self.spacer_indices, index) - 1
         next_smallest = self.spacer_indices[spacer_index]
         return self.names[next_smallest]
 
     @staticmethod
-    def _default_row_printer(solution):
+    def _default_row_printer(solution: Sequence[Row]) -> None:
         print(sorted(solution))
 
     @staticmethod
@@ -327,7 +326,7 @@ class DancingLinks[Row]:
     def __indent(depth: int) -> str:
         return ' | ' * depth
 
-    def show(self, index, verbose=False):
+    def show(self, index: int, verbose=False) -> str:
         left, right, lengths, up, down, top = self.memory
         if index < len(left):
             if index == 0:
@@ -350,7 +349,7 @@ class DancingLinks[Row]:
                     name = self.names[top[ix]]
                     color = self.colors.get(ix)
                     if color:
-                        name = name + "/" + color
+                        name = f"{name}/{color}"
                     items.append(name)
                 return result + ": " + ",".join(items)
             else:

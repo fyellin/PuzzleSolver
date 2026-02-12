@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 import math
-from collections.abc import Callable, Iterator, Iterable, Sequence
+from collections.abc import Callable, Generator, Iterator, Iterable, Sequence
 from typing import Union
 
 from .clue import Clue
@@ -53,7 +53,7 @@ def sum_of_2_cubes(clue: Clue) -> Sequence[int]:
     result = sorted(x for x in sums if min_value <= x < max_value)
     return result
 
-def filterer(predicate) -> Callable[[Clue], Iterable[int]]:
+def filterer(predicate: Callable[[int], bool]) -> Callable[[Clue], Iterable[int]]:
     def result(clue: Clue) -> Iterator[int]:
         min_value, max_value = get_min_max(clue)
         return filter(predicate, range(min_value, max_value))
@@ -169,7 +169,7 @@ def get_min_max(clue: Clue) -> tuple[int, int]:
     return min_value, max_value
 
 
-def prime_generator() -> Iterator[int]:
+def prime_generator() -> Generator[int, None, None]:
     yield from [2, 3, 5, 7]
     factor_sequence = prime_generator()
     next(factor_sequence)  # we don't need the 2, since we're only looking at odd numbers
@@ -245,3 +245,4 @@ def phi(value: int) -> int:
             return result
         if value < prime * prime:
             return result * 2
+    assert False, "Should never reach here"

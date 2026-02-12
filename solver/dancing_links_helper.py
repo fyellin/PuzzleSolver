@@ -17,12 +17,12 @@ class _Orderer(Protocol):
 class OrdererLessEqual(_Orderer):
     prefix: str
 
-    def __init__(self, prefix, count):
+    def __init__(self, prefix, count) -> None:
         self.count = count
         self.prefix = prefix
 
     @cache
-    def left(self, i) -> set[str]:
+    def left(self, i: int) -> set[str]:
         t = i
         result = set()
         while t > 0:
@@ -31,7 +31,7 @@ class OrdererLessEqual(_Orderer):
         return result
 
     @cache
-    def right(self, i) -> set[str]:
+    def right(self, i: int) -> set[str]:
         t = i + 1
         result = set()
         while t < self.count:
@@ -44,10 +44,10 @@ class OrdererLessEqual(_Orderer):
 
 
 class OrdererLessThan (OrdererLessEqual):
-    def __init__(self, prefix: str, count: int):
+    def __init__(self, prefix: str, count: int) -> None:
         super().__init__(prefix, count + 1)
 
-    def left(self, i) -> set[str]:
+    def left(self, i: int) -> set[str]:
         return super().left(i + 1)
 
 
@@ -56,17 +56,17 @@ class OrdererEqual(_Orderer):
         # We use a single element with coloring.
         self.code = f'{prefix}:0'
 
-    def left(self, i):
+    def left(self, i: int) -> set[tuple[str, str]]:
         return {(self.code, str(i))}
 
-    def right(self, i):
+    def right(self, i: int) -> set[tuple[str, str]]:
         return {(self.code, str(i))}
 
-    def all_codes(self):
+    def all_codes(self) -> set[str]:
         return {self.code}
 
 
-def test_orderer(count):
+def test_orderer(count: int):
     order = OrdererEqual("x", count)
     result = [(i, j)
               for i in range(count) for j in range(count)
@@ -115,6 +115,6 @@ class Encoder:
         return [f'{self.prefix}r{row}c{column}-{value}'
                 for value in self.table[letter][is_across]]
 
-    def locator(self, location: tuple[int, int], is_across: bool):
+    def locator(self, location: tuple[int, int], is_across: bool) -> str:
         row, column = location
         return f'{self.prefix}r{row}c{column}-{"A" if is_across else "D"}'
