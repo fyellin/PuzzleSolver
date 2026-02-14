@@ -10,6 +10,7 @@ from typing import Any, Callable, Final, Optional
 
 import math
 
+
 class _Purified:
     __slots__ = ()
 
@@ -28,9 +29,13 @@ class DancingLinks[Row: Hashable]:
     debug: Optional[int]
     max_debugging_depth: int
 
-    def __init__(self, constraints: dict[Row, list[str | tuple[str, str]]],
-                 *, row_printer: Optional[Callable[[Sequence[Row]], None]] = None,
-                 optional_constraints: Optional[set[str]] = None):
+    def __init__(
+        self,
+        constraints: dict[Row, list[str | tuple[str, str]]],
+        *,
+        row_printer: Optional[Callable[[Sequence[Row]], None]] = None,
+        optional_constraints: Optional[set[str]] = None,
+    ):
         """The entry to the Dancing Links code.  constraints should be a dictionary.
         Each key is the name of the row (something meaningful to the user).
         The value should be a list/tuple of the row_to_constraints satisfied by this row.
@@ -89,9 +94,14 @@ class DancingLinks[Row: Hashable]:
                     stack.append(frame)
                     if self.debug <= self.max_debugging_depth:
                         self.__print_debug_info(
-                            depth, min_constraint, self.get_name(r),
-                            index, lengths[min_constraint], visible_rows)
-                        depth += (lengths[min_constraint] != 1)
+                            depth,
+                            min_constraint,
+                            self.get_name(r),
+                            index,
+                            lengths[min_constraint],
+                            visible_rows,
+                        )
+                        depth += lengths[min_constraint] != 1
 
                     # stack.append((depth, 0, 0, 0))
                     # Fall through
@@ -235,21 +245,35 @@ class DancingLinks[Row: Hashable]:
 
     def create_data_structure(self) -> tuple[Any, ...]:
         all_constraints = Counter()
-        for name, items in self.constraints.items():
-            # having a duplicate constraint in a row will break things.
-            names_only = [item[0] if isinstance(item, tuple) else item for item in items]
-            assert len(names_only) == len(set(names_only)), \
-                f'Row {name} has duplicate items {items}'
-            all_constraints.update(
-                item[0] if isinstance(item, tuple) else item for item in items)
+        colored_constraints = set()
+        for name, constraints in self.constraints.items():
+            this_rows_constraints = Counter()
+            for constraint in constraints:
+                if isinstance(constraint, tuple):
+                    constraint, _ = constraint
+                    colored_constraints.add(constraint)
+                this_rows_constraints[constraint] += 1
+            if any(value > 1 for value in this_rows_constraints.values()):
+                dups = [
+                    constraint
+                    for constraint, value in this_rows_constraints.items()
+                    if value > 1
+                ]
+                raise ValueError(f"Row {name} has duplicate constraints {dups}")
+            all_constraints += this_rows_constraints
+        if not colored_constraints <= self.optional_constraints:
+            bad_constraints = colored_constraints - self.optional_constraints
+            raise ValueError(f"Colored constraints must be optional: {bad_constraints}")
         primary_constraints = set(all_constraints.keys()) - self.optional_constraints
-        secondary_constraints = {x for x in self.optional_constraints if
-                                 all_constraints[x] > 1}
-
+        secondary_constraints = {
+            x for x in self.optional_constraints if all_constraints[x] > 1
+        }
         if self.debug:
-            print(f"There are {len(self.constraints)} rows; " 
-                  f"{len(primary_constraints)} required constraints; "
-                  f"{len(secondary_constraints)} optional constraints;")
+            print(
+                f"There are {len(self.constraints)} rows; "
+                f"{len(primary_constraints)} required constraints; "
+                f"{len(secondary_constraints)} optional constraints;"
+            )
 
         primary_length = len(primary_constraints)
         secondary_length = len(secondary_constraints)
@@ -262,10 +286,13 @@ class DancingLinks[Row: Hashable]:
         left[primary_length + 1] = len(right) - 1
         lengths = [0] * (total_length + 2)
 
-        names = {index: name
-                 for index, name in enumerate(chain(sorted(primary_constraints),
-                                                    sorted(secondary_constraints)),
-                                              start=1)}
+        names = {
+            index: name
+            for index, name in enumerate(
+                chain(sorted(primary_constraints), sorted(secondary_constraints)),
+                start=1,
+            )
+        }
         names_map = {name: index for index, name in names.items()}
         spacer_indices = []
         constraints_length = sum(1 + len(x) for x in self.constraints.values()) + 1
@@ -293,6 +320,7 @@ class DancingLinks[Row: Hashable]:
                 if isinstance(item, tuple):
                     item, color = item
                 if (my_top := names_map.get(item)) is None:
+                    # A secondary constraint that only appeared once.  We can ignore.
                     continue
                 new_node(my_top)
                 if color:
@@ -303,13 +331,20 @@ class DancingLinks[Row: Hashable]:
 
         return left, right, lengths, up, down, top, colors, names, spacer_indices
 
-    def __print_debug_info(self, depth: int, min_constraint: int, row: Row,
-                           index: int, count: int, visible_rows: int) -> None:
+    def __print_debug_info(
+        self,
+        depth: int,
+        min_constraint: int,
+        row: Row,
+        index: int,
+        count: int,
+        visible_rows: int,
+    ) -> None:
         indent = self.__indent(depth)
         if count == 1:
-            print(f"{indent}• ", end='')
+            print(f"{indent}• ", end="")
         else:
-            print(f"{indent}{index}/{count} ", end='')
+            print(f"{indent}{index}/{count} ", end="")
         print(f"{self.names[min_constraint]}: Row {row} ({visible_rows})")
 
     def get_name(self, index: int) -> str:
@@ -324,7 +359,7 @@ class DancingLinks[Row: Hashable]:
     @staticmethod
     @cache
     def __indent(depth: int) -> str:
-        return ' | ' * depth
+        return " | " * depth
 
     def show(self, index: int, verbose=False) -> str:
         left, right, lengths, up, down, top = self.memory
