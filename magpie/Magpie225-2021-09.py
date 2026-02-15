@@ -6,6 +6,15 @@ from solver import Clue, ClueValue, Clues, ConstraintSolver, Constraint
 
 
 def digit_sum(value: ClueValue | str | int) -> int:
+    """
+    Compute the sum of the decimal digits of the given value.
+    
+    Parameters:
+        value (ClueValue | str | int): A value whose decimal digits will be summed; its string representation is iterated.
+    
+    Returns:
+        int: Sum of the decimal digits in `value`.
+    """
     return sum(int(x) for x in str(value))
 
 

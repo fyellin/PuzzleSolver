@@ -5,6 +5,15 @@ from solver import KnownClueDict, KnownLetterDict
 
 
 def digit_sum(value: ClueValue | str | int) -> int:
+    """
+    Compute the sum of the decimal digits of a value.
+    
+    Parameters:
+        value (ClueValue | str | int): A value whose decimal digit characters will be summed. Must consist of digit characters (0-9); other characters (for example a leading '-') will raise a ValueError.
+    
+    Returns:
+        int: The sum of the decimal digits.
+    """
     return sum(int(x) for x in str(value))
 
 

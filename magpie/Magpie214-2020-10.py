@@ -28,6 +28,14 @@ class Solver214(ConstraintSolver):
 
     @staticmethod
     def get_clue_list() -> Sequence[Clue]:
+        """
+        Builds and returns the list of Clue objects used by Solver214.
+        
+        Each Clue represents an across or down entry positioned using locations derived from the module-level GRID; the first location slot is reserved as (-1, -1). Clues are configured with their name, orientation (across or down), grid location, length, and a generator that produces candidate values (for example `filterer`-based filters, `allvalues`, or specific generators).
+        
+        Returns:
+            Sequence[Clue]: Ordered sequence of the puzzle's Clue objects ready to be added to the solver.
+        """
         grid_locations = [(-1, -1)] + Clues.get_locations_from_grid(GRID)
 
         clues = [

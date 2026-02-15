@@ -6,6 +6,15 @@ from solver import KnownClueDict, EquationParser
 
 
 def get_bcef_g_list():
+    """
+    Builds a bidirectional mapping between 4-digit digit-strings of the form "bcef" and corresponding 4-digit result strings "g" that meet the solver's digit constraints.
+    
+    Returns:
+        result (defaultdict[list]): A mapping from 4-character digit strings to lists of `(other, bool)` pairs.
+            - For a key equal to a "bcef" string, the list contains entries `(g, True)` where `g` is the associated 4-digit computed value.
+            - For a key equal to a `g` string, the list contains entries `(bcef, False)` linking back to the originating "bcef".
+            All keys and pair elements are strings of four digits (1–9) with no repeated digits or zeros.
+    """
     result = defaultdict(list)
     for b, c, e, f in permutations((1, 2, 3, 4, 5, 6, 7, 8, 9), 4):
         temp = b * e + 66 * c * f

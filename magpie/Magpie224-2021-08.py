@@ -7,6 +7,15 @@ from solver import Constraint, KnownClueDict
 
 
 def digit_sum(value: ClueValue) -> int:
+    """
+    Compute the sum of the decimal digits of the given value.
+    
+    Parameters:
+        value (ClueValue): A value whose string representation consists of decimal digits (e.g., an int or a digit string).
+    
+    Returns:
+        int: Sum of the decimal digits of `value`.
+    """
     return sum(int(x) for x in str(value))
 
 

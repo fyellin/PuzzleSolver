@@ -7,6 +7,16 @@ from solver.generators import allvalues, fibonacci, known, palindrome, prime, tr
 
 
 def dp(x):
+    """
+    Compute the product of the decimal digits of x.
+    
+    Parameters:
+        x (int | str): An integer or string of decimal digits whose digits will be multiplied.
+    
+    Returns:
+        int: The product of x's decimal digits.
+    
+    """
     return math.prod(int(i) for i in str(x))
 
 
@@ -102,6 +112,11 @@ class Magpie253 (ConstraintSolver):
             return sum(x > 0 for x in counter.values()) <= 5 and max(counter.values()) <= 12
 
     def __get_constraints(self):
+        """
+        Register all clue constraints and value generators used by the puzzle.
+        
+        This configures numeric relations, digit-based predicates, and predefined value sets for across and down clues — including arithmetic links between clues, palindrome/prime/triangular/fibonacci generators, digit-product and digit-sum conditions, and several known-value enumerations.
+        """
         self.add_constraint("4a 26d", lambda x, y: ds(x) == int(y))
         self.clue_named("7a").generator = known(*{y * (y + 1) for y in range(50)})
         self.clue_named("8a").generator = known(*{5 * y * y for y in range(50)})

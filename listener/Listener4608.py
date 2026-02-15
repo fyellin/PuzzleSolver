@@ -13,7 +13,15 @@ from solver import (
 
 
 def generate_L(clue: Clue) -> Iterator[int]:
-    """Prime.  Digit sume is fibonacci.  Length 3"""
+    """
+    Yield prime numbers for the given clue whose decimal digit sum is a Fibonacci number.
+    
+    Parameters:
+        clue (Clue): Clue providing length and value bounds used by the underlying prime generator.
+    
+    Returns:
+        int: Prime values that have a digit sum equal to a Fibonacci number.
+    """
     for prime in generators.prime(clue):
         if digit_sum(prime) in {1, 2, 3, 5, 8, 13, 21, 34, 55}:
             yield prime
@@ -271,4 +279,3 @@ def run() -> None:
 
 if __name__ == '__main__':
     run()
-

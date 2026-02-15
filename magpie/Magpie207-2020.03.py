@@ -6,6 +6,12 @@ from solver import Clues, ConstraintSolver, Clue, generators, ClueValue, KnownCl
 
 
 def is_harshad(value: int) -> bool:
+    """
+    Check if an integer is a Harshad (Niven) number in base 10.
+    
+    Returns:
+        `true` if the integer is divisible by the sum of its decimal digits, `false` otherwise.
+    """
     digits = map(int, list(str(value)))
     return value % sum(digits) == 0
 

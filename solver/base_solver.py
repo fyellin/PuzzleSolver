@@ -97,7 +97,16 @@ class BaseSolver(ABC):
         return {(clue.base_location, clue.length, clue.is_across) for clue in self.__name_to_clue.values()}
 
     def plot_board(self, clue_values: Optional[KnownClueDict] = None, **more_args: Any) -> None:
-        """Draws a picture of the grid with the specified clues filled in."""
+        """
+        Render the crossword grid and fill any provided clue values.
+        
+        Parameters:
+            clue_values (Optional[KnownClueDict]): Mapping from a Clue to its filled ClueValue; provided values are placed into their corresponding grid locations.
+            **more_args (Any): Additional keyword arguments forwarded to draw_grid(), e.g., visual options.
+        
+        Raises:
+            AssertionError: If two provided values conflict at the same grid location.
+        """
         max_row = self.__max_row
         max_column = self.__max_column
         clue_values = clue_values or {}

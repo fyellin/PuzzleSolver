@@ -5,6 +5,18 @@ from solver import Clue, generators, Clues, ConstraintSolver, KnownClueDict
 
 
 def digit_sum(number: int) -> int:
+    """
+    Compute the sum of an integer's decimal digits.
+    
+    Parameters:
+        number (int): A non-negative integer whose decimal digits will be summed.
+    
+    Returns:
+        int: The sum of `number`'s decimal digits.
+    
+    Raises:
+        ValueError: If `number` is negative.
+    """
     return sum(int(x) for x in str(number))
 
 def generate_if(generator, test: Callable[[str], bool]):
@@ -171,4 +183,3 @@ class Magpie221 (ConstraintSolver):
 
 if __name__ == '__main__':
     Magpie221.run()
-

@@ -8,6 +8,15 @@ from solver import ClueValue, Clues, DancingLinks, EquationSolver
 
 
 def DS(number: int | str) -> int:
+    """
+    Compute the sum of the decimal digits of a number or numeric string.
+    
+    Parameters:
+        number (int | str): An integer or string of digits whose digits will be summed.
+    
+    Returns:
+        int: The sum of the decimal digits.
+    """
     return sum(int(x) for x in str(number))
 
 

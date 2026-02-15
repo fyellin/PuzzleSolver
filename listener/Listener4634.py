@@ -8,6 +8,15 @@ from solver import Location, KnownClueDict
 
 
 def roman_numeral_for(n: int) -> [str]:
+    """
+    Generate the Roman numeral representation for n and return it as a single-element list of RomanString, or return an empty list when the representation is rejected by puzzle rules.
+    
+    Parameters:
+        n (int): The integer to convert (expected in range 0–3999).
+    
+    Returns:
+        list[RomanString]: A one-element list containing RomanString(result, n) when the numeral is accepted; an empty list when the numeral is considered invalid for this puzzle (specifically when the Roman form is three characters or shorter but contains 'M' or 'D').
+    """
     (a, b, c, d) = cast(Tuple, f'{n:04}')
     result = ["", "M", "MM", "MMM"][int(a)] + \
              ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"][int(b)] + \

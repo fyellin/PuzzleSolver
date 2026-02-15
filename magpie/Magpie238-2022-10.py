@@ -56,6 +56,16 @@ class Magpie238(EquationSolver):
         return result
 
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
+        """
+        Place solved clue values into a 6x5 crossword grid, run the grid filler, and display any fillings.
+        
+        Parameters:
+            known_clues (KnownClueDict): Mapping from Clue objects to their solved string values.
+            known_letters (KnownLetterDict): Mapping from clue context letters to their known single-letter assignments.
+        
+        Notes:
+            If the filler returns any solutions, known letter assignments are displayed before each filled grid is shown.
+        """
         result = [(known_letters[clue.context], known_clues[clue])
                   for clue in self._clue_list]
         result.sort()
