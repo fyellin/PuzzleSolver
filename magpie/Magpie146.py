@@ -17,7 +17,7 @@ from solver import generators
 # 14 5s
 # 6  6s
 # 4  7s
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import KnownClueDict, KnownLetterDict
 
 CLUE_DATA = """
 1 4 DDS

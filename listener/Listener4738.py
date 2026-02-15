@@ -3,8 +3,7 @@ from collections.abc import Iterable
 from typing import Any, Sequence
 
 from solver import ClueValue, Clues, EquationSolver, Evaluator, Letter, Location, \
-    MultiEquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+    MultiEquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
 X.XXXXXXXX

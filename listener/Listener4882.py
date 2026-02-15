@@ -5,7 +5,7 @@ from graphlib import TopologicalSorter
 from typing import Any, Optional
 
 from solver import Clue, ClueValue, Clues, EquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import KnownClueDict, KnownLetterDict
 
 ACROSS_LENGTHS = "3132/13311/333/333/333/11331/2313"
 DOWN_LENGTHS = "313/331/11113/331/313/133/31111/133/313"

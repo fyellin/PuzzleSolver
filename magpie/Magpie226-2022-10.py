@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from solver import ClueValue, Clues, EquationSolver, Intersection
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import KnownClueDict, KnownLetterDict
 
 
 def digit_sum(value: ClueValue | str | int) -> int:

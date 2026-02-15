@@ -5,7 +5,7 @@ from functools import cache
 
 from misc.factors import divisor_count
 from solver import Clue, Clues, ConstraintSolver, generators
-from solver.constraint_solver import Constraint, KnownClueDict
+from solver import Constraint, KnownClueDict
 from solver.generators import fibonacci, known, palindrome, prime, square, \
     square_pyramidal_generator, triangular
 

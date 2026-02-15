@@ -3,8 +3,7 @@ import itertools
 import math
 from typing import Any, Sequence, Iterator, Callable
 
-from solver import Clue, generators, Clues, ConstraintSolver
-from solver.constraint_solver import KnownClueDict
+from solver import Clue, generators, Clues, ConstraintSolver, KnownClueDict
 
 PRIMES_2DIGIT = {11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97}
 PRIMES_2DIGIT_STR = {str(x) for x in PRIMES_2DIGIT}

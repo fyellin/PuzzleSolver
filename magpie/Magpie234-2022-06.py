@@ -5,8 +5,7 @@ from collections.abc import Iterable
 from typing import Any, Optional, Sequence, cast
 
 from misc.primes import PRIMES
-from solver import ClueValue, Clues, EquationSolver, Evaluator
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import ClueValue, Clues, EquationSolver, Evaluator, KnownClueDict, KnownLetterDict
 
 
 class MultiValue:

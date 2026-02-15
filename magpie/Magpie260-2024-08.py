@@ -3,8 +3,7 @@ import time
 from collections.abc import Sequence
 
 from misc.primes import PRIMES
-from solver import Clues, EquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import Clues, EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
 X.XXXXXX

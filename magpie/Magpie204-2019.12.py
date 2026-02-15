@@ -5,8 +5,7 @@ from typing import Sequence, List, Tuple, Set, Iterable, Optional
 from matplotlib import pyplot as plt
 
 from solver import Clue, ClueValue, ConstraintSolver, generators, Intersection, \
-    DancingLinks, Location, ClueValueGenerator
-from solver.equation_solver import KnownClueDict
+    DancingLinks, Location, ClueValueGenerator, KnownClueDict
 
 LENGTHS = (
     # 1a 4a 5a 4d 2d 3d

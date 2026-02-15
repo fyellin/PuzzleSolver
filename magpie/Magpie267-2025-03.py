@@ -4,8 +4,7 @@ from collections import Counter, defaultdict
 from functools import cache
 
 from misc.primes import PRIMES
-from solver import ClueValue, Clues, DancingLinks
-from solver.equation_solver import EquationSolver
+from solver import ClueValue, Clues, DancingLinks, EquationSolver
 
 
 def DS(number: int | str) -> int:

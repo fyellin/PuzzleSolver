@@ -4,9 +4,8 @@ from collections.abc import Sequence
 from functools import cache
 from typing import Any
 
-from solver import Clue, Clues, ConstraintSolver, DancingLinks, Location, \
-    generators
-from solver.constraint_solver import Constraint, KnownClueDict
+from solver import Clue, Clues, Constraint, ConstraintSolver, DancingLinks, Location, \
+    generators, KnownClueDict
 from solver.generators import cube, palindrome, prime, square, triangular
 
 GRID = """

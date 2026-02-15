@@ -2,8 +2,7 @@ import itertools
 import re
 from typing import Sequence, Set, Dict, Any, Match, Iterator, Tuple, cast
 
-from solver import Clue, ConstraintSolver, Location, Clues, ClueValue
-from solver.equation_solver import KnownClueDict
+from solver import Clue, ConstraintSolver, Location, Clues, ClueValue, KnownClueDict
 
 GRID = """
 XXXXXXX

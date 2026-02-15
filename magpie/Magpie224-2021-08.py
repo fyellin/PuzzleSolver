@@ -3,7 +3,7 @@ import math
 from collections.abc import Sequence, Iterable
 
 from solver import Clue, ConstraintSolver, generators, Location, ClueValue
-from solver.constraint_solver import Constraint, KnownClueDict
+from solver import Constraint, KnownClueDict
 
 
 def digit_sum(value: ClueValue) -> int:

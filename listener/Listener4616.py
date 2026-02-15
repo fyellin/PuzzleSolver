@@ -1,6 +1,3 @@
-import itertools
-from typing import Sequence, Set, Dict, Any
-
 import math
 from matplotlib import pyplot as plt
 

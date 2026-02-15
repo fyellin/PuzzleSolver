@@ -4,8 +4,7 @@ from typing import Sequence, Dict, Tuple, Any, cast, Optional
 
 from solver import Clue, generators
 from solver import ConstraintSolver
-from solver import Location
-from solver.constraint_solver import KnownClueDict
+from solver import Location, KnownClueDict
 
 
 def roman_numeral_for(n: int) -> [str]:

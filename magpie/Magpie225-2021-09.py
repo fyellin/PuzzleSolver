@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 import math
-from solver import Clue, ClueValue, Clues, ConstraintSolver
-from solver.constraint_solver import Constraint
+from solver import Clue, ClueValue, Clues, ConstraintSolver, Constraint
 
 
 def digit_sum(value: ClueValue | str | int) -> int:

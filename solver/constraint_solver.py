@@ -8,13 +8,12 @@ from datetime import datetime
 from heapq import nlargest, nsmallest
 from typing import Any, NamedTuple, Optional, Protocol, Union, cast
 
-from .base_solver import BaseSolver
+from .base_solver import BaseSolver, KnownClueDict
 from .clue import Clue, ClueValueGenerator
 from .clue_types import ClueValue
 from .intersection import Intersection
 
-KnownClueDict = dict[Clue, ClueValue]
-UnknownClueDict = dict[Clue, Sequence[ClueValue]]
+type UnknownClueDict = dict[Clue, Sequence[ClueValue]]
 
 
 class ConstraintSolver(BaseSolver):

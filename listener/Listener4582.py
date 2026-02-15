@@ -3,8 +3,7 @@ from os.path import commonprefix
 from typing import Dict, Set, Any, Sequence, Pattern, Callable, List
 
 from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
-from solver import EquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import EquationSolver, KnownClueDict, KnownLetterDict
 
 # An X marks were the numbered squares are
 GRID = """

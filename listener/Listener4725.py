@@ -6,8 +6,8 @@ from fractions import Fraction
 from typing import Callable, Pattern, Sequence, Union
 
 from solver.fill_in_crossword_grid import FillInCrosswordGrid
-from solver import Clue, ClueValue, EquationSolver, Evaluator, Intersection
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import Clue, ClueValue, EquationSolver, Evaluator, Intersection, KnownClueDict
+from solver import KnownLetterDict
 
 A_NUMBERS = """
 H+ A − W 
