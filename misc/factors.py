@@ -1,11 +1,9 @@
 import functools
 import math
-import operator
-from typing import Sequence, Tuple, Iterator
-
+from collections.abc import Sequence
 
 @functools.cache
-def prime_factors(value: int) -> Sequence[Tuple[int, int]]:
+def prime_factors(value: int) -> list[tuple[int, int]]:
     from misc.primes import PRIMES
     result = []
     for prime in PRIMES:
@@ -21,12 +19,13 @@ def prime_factors(value: int) -> Sequence[Tuple[int, int]]:
         if value < prime * prime:
             result.append((value, 1))
             return result
+    raise ArithmeticError(f"{value} is too large to factor")
 
 
 @functools.cache
 def divisor_count(value: int) -> int:
     factorization = prime_factors(value)
-    return product(count + 1 for _prime, count in factorization)
+    return math.prod(count + 1 for _prime, count in factorization)
 
 
 def phi(value: int) -> int:
@@ -40,13 +39,14 @@ def phi(value: int) -> int:
 @functools.cache
 def factor_sum(value: int) -> int:
     factorization = prime_factors(value)
-    return product((prime ** (count + 1) - 1) // (prime - 1) for prime, count in factorization)
+    return math.prod((prime ** (count + 1) - 1) // (prime - 1)
+                     for prime, count in factorization)
 
 
 @functools.cache
 def factor_count(value: int) -> int:
     factorization = prime_factors(value)
-    return product(count + 1 for _, count in factorization)
+    return math.prod(count + 1 for _, count in factorization)
 
 
 @functools.cache
@@ -85,9 +85,6 @@ def even_factor_count(value: int) -> int:
         count += 1
     return 0 if count == 0 else count * factor_count(value)
 
-
-def product(values: Iterator[int]) -> int:
-    return functools.reduce(operator.mul, values, 1)
 
 superscript_mapping = str.maketrans({
     "0": "⁰",

@@ -3,16 +3,14 @@ import io
 import itertools
 import multiprocessing
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import datetime
 from fractions import Fraction
-from typing import Sequence
 
 import math
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks as DancingLinks, \
-    Evaluator, Letter, MultiEquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+    Evaluator, Letter, MultiEquationSolver, KnownClueDict, KnownLetterDict
 
 CLUES = """
 a H! −E+A−D
@@ -192,7 +190,7 @@ class Magpie276(MultiEquationSolver):
             case _: yield from super().get_letter_values(known_letters, letters)
         return
 
-    def clue_e_wrapper(self, _wrapper, letters: dict[Letter, int]) -> Iterable[ClueValue]:
+    def clue_e_wrapper(self, _wrapper, letters: KnownLetterDict) -> Iterable[ClueValue]:
         if not any(isinstance(x, Clue) for x in letters.values()):
             temp = {clue: str(clue.evaluators[0].raw_call(letters))
                     for clue in self._clue_list if clue.name != 'e'}
@@ -506,4 +504,3 @@ if __name__ == '__main__':
             Magpie276.run()
     end = datetime.now()
     print(end - start)
-

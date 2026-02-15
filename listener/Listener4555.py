@@ -4,11 +4,10 @@ Painful, but relatively straightforward.
 
 import functools
 import itertools
-from typing import Callable, Iterable, Optional, Dict, List, Union, Sequence
+from collections.abc import Callable, Iterable, Sequence
 
-from solver import Clue, ClueValue, ClueValueGenerator
-from solver import ConstraintSolver, Location
-from solver import generators
+from solver import Clue, ClueValueGenerator, KnownClueDict
+from solver import ConstraintSolver, Location, generators
 
 """
 Looking at 16a/17d, the only number/cube that intersect that way are:
@@ -36,9 +35,9 @@ hunt for the second power that gives us a 7-digit number ending in 9.  The possi
 
 Since 17d=11, the fourth digit of 19a is 1, and the only possible answer is the second one above.  
 Nicely, its fifth digit is a 5, which is a legitimate way to end a square.
- 
+
 Since 2d ends in a 7, and yet is a multiple of all of its digits, none of the digits can be 0,2,4,5,6,8.  The only
-possible digits for it are 1,3,7,or 9.  
+possible digits for it are 1,3,7,or 9.
 
 """
 
@@ -77,8 +76,8 @@ prime_set = set(primes)
 prime_string_set = set(str(x) for x in primes if 2 < x < 1662)
 
 
-@functools.lru_cache(maxsize=None)
-def break_row_into_primes(line: str) -> List[List[str]]:
+@functools.cache
+def break_row_into_primes(line: str) -> list[list[str]]:
     result = []
     length = len(line)
     for i in range(1, 5):
@@ -113,7 +112,7 @@ def generate_1d(_clue: Clue) -> Iterable[int]:
 
 
 def generate_2d(_clue: Clue) -> Iterable[int]:
-    # We know that last two digits are 37, and other five digits are all 1,3,5,7
+    # We know that the last two digits are 37, and other five digits are all 1,3,5,7
     for temp in itertools.product((1, 3, 7, 9), repeat=5):
         value = sum(x * (10 ** i) for i, x in enumerate(temp)) * 100 + 37
         if value % 21 == 0 and all(value % x == 0 for x in temp):
@@ -122,20 +121,21 @@ def generate_2d(_clue: Clue) -> Iterable[int]:
 
 def generate_3d(_clue: Clue) -> Iterable[int]:
     # Not currently used
-    # We know that it ends with 37, and is a non-prime
+    # We know that it ends with 37 and that it is a non-prime
     return (i for i in range(1_000_037, 10_000_000, 100) if any(i % prime == 0 for prime in primes))
 
 
 def generate_6d(_clue: Clue) -> Iterable[int]:
-    # We know that it is a multiple of 9, and it ends in a 6.  We start with the smallest multiple of 9, and skip by 90.
+    # We know that it is a multiple of 9, and it ends in a 6.
+    # We start with the smallest multiple of 9 and skip by 90.
     return range(1_000_026, 10_000_000, 90)
 
 
-def with_prime_pattern(function: Callable[[Clue], Iterable[Union[int, str]]]) -> Callable[[Clue], Iterable[str]]:
+def with_prime_pattern(function: Callable[[Clue], Iterable[int | str]]) -> Callable[[Clue], Iterable[str]]:
     return lambda clue: (x for x in map(str, function(clue)) if break_row_into_primes(x))
 
 
-def make(name: str, base_location: Location, length: int, generator: Optional[ClueValueGenerator]) -> Clue:
+def make(name: str, base_location: Location, length: int, generator: ClueValueGenerator | None) -> Clue:
     return Clue(name, name[0] == 'A', base_location, length, generator=generator)
 
 
@@ -180,7 +180,7 @@ class MySolver(ConstraintSolver):
         else:
             return super().get_allowed_regexp(location)
 
-    def check_solution(self, known_clues: Dict[Clue, ClueValue]) -> bool:
+    def check_solution(self, known_clues: KnownClueDict) -> bool:
         # A map from locations to the value in that location.
         board = {location: value for clue, clue_value in known_clues.items()
                  for location, value in zip(clue.locations, clue_value)}

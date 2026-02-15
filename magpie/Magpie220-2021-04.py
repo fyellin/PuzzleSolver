@@ -1,11 +1,11 @@
 import collections
 import itertools
 import math
-from typing import Sequence, Iterator, Any
+from typing import Any
+from collections.abc import Sequence, Iterator
 
 import solver
-from solver import generators, ConstraintSolver, Clues, Clue, ClueValue
-from solver.constraint_solver import KnownClueDict
+from solver import generators, ConstraintSolver, Clues, Clue, ClueValue, KnownClueDict
 
 GRID = """
 XXX.

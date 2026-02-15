@@ -2,10 +2,8 @@ import ast
 import itertools
 from collections import defaultdict
 
-from solver import Clue, Clues, ConstraintSolver, DancingLinks
-from solver.constraint_solver import Constraint
-from solver.equation_parser import EquationParser
-from solver.equation_solver import KnownClueDict
+from solver import Clue, Clues, Constraint, ConstraintSolver, DancingLinks, \
+    EquationParser, KnownClueDict
 from solver.generators import known, prime_generator
 
 LINES = """

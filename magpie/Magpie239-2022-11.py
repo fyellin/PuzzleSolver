@@ -2,8 +2,8 @@ import itertools
 from collections.abc import Iterable
 from typing import Any
 
-from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, Letter
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator
+from solver import KnownClueDict, KnownLetterDict
 
 GRID = """
 X.XXX.XX
@@ -111,7 +111,7 @@ class Magpie239(EquationSolver):
                 evaluator = Evaluator.create_evaluator(expression2)
                 evaluators.append(evaluator)
 
-        def my_wrapper(_evaluator: Evaluator, value_dict: dict[Letter, int]
+        def my_wrapper(_evaluator: Evaluator, value_dict: KnownLetterDict
                        ) -> Iterable[ClueValue]:
             return {result for evaluator in evaluators
                     for result in evaluator(value_dict)}

@@ -1,10 +1,10 @@
 import re
 from os.path import commonprefix
-from typing import Dict, Set, Any, Sequence, Pattern, Callable, List
+from typing import Any
+from collections.abc import Sequence, Callable
 
-from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
-from solver import EquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import Clue, Location, Clues, ConstraintSolver, Intersection, Letter
+from solver import EquationSolver, KnownClueDict, KnownLetterDict
 
 # An X marks were the numbered squares are
 GRID = """
@@ -82,7 +82,7 @@ class OuterSolver(EquationSolver):
     # We don't care about any of that.  We just want to make sure the potential value for "clue" has a length
     # that is either 1 or 2 less than clue.length.  The values of already known clues and intersections is irrelevant
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
-            Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
+            Callable[[KnownClueDict], re.Pattern[str]]:
         pattern_string = f'.{{{clue.length - 2},{clue.length - 1}}}'   # e.g.  r'.{3,4}' if clue.length == 5.
         pattern = re.compile(pattern_string)
         return lambda _: pattern
@@ -145,13 +145,13 @@ class InnerSolver(ConstraintSolver):
         Once we've solved the puzzle, we've overridden this function so that we print the graph with the shading
         that we want.
         """
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
-        clue_values: Dict[Clue, ClueValue] = args['clue_values']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
+        clue_values: KnownClueDict = args['clue_values']
 
         shading = {}
-        across_inserted_locations: Set[Location] = set()
-        down_inserted_locations: Set[Location] = set()
-        inserted_number: List[int] = []
+        across_inserted_locations: set[Location] = set()
+        down_inserted_locations: set[Location] = set()
+        inserted_number: list[int] = []
         for clue in self._clue_list:
             original_clue_value = self.clue_values[clue]
             current_clue_value = clue_values[clue]

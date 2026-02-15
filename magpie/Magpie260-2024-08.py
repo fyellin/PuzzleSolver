@@ -3,8 +3,7 @@ import time
 from collections.abc import Sequence
 
 from misc.primes import PRIMES
-from solver import Clues, EquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import Clues, EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
 X.XXXXXX
@@ -71,7 +70,7 @@ class Magpie260 (EquationSolver):
         super().show_solution(known_clues, known_letters)
         super().show_solution(known_clues2, known_letters)
 
-    
+
 VALUES = tuple(str(x) for x in [50653, 74, 34, 39304, 74088, 13824, 851, 13, 221184,
                                 19683, 646, 405, 1934, 298760, 10648, 1958, 619, 85184,
                                 275264, 831, 325248, 385, 331, 14, 623, 6264, 32768, 2735])

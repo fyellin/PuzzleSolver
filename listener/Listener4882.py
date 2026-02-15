@@ -2,10 +2,10 @@ import itertools
 import re
 from collections.abc import Sequence
 from graphlib import TopologicalSorter
-from typing import Any, Optional
+from typing import Any
 
-from solver import Clue, ClueValue, Clues, EquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import Clue, Clues, EquationSolver
+from solver import KnownClueDict, KnownLetterDict
 
 ACROSS_LENGTHS = "3132/13311/333/333/333/11331/2313"
 DOWN_LENGTHS = "313/331/11113/331/313/133/31111/133/313"
@@ -84,8 +84,8 @@ class Listener4882(EquationSolver):
         known_clues[self.clue_named('18a')] = '207'
         super().show_solution(known_clues, known_letters)
 
-    def plot_board(self, known_clues: Optional[dict[Clue, ClueValue]] = None,
-                   known_letters: KnownLetterDict = None, **more_args: Any) -> None:
+    def plot_board(self, known_clues: KnownClueDict | None = None,
+                   known_letters: KnownLetterDict | None = None, **more_args: Any) -> None:
         if not known_clues or True:
             super().plot_board(known_clues, **more_args)
 

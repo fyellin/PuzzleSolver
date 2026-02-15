@@ -1,10 +1,9 @@
 import itertools
-from collections.abc import Iterable
-from typing import Any, Sequence
+from collections.abc import Iterable, Sequence
+from typing import Any
 
-from solver import ClueValue, Clues, EquationSolver, Evaluator, Letter, Location, \
-    MultiEquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import ClueValue, Clues, Evaluator, Location, \
+    MultiEquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
 X.XXXXXXXX
@@ -122,7 +121,7 @@ class Listener4738(MultiEquationSolver):
         return super().get_allowed_regexp(location)
 
     @staticmethod
-    def down_wrapper(evaluator: Evaluator, value_dict: dict[Letter, int]) -> Iterable[ClueValue]:
+    def down_wrapper(evaluator: Evaluator, value_dict: KnownLetterDict) -> Iterable[ClueValue]:
         try:
             result = evaluator.compiled_code(*(value_dict[x] ^ 1 for x in evaluator.vars))
             int_result = int(result)
@@ -133,7 +132,7 @@ class Listener4738(MultiEquationSolver):
             return ()
 
     @staticmethod
-    def fixed_wrapper(_evaluator: Evaluator, _value_dict: dict[Letter, int]) -> Iterable[ClueValue]:
+    def fixed_wrapper(_evaluator: Evaluator, _value_dict: KnownLetterDict) -> Iterable[ClueValue]:
         yield from [ClueValue(str(120)), ClueValue(str(720))]
 
     def get_letter_values(self, known_letters: KnownLetterDict, letters: Sequence[str]) -> Iterable[Sequence[int]]:

@@ -9,8 +9,9 @@ from collections import deque
 from collections.abc import Sequence
 
 from . import Clue
+from .base_solver import KnownClueDict
 from .clue_types import ClueValue, Letter
-from .equation_solver import EquationSolver, KnownClueDict, KnownLetterDict
+from .equation_solver import EquationSolver, KnownLetterDict
 from .mytaskqueue import MyTaskQueue
 
 State = tuple[KnownClueDict, KnownLetterDict]
@@ -226,7 +227,7 @@ class Worker(multiprocessing.Process):
                       f'+{write_count} {self.task_queue}')
 
     def convert_state(self, current_index, states) -> Sequence[
-            tuple[dict[Clue, ClueValue], dict[Letter, int]]]:
+            tuple[KnownClueDict, KnownLetterDict]]:
         if current_index == 0:
             states = [({}, {})]
         else:

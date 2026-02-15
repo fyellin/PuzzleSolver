@@ -5,7 +5,7 @@ Amusing puzzle, but all the work was in setting up the generators.  After that, 
 import itertools
 import re
 from collections import defaultdict
-from typing import Iterator, Mapping, Sequence, List
+from collections.abc import Iterator, Mapping, Sequence
 
 from solver import Clue, ConstraintSolver
 from solver import generators
@@ -26,7 +26,7 @@ fibonaccis = frozenset(itertools.takewhile(lambda x: x < 10000, fibonacci_genera
 
 def set_up_table() -> Mapping[str, Sequence[int]]:
     temp = [''] * 10000
-    result: Mapping[str, List[int]] = defaultdict(list)
+    result: Mapping[str, list[int]] = defaultdict(list)
     for i in range(1, 10000):
         q = i // 10
         value = temp[i] = temp[q] + str((i in primes) + (i in squares) + (i in cubes) + (i in fibonaccis))
@@ -37,7 +37,7 @@ def set_up_table() -> Mapping[str, Sequence[int]]:
 MY_TABLE = set_up_table()
 
 
-def make_clue_list(lines: str, acrosses: str, downs: str) -> List[Clue]:
+def make_clue_list(lines: str, acrosses: str, downs: str) -> list[Clue]:
     locations = [(0, 0)]
     for row, line in enumerate(lines.split()):
         for column, item in enumerate(line):

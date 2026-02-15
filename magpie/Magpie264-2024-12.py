@@ -1,5 +1,4 @@
 import itertools
-import itertools
 import math
 from fractions import Fraction
 

@@ -1,8 +1,8 @@
 import itertools
-from typing import Any, Optional
+from typing import Any
 
-from solver import Clue, ClueValue, Clues, ConstraintSolver, generators
-from solver.constraint_solver import AbstractLetterCountHandler
+from solver import Clue, ClueValue, Clues, ConstraintSolver, KnownClueDict, generators
+from solver import AbstractLetterCountHandler
 
 ACROSS_LENGTHS = "132/321/222/222/123/231"
 DOWN_LENGTHS = "222/123/24/42/321/222"
@@ -50,7 +50,7 @@ class Magpie272(ConstraintSolver):
         self.clue_named("4d").generator = generators.triangular
         self.clue_named("11d").generator = generators.triangular
 
-    def plot_board(self, clue_values: Optional[dict[Clue, ClueValue]] = None,
+    def plot_board(self, clue_values: KnownClueDict | None = None,
                    **more_args: Any) -> None:
         shading = {}
         for row, col in itertools.product(range(1, 7), repeat=2):

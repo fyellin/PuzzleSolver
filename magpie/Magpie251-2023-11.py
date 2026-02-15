@@ -321,4 +321,3 @@ class Solver251 (ConstraintSolver):
 if __name__ == '__main__':
     # Solver251.run(tuple(sorted({x for numbers in NUMBERS for x in numbers})))  # 1654
     Solver251.run(NUMBERS[0])
-

@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
 
-from misc.factors import factor_count, factor_list
+from misc.factors import factor_count
 from solver import Clue, EquationSolver, Evaluator, Location
 
 
@@ -61,15 +61,16 @@ class Magpie269 (EquationSolver):
             if row1 == 5 or row2 == 5: continue
             if row1 < row2:
                 self.add_constraint((clue1, clue2), lambda x, y: int(x) < int(y), name=f"{name1}<{name2}")
-            if row1 == row2:
+            elif row1 == row2:
                 self.add_constraint((clue1, clue2), lambda x, y: int(x) == int(y), name=f"{name1}={name2}")
-            if row1 > row2:
+            elif row1 > row2:
                 self.add_constraint((clue1, clue2), lambda x, y: int(x) > int(y), name=f"{name1}>{name2}")
 
 
 
     def get_allowed_regexp(self, location: Location) -> str:
         return ".*"
+
 
 if __name__ == '__main__':
     Magpie269.run()

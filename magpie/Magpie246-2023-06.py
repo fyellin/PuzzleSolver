@@ -4,9 +4,8 @@ from collections.abc import Sequence
 from functools import cache
 from typing import Any
 
-from solver import Clue, Clues, ConstraintSolver, DancingLinks, Location, \
-    generators
-from solver.constraint_solver import Constraint, KnownClueDict
+from solver import Clue, Clues, Constraint, ConstraintSolver, DancingLinks, Location, \
+    generators, KnownClueDict
 from solver.generators import cube, palindrome, prime, square, triangular
 
 GRID = """
@@ -134,7 +133,7 @@ class Magpie246 (ConstraintSolver):
         solver.solve()
         return solutions
 
-    def dancing_links(self):
+    def dancing_links_alt(self):
         chains = self.get_all_chains()
         chains_by_digit = {i: chains.copy() for i in range(1, 7)}
         placed = {}
@@ -185,7 +184,6 @@ class Magpie246 (ConstraintSolver):
                     print(f".... {old_length} -> {new_length}")
 
         return [placed]
-
 
     @staticmethod
     def get_all_chains():

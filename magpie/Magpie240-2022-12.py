@@ -1,10 +1,8 @@
 import itertools
 import re
-from collections.abc import Iterable
-from typing import Sequence
+from collections.abc import Iterable, Sequence
 
-from solver import Clue, Clues, EquationSolver, Evaluator
-from solver.equation_solver import KnownLetterDict
+from solver import Clue, Clues, EquationSolver, Evaluator, KnownLetterDict
 
 GRID = """
 XX.XX.X

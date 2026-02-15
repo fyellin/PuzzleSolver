@@ -3,14 +3,13 @@ import itertools
 import re
 from collections import Counter
 from enum import Enum, auto
-from typing import Any, Iterable, Iterator, Optional, Sequence
+from typing import Any
+from collections.abc import Iterator, Iterable, Sequence
 
 from matplotlib.patches import Arc
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, EquationSolver, Evaluator, \
-    Letter, generators
-from solver.constraint_solver import KnownClueDict
-from solver.equation_solver import KnownLetterDict
+    generators, KnownClueDict, KnownLetterDict
 
 GRID = """
 x.xxxxxx
@@ -66,7 +65,7 @@ generators.BASE = 8
 
 @dataclasses.dataclass
 class MyIterator:
-    base: Optional[Iterator[int]] = None
+    base: Iterator[int] | None = None
     multiplier: int = 1
     offset: int = 0
 
@@ -219,8 +218,8 @@ class Solver237(ConstraintSolver):
             def run(self):
                 self.solve(debug=True)
 
-            def show_solution(self, clue_values: KnownClueDict, known_letters: KnownLetterDict
-                              ) -> None:
+            def show_solution(self, clue_values: KnownClueDict,
+                              known_letters: KnownLetterDict) -> None:
                 nonlocal result
                 result = dict(known_letters)
                 self.plot_board(clue_values)
@@ -229,7 +228,7 @@ class Solver237(ConstraintSolver):
         return result
 
     @staticmethod
-    def base_eight_wrapper(evaluator: Evaluator, value_dict: dict[Letter, int]
+    def base_eight_wrapper(evaluator: Evaluator, value_dict: KnownLetterDict
                            ) -> Iterable[ClueValue]:
         try:
             result = evaluator.raw_call(value_dict)

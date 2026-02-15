@@ -3,15 +3,14 @@ import functools
 import itertools
 import math
 import operator
-from typing import Sequence, Tuple, Iterator
+from collections.abc import Sequence, Iterator
 
-from solver import generators, ConstraintSolver, Clues, Clue
-from solver.constraint_solver import KnownClueDict
+from solver import generators, ConstraintSolver, Clues, Clue, KnownClueDict
 from solver.generators import allvalues
 
 
-@functools.lru_cache(None)
-def prime_factors(value: int) -> Sequence[Tuple[int, int]]:
+@functools.cache(None)
+def prime_factors(value: int) -> Sequence[tuple[int, int]]:
     # 21033 is incorrect
     from misc.primes import PRIMES
     result = []
@@ -210,5 +209,4 @@ class Solver215(ConstraintSolver):
         return True
 
 if __name__ == '__main__':
-    # Solver215.run()
-    print(f(3, 10))
+    Solver215.run()

@@ -1,5 +1,6 @@
 import itertools
-from typing import Sequence, Set, Dict, Any
+from typing import Any
+from collections.abc import Sequence
 
 from solver import Clue, EquationSolver, Clues, Location
 
@@ -73,7 +74,7 @@ class Listener4609(EquationSolver):
 
     def __init__(self) -> None:
         clue_list = self.make_clue_list()
-        super(Listener4609, self).__init__(clue_list)
+        super().__init__(clue_list)
 
         array = [' '] * 144
         index = 0
@@ -89,7 +90,7 @@ class Listener4609(EquationSolver):
         return Clues.create_from_text(ACROSS, DOWN, locations)
 
     def draw_grid(self, **args: Any) -> None:
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
         for letter, (row, column) in zip(self.array, itertools.product(range(1, 13), repeat=2)):
             location_to_entry[row, column] = letter
         args['circles'] = {(8, 1)}
@@ -124,4 +125,3 @@ class Listener4609(EquationSolver):
 
 if __name__ == '__main__':
     Listener4609.run()
-

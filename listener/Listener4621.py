@@ -1,10 +1,10 @@
 import functools
 import re
-from typing import Dict, Sequence, Pattern, Callable, List, Optional, Tuple, Any
+from typing import Any
+from collections.abc import Sequence, Callable
 
-from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
-from solver import EquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import Clue, Location, Clues, ConstraintSolver, Intersection, Letter
+from solver import EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
 X.XXXXXXXX
@@ -77,7 +77,7 @@ class OuterSolver(EquationSolver):
 
     @staticmethod
     def create_from_text(across: str, down: str, locations: Sequence[Location]) -> Sequence[Clue]:
-        result: List[Clue] = []
+        result: list[Clue] = []
         for lines, is_across, letter in ((across, True, 'a'), (down, False, 'd')):
             for line in lines.splitlines():
                 line = line.strip()
@@ -97,7 +97,7 @@ class OuterSolver(EquationSolver):
         super().__init__(clues, items=range(1, 20))
 
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
-            Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
+            Callable[[KnownClueDict], re.Pattern[str]]:
 
         assert(all(intersection.this_clue == clue for intersection in intersections))
 
@@ -108,7 +108,7 @@ class OuterSolver(EquationSolver):
             default_item = '(1?[1-9]|10)'
             lookahead = f'(?=[0-9]{{{clue.context}}}$)'
 
-        def getter(known_clues: Dict[Clue, ClueValue]) -> Pattern[str]:
+        def getter(known_clues: KnownClueDict) -> re.Pattern[str]:
             pattern_list = [default_item] * clue.length
             for intersection in intersections:
                 other_clue = intersection.other_clue
@@ -131,7 +131,7 @@ class OuterSolver(EquationSolver):
 
     @staticmethod
     @functools.lru_cache(None)
-    def parse_with_pairs(pairs: int, value: str) -> List[Tuple[str, ...]]:
+    def parse_with_pairs(pairs: int, value: str) -> list[tuple[str, ...]]:
         if pairs == 0:
             return [tuple(value)]
         if value == '' or value[0] == '0':
@@ -188,7 +188,7 @@ class InnerSolver(ConstraintSolver):
             yield ''.join(result)
 
     def draw_grid(self, **args: Any) -> None:
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
         args['location_to_entry'] = {location : str(ord(code) - 48) for location, code in location_to_entry.items()}
         super().draw_grid(**args)
 

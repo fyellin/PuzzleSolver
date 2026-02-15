@@ -138,4 +138,3 @@ class PrettyPrinter (ConstraintSolver):
 
 if __name__ == '__main__':
     PrettyPrinter.run()
-

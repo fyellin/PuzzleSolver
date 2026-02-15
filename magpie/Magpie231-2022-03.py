@@ -5,7 +5,7 @@ from collections import defaultdict
 from itertools import permutations
 from math import log10
 
-from solver import Clue, Evaluator
+from solver import Evaluator
 from solver.draw_grid import draw_grid
 
 MAX_INT = 10_000

@@ -4,8 +4,8 @@ from collections.abc import Sequence
 from itertools import combinations, pairwise
 from math import isqrt
 
-from solver import Clue, Clues, ConstraintSolver, EquationSolver, generators
-from solver.constraint_solver import KnownClueDict
+from misc.primes import PRIMES
+from solver import Clue, Clues, ConstraintSolver, EquationSolver, generators, KnownClueDict
 
 GRID = """
 X.XXX.X
@@ -93,12 +93,13 @@ class Magpie239b(EquationSolver):
     @classmethod
     def run(cls):
         solver = cls()
+        solver.solve()
 
     def __init__(self):
         self.mapper = generate_map()
         clues = self.get_clues()
         super().__init__(clues, items=(int(x) for x in self.mapper))
-        self.add_constraint(["B"], lambda x: isprime(int(x)))
+        self.add_constraint(["B"], lambda x: is_prime(int(x)))
         self.add_constraint(["E"], lambda x: math.isqrt(int(x)) ** 2 == int(x))
         self.add_constraint(["F", "A"], lambda x, y: int(x) % int(y) == 0)
 
@@ -111,7 +112,8 @@ class Magpie239b(EquationSolver):
             clues.append(clue)
         return clues
 
-
+def is_prime(x: int) -> bool:
+    return x in PRIMES
 
 def generate_map():
     result = defaultdict(list)
@@ -144,7 +146,7 @@ def find_m():
 
 
 def find_w():
-    a, b, c, d = 18, 61, 63, 94
+    a, b, _c, d = 18, 61, 63, 94
     mapper = generate_map()
     for e in (169, 196):
         for f in (int(x) for x in mapper.keys() if len(x) == 3):

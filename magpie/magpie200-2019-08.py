@@ -1,8 +1,9 @@
 import itertools
 import re
-from typing import Iterable, Sequence, Optional, Tuple, Dict, cast, Any
+from typing import cast, Any
+from collections.abc import Iterable, Sequence
 
-from solver import Clue, ClueValueGenerator, ClueValue, ConstraintSolver
+from solver import Clue, ClueValueGenerator, ClueValue, ConstraintSolver, KnownClueDict
 from solver import generators
 
 ACROSS = """
@@ -47,11 +48,11 @@ class MyString(str):
     def __repr__(self) -> str:
         return '<' + str(self) + '>'
 
-    def __new__(cls, value: int, operators: Tuple[str, ...], parentheses: Optional[Tuple[int, int]], expression: str
+    def __new__(cls, value: int, operators: tuple[str, ...], parentheses: tuple[int, int] | None, expression: str
                 ) -> Any:
         return super().__new__(cls, value)  # type: ignore
 
-    def __init__(self, _value: int, operators: Tuple[str, ...], parentheses: Optional[Tuple[int, int]], expression: str
+    def __init__(self, _value: int, operators: tuple[str, ...], parentheses: tuple[int, int] | None, expression: str
                  ) -> None:
         super().__init__()
         self.operators = operators
@@ -63,7 +64,7 @@ def generator(values: Sequence[int]) -> ClueValueGenerator:
     def result(clue: Clue) -> Iterable[MyString]:
         min_value, max_value = generators.get_min_max(clue)
         for ops in itertools.permutations("+*-/"):
-            def get_value(lparen: int, rparen: int) -> Tuple[str, Optional[int]]:
+            def get_value(lparen: int, rparen: int) -> tuple[str, int | None]:
                 def q(i: int) -> str:
                     return f"{'(' if i == lparen else ''}{values[i]}{')' if i == rparen else ''}"
                 equation = f"{q(0)} {ops[0]} {q(1)} {ops[1]} {q(2)} {ops[2]} {q(3)} {ops[3]} {q(4)}"
@@ -122,7 +123,7 @@ class MySolver(ConstraintSolver):
             return False
         return True
 
-    def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
+    def show_solution(self, known_clues: KnownClueDict) -> None:
         super().show_solution(known_clues)
         for clue in self._clue_list:
             value = cast(MyString, known_clues[clue])

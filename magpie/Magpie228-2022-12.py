@@ -1,10 +1,9 @@
 import re
-from collections import Counter
 from itertools import permutations
-from typing import Any
 
-from solver import Clue, ClueValue, Clues, ConstraintSolver, Letter, Location, generators
-from solver.constraint_solver import LCH_Info, LetterCountHandler
+from solver import Clue, ClueValue, Clues, ConstraintSolver, KnownLetterDict, \
+    Location, generators
+from solver import LCH_Info, LetterCountHandler
 
 GRID = """
 XXXXXX
@@ -47,7 +46,7 @@ DOWNS = """
 
 
 class Magpie288(ConstraintSolver):
-    letter_values: dict[Letter, int]
+    letter_values: KnownLetterDict
 
     @staticmethod
     def run():
@@ -86,7 +85,7 @@ class Magpie288(ConstraintSolver):
                 result.append(clue)
         return result
 
-    def get_letter_values(self) -> dict[Letter, int]:
+    def get_letter_values(self) -> KnownLetterDict:
         # The evaluation must be < the the second number
         clue_min = [(clue.evaluators[0], 10 ** clue.length, clue.expression)
                     for clue in self._clue_list if clue.context == 'Min']
@@ -98,7 +97,7 @@ class Magpie288(ConstraintSolver):
         for (b, d, e, g, l, n, o, r, m, u) in permutations((2, 3, 5, 7, 11, 13, 17, 19, 23, 29)):
             if r < m:
                 continue
-            info: dict[Letter, int] = dict(B=b, D=d, E=e, G=g, L=l, M=m, N=n, O=o, R=r, U=u)
+            info: KnownLetterDict = dict(B=b, D=d, E=e, G=g, L=l, M=m, N=n, O=o, R=r, U=u)
             if all(int(evaluator(info)) < maximum for evaluator, maximum, _ in clue_min):
                 if all(int(evaluator(info)) >= minimum for evaluator, minimum, _ in clue_max):
                     return info

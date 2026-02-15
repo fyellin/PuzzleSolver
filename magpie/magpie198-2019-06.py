@@ -1,9 +1,9 @@
 import collections
 import itertools
 from enum import Enum
-from typing import Iterable, Optional, Dict, Tuple, Sequence
+from collections.abc import Iterable, Sequence
 
-from solver import Clue, ClueValueGenerator, Location, ClueValue, ConstraintSolver
+from solver import Clue, ClueValueGenerator, KnownClueDict, Location,  ConstraintSolver
 from solver import generators
 
 
@@ -15,10 +15,10 @@ class AnswerType(Enum):
     Palindrome = 5
 
 
-def create_to_type_dict() -> Dict[str, AnswerType]:
+def create_to_type_dict() -> dict[str, AnswerType]:
     # Creates a map from legal entry values to the answer type of that entry.  Values are only allowed to belong
     # to one type.
-    creator: Tuple[Tuple[AnswerType, ClueValueGenerator], ...] = (
+    creator: tuple[tuple[AnswerType, ClueValueGenerator], ...] = (
         (AnswerType.Fibonacci, generators.fibonacci),
         (AnswerType.Square, generators.square),
         (AnswerType.Triangle, generators.triangular),
@@ -37,7 +37,7 @@ def create_to_type_dict() -> Dict[str, AnswerType]:
 TO_TYPE_DICT = create_to_type_dict()
 
 
-def make(name: str, base_location: Location, length: int, generator: Optional[ClueValueGenerator]) -> Clue:
+def make(name: str, base_location: Location, length: int, generator: ClueValueGenerator | None) -> Clue:
     return Clue(name, name[0] == 'A', base_location, length, generator=generator)
 
 
@@ -97,7 +97,7 @@ class MySolver(ConstraintSolver):
                 else:
                     self.add_constraint((clue1, clue2), lambda x, y: TO_TYPE_DICT[x] != TO_TYPE_DICT[y])
 
-    def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
+    def show_solution(self, known_clues: KnownClueDict) -> None:
         super().show_solution(known_clues)
         for clue in self._clue_list:
             value = known_clues[clue]

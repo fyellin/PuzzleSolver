@@ -7,8 +7,7 @@ import numpy
 
 from misc.primes import PRIMES
 from solver import Clue, Clues, ConstraintSolver, EquationSolver
-from solver.dancing_links import DancingLinks
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import DancingLinks, KnownClueDict, KnownLetterDict
 
 EQUATIONS = """
 1 EGH
@@ -81,7 +80,7 @@ class MagpieSolver235Values(EquationSolver):
                 for n, value in enumerate(values, start=1)]
 
     def make_pattern_generator(self, clue: Clue, intersections: Any):
-        regexp = f'.+'
+        regexp = r'.+'
         pattern = re.compile(regexp)
         return lambda _: pattern
 

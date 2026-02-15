@@ -3,7 +3,8 @@ import itertools
 import math
 import pickle
 from enum import Enum
-from typing import Iterable, Optional, Tuple, Sequence, Dict, List, NamedTuple, cast
+from typing import NamedTuple, cast
+from collections.abc import Iterable, Sequence
 
 import numpy as np
 from matplotlib import patches as mpatches
@@ -12,7 +13,7 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 
-from solver import Clue, ClueValueGenerator, ClueValue, ConstraintSolver
+from solver import Clue, ClueValueGenerator, ConstraintSolver, KnownClueDict
 
 PDF_FILE_NAME = '/tmp/magpie199.pdf'
 
@@ -45,14 +46,14 @@ class Pentagon(NamedTuple):
     values: Sequence[int]
     directions: Sequence[Direction]
 
-    def get_end_points(self) -> List[Tuple[int, int]]:
+    def get_end_points(self) -> list[tuple[int, int]]:
         directions = [direction.delta() for direction in self.directions]
         deltas = np.multiply(self.values, directions)
         points = np.cumsum(deltas)
         assert points[-1] == 0
         return [(int(x.real), int(x.imag)) for x in points]
 
-    def get_all_points(self) -> List[Tuple[int, int]]:
+    def get_all_points(self) -> list[tuple[int, int]]:
         deltas = []
         for value, direction in zip(self.values, self.directions):
             deltas.extend([(direction.delta())] * value)
@@ -116,7 +117,7 @@ class Pentagon(NamedTuple):
                       va='center', ha='center')
 
 
-ClueMap = Dict[int, List[Pentagon]]
+ClueMap = dict[int, list[Pentagon]]
 
 
 def generate_map() -> ClueMap:
@@ -179,7 +180,7 @@ class MySolver(ConstraintSolver):
         super().__init__(clue_list)
         self.clue_map = clue_map
 
-    def check_and_show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
+    def check_and_show_solution(self, known_clues: KnownClueDict) -> None:
         all_clues = collections.deque(self._clue_list)
         with PdfPages(PDF_FILE_NAME) as pdf:
             figure, axis = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
@@ -196,7 +197,7 @@ class MySolver(ConstraintSolver):
                 plt.close()
             print(f"Finished writing to {PDF_FILE_NAME}")
 
-    def draw_clue_pentagon(self, clue: Clue, known_clues: Dict[Clue, ClueValue], axes: Axes) -> None:
+    def draw_clue_pentagon(self, clue: Clue, known_clues: KnownClueDict, axes: Axes) -> None:
         triangles = cast(int, clue.context)
         answer = known_clues[clue]
         canonical_answer = min(answer[i:] + answer[:i] for i in range(5))
@@ -213,7 +214,7 @@ def get_dumped_map() -> ClueMap:
         return cast(ClueMap, pickle.load(file))
 
 
-def run(clue_map: Optional[ClueMap] = None) -> None:
+def run(clue_map: ClueMap | None = None) -> None:
     clue_map = clue_map or get_dumped_map()
     clue_list = make_clue_list(clue_map)
     solver = MySolver(clue_list, clue_map)

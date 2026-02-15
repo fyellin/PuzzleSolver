@@ -103,4 +103,3 @@ BBBBRB
 def closestAge(lst, K):
     return lst[min(range(len(lst)), key=lambda i: abs(lst[i] - K))]
     return lst[min(range(len(lst)), key=lambda i: abs(lst[i] - J))]
-

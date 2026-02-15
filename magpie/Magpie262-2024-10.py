@@ -1,13 +1,13 @@
 import itertools
 import re
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
+from collections.abc import Iterable
 
 import math
 
 from solver import Clue, ClueValue, Clues, Evaluator, Location, \
-    MultiEquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+    MultiEquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
 XXXXX.XX
@@ -136,7 +136,6 @@ class Magpie260 (MultiEquationSolver):
     def draw_gridx(self, location_to_entry, clued_locations, **args: Any) -> None:
         location_to_entry = {location: str(ALPHABET.index(value))
                                            for location, value in location_to_entry.items()}
-        clued_locations = set(itertools.product(range(1, 9), repeat=2))
         location_to_entry[4, 3] = '2'
         location_to_entry[4, 4] = location_to_entry[4, 5] = '0'
         location_to_entry[4, 6] = '1'
@@ -148,11 +147,6 @@ class Magpie260 (MultiEquationSolver):
         super().draw_grid(location_to_entry=location_to_entry,
                           extra=self.extra,
                           clued_locations={}, **args)
-
-    def extra(self, plt, axes):
-        import matplotlib.font_manager as fm
-        path = Path(__file__).parent.parent / "misc" / "Digital-7.mono.ttf"
-        font_prop = fm.FontProperties(fname=path)
 
     def part2(self):
         info = dict(zip("ABCDEFGHIJKLMNOPQRSTUVWXYZ",
@@ -269,4 +263,5 @@ def make_wrapper(encoder):
     return wrapper
 
 if __name__ == '__main__':
+    # This function takes a really long time!
     Magpie260.run()

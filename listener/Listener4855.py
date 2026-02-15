@@ -1,9 +1,8 @@
 from collections import defaultdict
-from collections import defaultdict
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
-from solver import Clues, EquationSolver, Letter
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import Clues, EquationSolver
+from solver import KnownClueDict, KnownLetterDict
 
 ACROSS = """
 1 (BR + A)(N − DN + EW) 
@@ -71,7 +70,7 @@ class Listener4855(EquationSolver):
                       known_letters: KnownLetterDict) -> None:
         super().show_solution(known_clues, known_letters)
 
-    def get_letter_values(self, known_letters: dict[Letter, int],
+    def get_letter_values(self, known_letters: KnownLetterDict,
                           letters: Sequence[str]) -> Iterable[Sequence[int]]:
         self.duplicates = self.get_letter_values_with_duplicates(known_letters,
                                                                  len(letters), 2)
@@ -104,5 +103,3 @@ class Listener4855(EquationSolver):
 
 if __name__ == '__main__':
     Listener4855.run()
-
-

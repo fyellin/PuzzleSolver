@@ -1,6 +1,7 @@
 import itertools
 import math
-from typing import Any, Iterator, Sequence, Union
+from typing import Any
+from collections.abc import Sequence, Iterator
 
 from misc.factors import prime_factors
 from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, generators
@@ -43,11 +44,11 @@ def is_product_of_three_distinct_primes(value: ClueValue):
 TRIANGULARS = {i * (i + 1) // 2 for i in range(1000)}
 
 
-def is_triangular(x: Union[int, ClueValue]) -> bool:
+def is_triangular(x: int | ClueValue) -> bool:
     return int(x) in TRIANGULARS
 
 
-def is_square(x: Union[int, ClueValue]) -> bool:
+def is_square(x: int | ClueValue) -> bool:
     x = int(x)
     if x < 0:
         return False
@@ -278,5 +279,3 @@ if __name__ == '__main__':
     # clue = temp.clue_named("15a")
     # result = list(x.code for x in clue.generator(clue))
     # print(result)
-
-

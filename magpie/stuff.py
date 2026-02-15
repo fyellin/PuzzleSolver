@@ -28,7 +28,7 @@ def get_regexp_for_length(length: int, reverse):
 def run(reverse=False):
     corpus = "../misc/words2.txt"
     result = defaultdict(list)
-    with open(corpus, 'r') as file:
+    with open(corpus) as file:
         for word in file.readlines():
             word = word.strip()
             if 6 <= len(word) <= 15:

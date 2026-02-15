@@ -1,10 +1,10 @@
 import functools
 import itertools
 import math
-from typing import Any, Sequence, Iterator, Callable
+from typing import Any
+from collections.abc import Sequence, Iterator, Callable
 
-from solver import Clue, generators, Clues, ConstraintSolver
-from solver.constraint_solver import KnownClueDict
+from solver import Clue, generators, Clues, ConstraintSolver, KnownClueDict
 
 PRIMES_2DIGIT = {11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97}
 PRIMES_2DIGIT_STR = {str(x) for x in PRIMES_2DIGIT}
@@ -20,7 +20,7 @@ class MyString(str):
         return temp[0:offset] + '[' + temp[offset:offset + 2] + ']' + temp[offset + 2:]
 
     @staticmethod
-    def get(value: int) -> Sequence['MyString']:
+    def get(value: int) -> Sequence[MyString]:
         temp = str(value)
         return [MyString(value=value, prime=int(prime), entry=int(rest), offset=i)
                 for i in range(0, len(temp) - 1)
@@ -255,4 +255,3 @@ if __name__ == '__main__':
     # clue = temp.clue_named("15a")
     # result = list(x.code for x in clue.generator(clue))
     # print(result)
-

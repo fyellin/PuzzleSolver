@@ -1,11 +1,10 @@
 import math
 import re
-from itertools import combinations, count, pairwise
+from itertools import combinations, pairwise
 
-from misc.factors import factor_list, prime_factors
+from misc.factors import prime_factors
 from solver import Clue, ConstraintSolver, EquationSolver, Evaluator, Location, generators
-from solver.constraint_solver import KnownClueDict
-from solver.equation_solver import KnownLetterDict
+from solver import KnownClueDict, KnownLetterDict
 
 GRID = [
     (112, 132, 153, 213, 242, 262, 312, 332, 353, 417, 513, 542, 562, 612, 632, 653, 713,
@@ -183,8 +182,6 @@ class Solver2(ConstraintSolver):
         for i, (a, b) in enumerate(pairwise(value)):
             if a == '1' and '0' <= b <= '6':
                 yield value[0:i] + chr(ord(b) - ord('0') + ord('a')) + value[i+2:]
-
-
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         location_to_digit = {location : digit for clue, value in known_clues.items()

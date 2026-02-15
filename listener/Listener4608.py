@@ -1,12 +1,9 @@
 import itertools
 import math
-from typing import Sequence, Optional, Iterator, Set, Callable, Dict, Any, List
-
-from solver import Clue, generators, ClueValue
-from solver import ConstraintSolver
-from solver import Location
-from solver.constraint_solver import KnownClueDict
-from solver.generators import ClueValueGenerator
+from collections.abc import Callable, Iterator, Sequence
+from typing import Any
+from solver import Clue, ClueValue, ClueValueGenerator, ConstraintSolver, \
+    KnownClueDict, Location, generators
 
 
 def generate_L(clue: Clue) -> Iterator[int]:
@@ -63,7 +60,7 @@ def generate_r(clue: Clue) -> Iterator[str]:
         yield ''.join(digits)
 
 
-def make(name: str, length: int, base_location: Location, *, generator: Optional[ClueValueGenerator] = None) -> 'Clue':
+def make(name: str, length: int, base_location: Location, *, generator: ClueValueGenerator | None = None) -> Clue:
     return Clue(name, name.isupper(), base_location, length, generator=generator or generators.allvalues)
 
 
@@ -146,7 +143,7 @@ def is_anagram(x: int, y: int) -> bool:
     return sorted(str(x)) == sorted(str(y))
 
 
-def generator_fibonacci_to(limit: int) -> Set[int]:
+def generator_fibonacci_to(limit: int) -> set[int]:
     def generator() -> Iterator[int]:
         i, j = 0, 1
         while True:
@@ -160,7 +157,7 @@ FIBONACCIS = generator_fibonacci_to(10000)
 
 class Listener4608(ConstraintSolver):
     def __init__(self, clue_list: Sequence[Clue]) -> None:
-        super(Listener4608, self).__init__(clue_list)
+        super().__init__(clue_list)
 
         self.my_constraint(("A", "n", "K"), lambda A, n, K: A == n - K)
         self.my_constraint(("B", "o"), lambda B, o: B == o * digit_sum(o) + 1)
@@ -203,7 +200,7 @@ class Listener4608(ConstraintSolver):
        """
         clue_g = self.clue_named("g")
         g_minus_1 = str(int(known_clues[clue_g])- 1)
-        if not g_minus_1 in known_clues.values():
+        if g_minus_1 not in known_clues.values():
             return False
 
         clue_H = self.clue_named("H")
@@ -242,10 +239,10 @@ class Listener4608(ConstraintSolver):
         print(''.join(letters))
 
     def draw_grid(self, **args: Any) -> None:
-        location_to_clue_numbers: Dict[Location, List[str]] = args['location_to_clue_numbers']
+        location_to_clue_numbers: dict[Location, list[str]] = args['location_to_clue_numbers']
         location_to_clue_numbers[5, 2].pop()
 
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
         shaded_squares = {location for location, value in location_to_entry.items() if value in "13579"}
         shading = {location: "lightgreen" for location in shaded_squares}
 
@@ -265,7 +262,6 @@ def run() -> None:
     solver.show_solution(known_clues)
 
 
-
 if __name__ == '__main__':
+    # This Puzzle does not work.  Let's come back to it.
     run()
-

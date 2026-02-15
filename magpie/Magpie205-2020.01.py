@@ -1,9 +1,9 @@
 import itertools
 import re
-from typing import Sequence, Set, Dict, Any, Match, Iterator, Tuple, cast
+from typing import Any, cast
+from collections.abc import Sequence, Iterator
 
-from solver import Clue, ConstraintSolver, Location, Clues, ClueValue
-from solver.equation_solver import KnownClueDict
+from solver import Clue, ConstraintSolver, Location, Clues, ClueValue, KnownClueDict
 
 GRID = """
 XXXXXXX
@@ -65,10 +65,10 @@ DOWN = """
 class Solver205(ConstraintSolver):
     def __init__(self) -> None:
         super().__init__(self.make_clue_list())
-        self.generator_dict: Dict[Tuple[Clue, str], Tuple[Sequence[int], int]] = {}
+        self.generator_dict: dict[tuple[Clue, str], tuple[Sequence[int], int]] = {}
 
     def draw_grid(self, **args: Any) -> None:
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
         location_to_entry = {location: str(ord(value) - 48) for location, value in location_to_entry.items()}
         args['location_to_entry'] = location_to_entry
 
@@ -111,7 +111,7 @@ class Solver205(ConstraintSolver):
                 location = locations[number - 1]
 
                 # Put an exponent (e.g. **a, **b, **c) after each number.
-                def replacer(xmatch: Match[str]) -> str:
+                def replacer(xmatch: re.Match[str]) -> str:
                     variable = chr(xmatch.end(0) + ord('A'))
                     return xmatch.group(0) + '**' + variable
 
@@ -125,7 +125,7 @@ class Solver205(ConstraintSolver):
         min_size = 10 ** (clue.length - 1)
         max_size = 10 ** (2 * clue.length)
         evaluator = clue.evaluators[0]
-        seen: Set[ClueValue] = set()
+        seen: set[ClueValue] = set()
 
         max_power = 20 if "–" in clue.expression else 16
 

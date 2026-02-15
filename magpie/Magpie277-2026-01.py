@@ -156,7 +156,7 @@ class MyPentominos:
 
     def check_everything(self, good_tilings=None, *, multitasking=True, draw=False):
         if not good_tilings:
-            with open("/tmp/file1", "r") as file:
+            with open("/tmp/file1") as file:
                 good_tilings = [line.strip().split('.') for line in file]
         count = 0
         solutions = []

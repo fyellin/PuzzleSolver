@@ -25,7 +25,7 @@ def get_grid():
     return info
 
 def get_words():
-    with open("/users/fy/Pycharm/MagpieSolver/misc/words.txt", "r") as file:
+    with open("/users/fy/Pycharm/MagpieSolver/misc/words.txt") as file:
         words = file.readlines()
         words = {word.strip().upper().replace(" ", "") for word in words}
     return words

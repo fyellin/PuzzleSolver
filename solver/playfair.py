@@ -1,10 +1,9 @@
 from collections.abc import Sequence, Mapping
-from typing import Optional
 
 from solver.playfair_constraints import ConstraintsGenerator, ConstraintRow
 
 
-class PlayfairSolver(object):
+class PlayfairSolver:
     results: list[ConstraintRow]
     debug: bool
     count: int
@@ -29,7 +28,7 @@ class PlayfairSolver(object):
 
     def solve(self, *, debug: bool = False) -> Sequence[ConstraintRow]:
 
-        def fill_in_tail(row: ConstraintRow) -> Optional[ConstraintRow]:
+        def fill_in_tail(row: ConstraintRow) -> ConstraintRow | None:
             return row.fill_in_tail(self.tail_length)
 
         constraints = self.constraints_generator.generate_all_constraints()
@@ -47,7 +46,7 @@ class PlayfairSolver(object):
         indent = " | " * depth if self.debug else None
         if not pending_constraints:
             if self.debug:
-                print("{}✓ SOLUTION = {}".format(indent, rows_so_far))
+                print(f"{indent}✓ SOLUTION = {rows_so_far}")
             self.results.append(rows_so_far)
             return
         # Determine which constraint has the fewest rows in it
@@ -63,8 +62,7 @@ class PlayfairSolver(object):
             next_rows_so_far = next_rows_so_far_direct.fill_in_tail(self.tail_length)
             if not next_rows_so_far:
                 if self.debug:
-                    print("{}{}/{}✕ \"{}\" {} -> {}:".format(
-                        indent, i + 1, min_count, min_constraint_name, current_row, next_rows_so_far_direct))
+                    print(f"{indent}{i + 1}/{min_count}✕ \"{min_constraint_name}\" {current_row} -> {next_rows_so_far_direct}:")
                 continue
             # For the recursive call, only keep those rows that are consistent with what we have built up so far.
             # We also remove the current constraint from the table.
@@ -95,4 +93,3 @@ if __name__ == '__main__':
     results = solver.solve(debug=False)
     for result in results:
         print(result, ''.join(sorted(result.missing_letters())))
-

@@ -1,10 +1,10 @@
 import itertools
 import re
-from typing import Any, Iterable, Sequence
+from typing import Any
+from collections.abc import Iterable, Sequence
 
-from solver import Clue, Clues, EquationSolver, Evaluator, equation_parser
-from solver.equation_parser import Parse
-from solver.equation_solver import KnownLetterDict
+from solver import Clue, Clues, EquationSolver, Evaluator, equation_parser, Parse, \
+    KnownLetterDict
 
 CLUES = """
 15 fh + mh = (l + z)h
@@ -205,4 +205,3 @@ class Listener4843(EquationSolver):
 
 if __name__ == '__main__':
     Listener4843.run()
-

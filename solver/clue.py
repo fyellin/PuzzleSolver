@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Callable, FrozenSet, Iterable, Optional, Sequence, Union
+from typing import Any
+from collections.abc import Callable, Sequence, Iterable
 
 from .clue_types import Location
 from .evaluator import Evaluator
 
-ClueValueGenerator = Callable[['Clue'], Iterable[Union[str, int]]]
+ClueValueGenerator = Callable[['Clue'], Iterable[str | int]]
 
 
 class Clue:
@@ -14,18 +15,18 @@ class Clue:
     base_location: Location
     length: int
     evaluators: Sequence[Evaluator]
-    generator: Optional[ClueValueGenerator]
+    generator: ClueValueGenerator | None
     context: Any
     locations: Sequence[Location]
-    location_set:  FrozenSet[Location]
+    location_set:  frozenset[Location]
     expression: str
     priority: int  # When ordering in the evaluation solver
 
     def __init__(self, name: str, is_across: bool, base_location: Location, length: int, *,
                  expression: str = '',
-                 generator: Optional[ClueValueGenerator] = None,
+                 generator: ClueValueGenerator | None = None,
                  context: Any = None,
-                 locations: Optional[Iterable[Location]] = None,
+                 locations: Iterable[Location] | None = None,
                  priority = 0):
         self.name = name
         self.is_across = is_across

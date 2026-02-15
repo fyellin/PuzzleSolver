@@ -5,7 +5,7 @@ import numpy as np
 
 
 class MyReedSolomon:
-    def __init__(self, n, k, field=None, alpha: Optional[int]=None, c: int = 1, systematic: bool = True):
+    def __init__(self, n, k, field=None, alpha: int | None=None, c: int = 1, systematic: bool = True):
         self.field = field or GF(2 ** 8)
         self.alpha = field(alpha) if alpha else self.field.primitive_element
         self.n = n

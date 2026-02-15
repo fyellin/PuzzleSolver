@@ -264,7 +264,7 @@ def foo():
     info = [''.join(items[i] for i in permutation) for permutation in permutations]
     info = re.compile('|'.join(info))
     print(info)
-    with open("../misc/words.txt", "r") as file:
+    with open("../misc/words.txt") as file:
         for real_word in file:
             real_word = real_word.strip()
             word = real_word.replace('-', '').lower()
@@ -279,5 +279,3 @@ def foo():
 if __name__ == '__main__':
     foo()
     # Magpie243b.run()
-
-

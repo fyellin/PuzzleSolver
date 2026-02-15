@@ -4,8 +4,7 @@ from collections.abc import Sequence
 from functools import cache
 
 from misc.factors import prime_factors, prime_factors_as_string
-from solver import Clue, Clues, ConstraintSolver, generators
-from solver.constraint_solver import KnownClueDict
+from solver import Clue, Clues, ConstraintSolver, generators, KnownClueDict
 
 ACROSS_LENGTHS = "44/1111112/44/161/161/44/2111111/44"
 DOWN_LENGTHS = "44/211111/44/161/161/44/1111112/44"
@@ -126,7 +125,6 @@ class Listener4869b(ConstraintSolver):
         assert len(known_clues.values()) == len(set(known_clues.values()))
         assert len(self.original_clue_values.values()) == len(set(self.original_clue_values.values()))
         return set(known_clues.values()).isdisjoint(set(self.original_clue_values.values()))
-
 
     def show_solution(self, known_clues: KnownClueDict) -> None:
         for clue in sorted(

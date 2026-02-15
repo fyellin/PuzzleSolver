@@ -83,6 +83,3 @@ Last digit of 1D is first digit of 5A
 
 if __name__ == '__main__':
     check3()
-
-
-

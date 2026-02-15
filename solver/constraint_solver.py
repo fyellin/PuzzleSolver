@@ -6,15 +6,14 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Sequence
 from datetime import datetime
 from heapq import nlargest, nsmallest
-from typing import Any, NamedTuple, Optional, Protocol, Union, cast
+from typing import Any, NamedTuple, Protocol, cast
 
-from .base_solver import BaseSolver
+from .base_solver import BaseSolver, KnownClueDict
 from .clue import Clue, ClueValueGenerator
 from .clue_types import ClueValue
 from .intersection import Intersection
 
-KnownClueDict = dict[Clue, ClueValue]
-UnknownClueDict = dict[Clue, Sequence[ClueValue]]
+type UnknownClueDict = dict[Clue, Sequence[ClueValue]]
 
 
 class ConstraintSolver(BaseSolver):
@@ -26,10 +25,10 @@ class ConstraintSolver(BaseSolver):
     _max_debug_depth: int
     _multi_constraints: dict[Clue, list[Callable[..., bool]]]
     _singleton_constraint: dict[Clue, list[Callable[..., bool]]]
-    _letter_handler: Optional[AbstractLetterCountHandler]
+    _letter_handler: AbstractLetterCountHandler | None
 
     def __init__(self, clue_list: Sequence[Clue], constraints: Sequence[Constraint] = (),
-                 *, letter_handler: Optional[AbstractLetterCountHandler] = None,
+                 *, letter_handler: AbstractLetterCountHandler | None = None,
                  **kwargs: Any) -> None:
         super().__init__(clue_list, **kwargs)
         self._multi_constraints = defaultdict(list)
@@ -44,9 +43,9 @@ class ConstraintSolver(BaseSolver):
             clues, predicate, name = constraint
             self.add_constraint(clues, predicate, name=name)
 
-    def add_constraint(self, clues: Sequence[Union[Clue, str]] | str,
+    def add_constraint(self, clues: Sequence[Clue | str] | str,
                        predicate: Callable[..., bool],
-                       *, name: Optional[str] = None) -> None:
+                       *, name: str | None = None) -> None:
         if isinstance(clues, str):
             clues = clues.split()
         actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue)
@@ -71,9 +70,9 @@ class ConstraintSolver(BaseSolver):
         for clue in actual_clues:
             self._multi_constraints[clue].append(check_relationship)
 
-    def add_extended_constraint(self, clues: Sequence[Union[Clue, str]],
+    def add_extended_constraint(self, clues: Sequence[Clue | str],
                                 predicate: Callable[..., Sequence[ClueValue]],
-                                *, name: Optional[str] = None) -> None:
+                                *, name: str | None = None) -> None:
         actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue)
                              for clue in clues)
         actual_name = name or '-'.join(clue.name for clue in actual_clues)
@@ -105,7 +104,7 @@ class ConstraintSolver(BaseSolver):
         self._multi_constraints[this_clue].append(check_relationship)
 
     def solve(self, *, show_time: bool = True, debug: bool = False,
-              max_debug_depth: Optional[int] = None,
+              max_debug_depth: int | None = None,
               start_clues: Sequence[Clue | str] = ()) -> int:
         self._step_count = 0
         self._solution_count = 0
@@ -314,7 +313,7 @@ class ConstraintSolver(BaseSolver):
 class Constraint(NamedTuple):
     clues: Sequence[Clue | str] | str
     predicate: Callable[..., bool]
-    name: Optional[str] = None
+    name: str | None = None
 
 
 type LCH_Info = tuple[Sequence[int], set[tuple[int, int]]]

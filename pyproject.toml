@@ -1,0 +1,32 @@
+[tool.ruff]
+line-length = 90
+target-version = "py314"
+
+[tool.ruff.lint]
+# Enable all rules (or a specific set) and ignore certain ones
+select = ["E", "W", "F", "UP", "NPY"]  # add "I"
+ignore = ["E501",
+          "E701",
+          "UP015",
+          "UP037",
+         ]
+preview = true
+
+
+[tool.ruff.format]
+preview = true
+
+
+# Exclude specific files or directories
+exclude = [
+    ".git",
+    "venv",
+    "misc/primes.py",
+    "withgoogle/*.py",
+    "solver/sly/*.py",
+    "solver/ply/*.py",
+    "solver/equation_parser.py",
+    "**/*_old.py"
+    # ... more exclusions
+]
+

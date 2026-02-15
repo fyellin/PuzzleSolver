@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence, Callable
 from dataclasses import dataclass
-from typing import Callable, ClassVar, Optional, cast
+from typing import ClassVar, cast
 
 from .clue_types import ClueValue, Letter
 from .equation_parser import EquationParser
@@ -14,23 +14,23 @@ WrapperType = Callable[['Evaluator', dict[Letter, int]], Iterable[ClueValue]]
 @dataclass
 class Evaluator:
     _wrapper: WrapperType
-    _compiled_code: Callable[[dict[Letter, int]], Optional[ClueValue]]
+    _compiled_code: Callable[[dict[Letter, int]], ClueValue | None]
     _expression: str
     _vars: Sequence[Letter]
     _equation_parser: ClassVar[EquationParser] = None
 
     @classmethod
     def create_evaluator(cls, expression: str,
-                         mapping: Optional[Mapping[str, Callable]] = None,
-                         wrapper: Optional[Callable[[Evaluator, dict], Iterable[ClueValue]]] = None,
+                         mapping: Mapping[str, Callable] | None = None,
+                         wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]] | None = None,
                          ) -> Evaluator:
         result, = cls.create_evaluators(expression, mapping, wrapper)
         return result
 
     @classmethod
     def create_evaluators(cls, expression: str,
-                          mapping: Optional[Mapping[str, Callable]] = None,
-                          wrapper: Optional[Callable[[Evaluator, dict], Iterable[ClueValue]]] = None,
+                          mapping: Mapping[str, Callable] | None = None,
+                          wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]] | None = None,
                           ) -> Sequence[Evaluator]:
         if cls._equation_parser is None:
             cls._equation_parser = EquationParser()
@@ -44,7 +44,7 @@ class Evaluator:
         evaluators = []
         for parse in parses:
             variables = cast(Sequence[Letter], sorted(parse.vars()))
-            expression = parse.to_string(mapping_vars, True)
+            expression = parse.to_string(mapping_vars, False)
             code = f"lambda {', '.join(variables)}: {expression}"
             compiled_code = eval(code, my_globals, {})
             evaluators.append(Evaluator(wrapper, compiled_code, expression, variables))

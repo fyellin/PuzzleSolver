@@ -5,9 +5,8 @@ from collections.abc import Iterable, Sequence
 from functools import cache
 from typing import Any
 
-from solver import Clue, ClueValue, EquationSolver, Evaluator, Letter, Location, \
-    MultiEquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import Clue, ClueValue, Evaluator, Location, \
+    MultiEquationSolver, KnownClueDict, KnownLetterDict
 
 ACROSS_LENGTHS = "413/332/44/44/233/314"
 DOWN_LENGTHS = "222/33/24/33/33/42/33/222"
@@ -32,7 +31,7 @@ EQUATIONS = """
 """
 
 
-def wrapper(self, value_dict: dict[Letter, int]) -> Iterable[ClueValue]:
+def wrapper(self, value_dict: KnownLetterDict) -> Iterable[ClueValue]:
     try:
         result = self._compiled_code(*(value_dict[x] for x in self._vars))
         if (int_result := int(result)) == result:

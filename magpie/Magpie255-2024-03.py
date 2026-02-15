@@ -1,10 +1,10 @@
 import math
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 import solver.generators as gen
-from misc.Pentomino import Pentomino, PentominoSolver, get_graph_shading, get_hard_bars
-from solver import Clue, Clues
-from solver.constraint_solver import Constraint, ConstraintSolver, KnownClueDict
+from misc.Pentomino import Pentomino, PentominoSolver, get_graph_shading
+from solver import Clue, Clues, Constraint, ConstraintSolver, KnownClueDict
 
 GRID = """
 X.XXXX

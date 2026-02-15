@@ -1,8 +1,7 @@
 from typing import Any
 
 from misc.Pentomino import get_graph_shading
-from solver import Clue, Clues, ConstraintSolver
-from solver.equation_solver import EquationSolver
+from solver import Clue, Clues, ConstraintSolver, EquationSolver
 
 ACROSS = """
 1 O(TV – W) – N (4) 

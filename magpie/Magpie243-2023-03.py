@@ -1,8 +1,7 @@
 import math
 from typing import Any
 
-from solver import Clue, ConstraintSolver, Evaluator, generators
-from solver.constraint_solver import Constraint, KnownClueDict
+from solver import Clue, ConstraintSolver, Evaluator, generators, Constraint, KnownClueDict
 
 TRIANGLES = list(i * (i + 1) // 2 for i in range(2000))
 SQUARES = list(i * i for i in range(1000))

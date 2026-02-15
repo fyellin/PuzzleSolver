@@ -1,6 +1,6 @@
 import itertools
 from collections.abc import Sequence
-from typing import Optional, Any
+from typing import Any
 
 
 class ConstraintsGenerator:
@@ -13,14 +13,14 @@ class ConstraintsGenerator:
         assert len(plain_text) % 2 == 0
         self.cipher_text = cipher_text
 
-    def generate_all_constraints(self) -> dict[str, Sequence['ConstraintRow']]:
+    def generate_all_constraints(self) -> dict[str, Sequence[ConstraintRow]]:
         """
         Generate all constraints for the given plain_text / cipher_text pair.  For now, we only do constraints
         that list all possible solutions of AB->CD, but others may be possible in the future.
         """
         return self.generate_encryption_constraints()
 
-    def generate_encryption_constraints(self) -> dict[str, Sequence['ConstraintRow']]:
+    def generate_encryption_constraints(self) -> dict[str, Sequence[ConstraintRow]]:
         """
         Generates the encryption constraints.  The cipher text and plain text are broken down into pairs of letters,
         and a constraint is generated for each pair.
@@ -30,11 +30,12 @@ class ConstraintsGenerator:
             constraints = self.generate_one_encryption_constraint(
                 self.plain_text[i], self.plain_text[i + 1], self.cipher_text[i], self.cipher_text[i + 1])
             if constraints:
-                result["{}:{}".format(i, i + 2)] = constraints
+                result[f"{i}:{i + 2}"] = constraints
         return result
 
     @staticmethod
-    def generate_one_encryption_constraint(p0: str, p1: str, c0: str, c1: str) -> Optional[Sequence['ConstraintRow']]:
+    def generate_one_encryption_constraint(p0: str, p1: str, c0: str, c1: str
+                                           ) -> Sequence[ConstraintRow] | None:
         if p0 == '.' and p1 == '.':
             return None
         if c0 == '.' and c1 == '.':
@@ -44,7 +45,7 @@ class ConstraintsGenerator:
         # Verify the fact that no letter encrypts or decrypts to itself
         assert (p0 == '.' or p0 != c0) and (p1 == '.' or p1 != c1)
         result = []
-        seen: set['ConstraintRow'] = set()
+        seen: set[ConstraintRow] = set()
         # Look at ever possible pair of positions for p0 and p1.
         for (row0, column0, row1, column1) in itertools.product(range(5), repeat=4):
             if (row0, column0) == (row1, column1):
@@ -79,7 +80,7 @@ class ConstraintsGenerator:
         return result
 
 
-class ConstraintRow (object):
+class ConstraintRow:
     _locations: frozenset[tuple[int, int]]
     _letter_to_location: dict[str, tuple[int, int]]
     _flat: str
@@ -93,11 +94,11 @@ class ConstraintRow (object):
         self._flat = ''.join(array)
 
     @staticmethod
-    def empty() -> 'ConstraintRow':
+    def empty() -> ConstraintRow:
         return ConstraintRow({})
 
     @staticmethod
-    def from_string(string: Sequence[str]) -> 'ConstraintRow':
+    def from_string(string: Sequence[str]) -> ConstraintRow:
         all_positions = [(string[row * 5 + column], (row, column)) for row in range(5) for column in range(5)]
         location_dict = {letter: location for letter, location in all_positions if letter != '.'}
         return ConstraintRow(location_dict)
@@ -110,7 +111,7 @@ class ConstraintRow (object):
             array[6 * row + column] = letter
         return ''.join(array)
 
-    def is_consistent_with(self, other: 'ConstraintRow') -> bool:
+    def is_consistent_with(self, other: ConstraintRow) -> bool:
         """
         Returns True if self doesn't conflict with other.
         If both have any letters in common, they are both in the same location.  If both have any locations in
@@ -132,7 +133,7 @@ class ConstraintRow (object):
     def missing_letters(self) -> set[str]:
         return set(self.ALL_LETTERS).difference(list(self._letter_to_location.keys()))
 
-    def fill_in_tail(self, sorted_tail_length: int) -> Optional['ConstraintRow']:
+    def fill_in_tail(self, sorted_tail_length: int) -> ConstraintRow | None:
         string = list(self._flat)
         unused_letters = self.missing_letters()
 
@@ -179,7 +180,7 @@ class ConstraintRow (object):
             return NotImplemented
         return self._flat != other._flat
 
-    def __add__(self, other: 'ConstraintRow') -> 'ConstraintRow':
+    def __add__(self, other: ConstraintRow) -> ConstraintRow:
         letter_to_location = {}
         letter_to_location.update(self._letter_to_location)
         letter_to_location.update(other._letter_to_location)

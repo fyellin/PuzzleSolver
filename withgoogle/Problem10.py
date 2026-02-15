@@ -32,5 +32,3 @@ def solution(n, base):
 if __name__ == '__main__':
     print(solution('1211', 10))
     print(solution('210022', 3))
-
-

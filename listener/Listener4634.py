@@ -1,15 +1,15 @@
 import itertools
 from collections import defaultdict, Counter
-from typing import Sequence, Dict, Tuple, Any, cast, Optional
+from collections.abc import Sequence
+from typing import Any, cast
 
 from solver import Clue, generators
 from solver import ConstraintSolver
-from solver import Location
-from solver.constraint_solver import KnownClueDict
+from solver import Location, KnownClueDict
 
 
 def roman_numeral_for(n: int) -> [str]:
-    (a, b, c, d) = cast(Tuple, f'{n:04}')
+    (a, b, c, d) = cast(tuple, f'{n:04}')
     result = ["", "M", "MM", "MMM"][int(a)] + \
              ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"][int(b)] + \
              ["", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"][int(c)] + \
@@ -32,7 +32,7 @@ class RomanString(str):
         self.has_special = 'M' in value or 'D' in value
 
 
-def build_table() -> Tuple[Dict[int, Sequence[str]], Dict[str, int]]:
+def build_table() -> tuple[dict[int, Sequence[str]], dict[str, int]]:
     result = defaultdict(list)
     result2: [str, int] = {}
     for prime in generators.prime_generator():
@@ -63,7 +63,7 @@ class Listener4634(ConstraintSolver):
     def make_clue_list(self) -> [Clue]:
         counter = 0
 
-        def make(name: str, length: int, base_location: Location) -> 'Clue':
+        def make(name: str, length: int, base_location: Location) -> Clue:
             nonlocal counter
             counter += 1
             return Clue(str(counter), name.isupper(), base_location, length, generator=self.my_generator)
@@ -148,7 +148,7 @@ class Listener4634(ConstraintSolver):
         return bool(self.check_all_constraints(known_clues))
 
     @staticmethod
-    def check_all_constraints(known_clues: KnownClueDict) -> Optional[Dict[str, int]]:
+    def check_all_constraints(known_clues: KnownClueDict) -> dict[str, int] | None:
         """
         In the equations below, lower-case letters stand for distinct grid entries, of the
         following lengths: a, b (2); c (3); d, e, f, g, h, k (4); m (5); n, p (6); q, r (7); s, t (9).

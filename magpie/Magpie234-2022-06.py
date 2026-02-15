@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import itertools
 from collections.abc import Iterable
-from typing import Any, Optional, Sequence, cast
+from typing import Any, cast
 
 from misc.primes import PRIMES
-from solver import ClueValue, Clues, EquationSolver, Evaluator
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import ClueValue, Clues, EquationSolver, Evaluator, KnownClueDict, KnownLetterDict
 
 
 class MultiValue:
     values: set[int]
-    __name: Optional[str]
+    __name: str | None
 
     def __init__(self, values: set[int]):
         self.values = values

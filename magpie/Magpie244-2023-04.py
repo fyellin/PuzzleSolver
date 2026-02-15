@@ -35,7 +35,7 @@ class RowName (NamedTuple):
     is_across: bool
 
     @staticmethod
-    def get_all_keys() -> set['RowName']:
+    def get_all_keys() -> set[RowName]:
         squares = list(itertools.product(range(1, 8), repeat=2))
         result = set()
         for r, c in squares:
@@ -79,21 +79,21 @@ class RowName (NamedTuple):
     def __repr__(self):
         return f"<{self.length}@{self.row}{self.column} {'A' if self.is_across else 'D'}>"
 
-    def flip_x(self) -> 'RowName':
+    def flip_x(self) -> RowName:
         row, column, length, is_across = self
         if length == 5 or not is_across:
             return RowName(row, 8 - column, length, is_across)
         else:
             return RowName(row, 8 - column - (length - 1), length, True)
 
-    def flip_y(self) -> 'RowName':
+    def flip_y(self) -> RowName:
         row, column, length, is_across = self
         if length == 5 or is_across:
             return RowName(8 - row, column, length, is_across)
         else:
             return RowName(8 - row - (length - 1), column, length, is_across)
 
-    def rotate(self) -> 'RowName':
+    def rotate(self) -> RowName:
         row, column, length, is_across = self
         if not is_across:
             row += length - 1

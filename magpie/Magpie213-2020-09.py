@@ -4,7 +4,8 @@ import itertools
 import math
 import re
 from collections import defaultdict, Counter
-from typing import Sequence, Dict, Tuple, List, cast, Any, Union
+from collections.abc import Sequence
+from typing import cast, Any
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
@@ -12,7 +13,7 @@ from matplotlib.patches import Ellipse
 from solver import generators, ConstraintSolver, Clues, Clue, Location
 
 
-def make_min_max_factor_table() -> Sequence[Tuple[int, int]]:
+def make_min_max_factor_table() -> Sequence[tuple[int, int]]:
     primes = tuple(itertools.takewhile(lambda x: x < 315, generators.prime_generator()))
     primes_set = set(primes)
     min_max_factor = [(0, 0)] * 100000
@@ -33,8 +34,8 @@ def make_min_max_factor_table() -> Sequence[Tuple[int, int]]:
 
 
 @functools.lru_cache(None)
-def make_puzzle_table() -> Dict[Tuple[int, int], Sequence[int]]:
-    result: Dict[Tuple[int, int], List[int]] = defaultdict(list)
+def make_puzzle_table() -> dict[tuple[int, int], Sequence[int]]:
+    result: dict[tuple[int, int], list[int]] = defaultdict(list)
     min_max_factor_table = make_min_max_factor_table()
     for length in range(2, 6):
         for value in range(10 ** (length - 1), 10 ** length):
@@ -148,8 +149,8 @@ class Solver213(ConstraintSolver):
         return clues
 
     def draw_grid(self, *,
-                  location_to_entry: Dict[Location, str],
-                  location_to_clue_numbers: Dict[Location, Sequence[str]], **args: Any) -> None:
+                  location_to_entry: dict[Location, str],
+                  location_to_clue_numbers: dict[Location, Sequence[str]], **args: Any) -> None:
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
         # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
         axes.axis([1, 9, 9, 1])
@@ -157,7 +158,7 @@ class Solver213(ConstraintSolver):
         axes.set_aspect(aspect_ratio)
         axes.axis('off')
 
-        def draw_heavy(row, column, where: Union[str, Tuple[str, str]], color: str = 'black'):
+        def draw_heavy(row, column, where: str | tuple[str, str], color: str = 'black'):
             is_point_up = column % 2 == 0
             point_row, flat_row = (row, row + 1) if is_point_up else (row + 1, row)
             center_x = (1 + row + column) / 2.0
@@ -271,8 +272,8 @@ def hanoi() -> None:
     print(result)
 
 """
-Generator: 0:00:00.055020; List: 0:00:00.092192
-Generator: 0:00:12.039189; List: 0:00:00.363289
+Generator: 0:00:00.055020; list: 0:00:00.092192
+Generator: 0:00:12.039189; list: 0:00:00.363289
 
 """
 def sum_with_list():
@@ -287,11 +288,7 @@ def test():
     time2 = datetime.datetime.now()
     print(sum_with_list())
     time3 = datetime.datetime.now()
-    print(f'Generator: {time2 - time1}; List: {time3 - time2}')
+    print(f'Generator: {time2 - time1}; list: {time3 - time2}')
 
 if __name__ == '__main__':
     Solver213().run()
-
-
-
-

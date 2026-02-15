@@ -4,8 +4,7 @@ from typing import Any
 import numpy as np
 
 from misc.primes import PRIMES
-from solver import Clue, Clues, EquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import Clue, Clues, EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
 XX.XXXXX

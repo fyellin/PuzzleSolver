@@ -1,5 +1,4 @@
 import itertools
-from collections import Counter, defaultdict
 from collections.abc import Sequence
 
 from matplotlib import pyplot as plt
@@ -20,7 +19,6 @@ def next_triangle(square: Square, direction: int) -> Square:
             result = row, column + 1
         case (False, 2) | (True, 1):
             result = row, column - 1
-    info = "B" if (direction % 3 == 0) else "C" if (direction % 3 == 1) else "D"
     return result
 
 def parse_recipe(start: Square, recipe: str, direction: int) -> tuple[Square, ...]:
@@ -175,4 +173,3 @@ AREA = [(1, 5, 6, 7), (3, 8, 10, 11), (2, 4, 9, 12)]
 if __name__ == '__main__':
     draw_map(AREA)
     # dancing_links(debug=True)
-

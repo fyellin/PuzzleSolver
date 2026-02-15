@@ -1,7 +1,8 @@
 import itertools
-from typing import Sequence, List, Tuple, Set, Dict, Any
+from typing import Any
+from collections.abc import Sequence
 
-from solver import Clue, ConstraintSolver, Location, ClueValue
+from solver import Clue, ConstraintSolver, KnownClueDict, Location
 from solver import generators
 
 CLUES = """
@@ -29,7 +30,7 @@ primes = list(itertools.takewhile(lambda x: x < 1000, generators.prime_generator
 
 
 class Solver208(ConstraintSolver):
-    clue_primes: Sequence[Tuple[int, int]]
+    clue_primes: Sequence[tuple[int, int]]
 
     @staticmethod
     def run() -> None:
@@ -39,13 +40,13 @@ class Solver208(ConstraintSolver):
     def __init__(self) -> None:
         self.clue_primes = self.__get_clue_primes()
         clue_list = self.make_clue_list()
-        super(Solver208, self).__init__(clue_list)
+        super().__init__(clue_list)
 
     def draw_grid(self, **args: Any) -> None:
-        clue_values: Dict[Clue, ClueValue] = args['clue_values']
+        clue_values: KnownClueDict = args['clue_values']
 
         specials = self.__get_specials()
-        shaded: Set[Location] = set()
+        shaded: set[Location] = set()
         for clue in self._clue_list:
             value = clue_values[clue]
             if int(value) in specials:
@@ -53,7 +54,7 @@ class Solver208(ConstraintSolver):
         shading = {x: 'yellow' for x in shaded}
         super().draw_grid(shading=shading, **args)
 
-    def make_clue_list(self) -> List[Clue]:
+    def make_clue_list(self) -> list[Clue]:
         known = [value for _, value in self.clue_primes]
         generator = generators.known(*known)
         return [
@@ -79,7 +80,7 @@ class Solver208(ConstraintSolver):
         ]
 
     @classmethod
-    def __get_clue_primes(cls) -> List[Tuple[int, int]]:
+    def __get_clue_primes(cls) -> list[tuple[int, int]]:
         result = []
         for line in CLUES.splitlines():
             line = line.strip()

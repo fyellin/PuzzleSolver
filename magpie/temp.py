@@ -28,7 +28,7 @@ class Corpus:
         word_list = []
         try:
             word_list = open(corpus_filename).read().splitlines()
-        except IOError as err:
+        except OSError as err:
             print(err)
 
         self._hash_dict = {}
@@ -68,7 +68,7 @@ class Corpus:
         return candidates
 
 
-class SubSolver():
+class SubSolver:
     """Solves substitution ciphers."""
 
     def __init__(self, ciphertext, corpus_filename, verbose=False):

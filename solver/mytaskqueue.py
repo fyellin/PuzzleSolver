@@ -283,7 +283,7 @@ def run_test():
             temp = get_item()
             task_queue.put(temp, False)
             my_queue.append(temp)
-    except queue.Full as e:
+    except queue.Full:
         print(f"Pushed {len(my_queue)} items")
     count = len(my_queue)
     for i in range(5000 * count):

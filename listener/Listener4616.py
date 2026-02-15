@@ -1,6 +1,3 @@
-import itertools
-from typing import Sequence, Set, Dict, Any
-
 import math
 from matplotlib import pyplot as plt
 
@@ -130,4 +127,3 @@ def draw_grid():
 
 if __name__ == '__main__':
     draw_grid()
-

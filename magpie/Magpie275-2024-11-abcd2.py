@@ -1,7 +1,5 @@
 import itertools
 from collections import Counter
-from copy import deepcopy
-from dataclasses import dataclass
 
 START_GRID = """
 .G..RE...
@@ -160,5 +158,3 @@ def runner():
 
 if __name__ == '__main__':
     runner()
-
-

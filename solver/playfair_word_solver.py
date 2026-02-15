@@ -45,7 +45,7 @@ class PlayfairEncoder:
 
 def get_word_list():
     filename = os.path.dirname(os.path.abspath(__file__)) + "/../misc/words.txt"
-    with open(filename, "r") as file:
+    with open(filename) as file:
         words = set(file.read().split())
     words = {x.upper().replace('-', '').replace("'", '') for x in words}
     words = {x for x in words if x.isalpha() and len(set(x)) == len(x)}

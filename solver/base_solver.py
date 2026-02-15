@@ -3,13 +3,14 @@ import re
 from abc import ABC, abstractmethod
 from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Sequence, Mapping
-from typing import Any, Optional
+from typing import Any
 
 from .clue import Clue
 from .clue import Location
 from .clue_types import ClueValue
 from .draw_grid import draw_grid
 
+type KnownClueDict = dict[Clue, ClueValue]
 
 class BaseSolver(ABC):
     _clue_list: Sequence[Clue]
@@ -95,7 +96,7 @@ class BaseSolver(ABC):
         """Creates the set of (start-location, length, is-across) tuples for all clues in the puzzle"""
         return {(clue.base_location, clue.length, clue.is_across) for clue in self.__name_to_clue.values()}
 
-    def plot_board(self, clue_values: Optional[dict[Clue, ClueValue]] = None, **more_args: Any) -> None:
+    def plot_board(self, clue_values: KnownClueDict | None = None, **more_args: Any) -> None:
         """Draws a picture of the grid with the specified clues filled in."""
         max_row = self.__max_row
         max_column = self.__max_column
@@ -152,5 +153,5 @@ class BaseSolver(ABC):
         draw_grid(**args)
 
     @abstractmethod
-    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int:
+    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: int | None = None) -> int:
         ...

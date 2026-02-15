@@ -1,12 +1,12 @@
-import math
-from collections import defaultdict, deque
-from collections.abc import Sequence
-from functools import cache
-from typing import Any, Deque, Iterable
+from typing import Any
 
-from misc.Tester import FastDijkstra, State
-from solver import Clue, Clues, ConstraintSolver, generators
-from solver.constraint_solver import Constraint
+import math
+from collections import defaultdict
+from collections.abc import Sequence, Iterable
+from functools import cache
+
+from misc.RandomFunctions import FastDijkstra, State
+from solver import Clue, Clues, ConstraintSolver, generators, Constraint
 from solver.generators import known, palindrome, prime, square
 
 GRID = """

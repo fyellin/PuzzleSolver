@@ -1,9 +1,7 @@
-from typing import Generic
-
-from misc.Tester import Node
+from collections.abc import Hashable
 
 
-class UnionFind(Generic[Node]):
+class UnionFind[Node: Hashable]:
     parent: dict[Node, Node]
     rank: dict[Node, int]
 
@@ -28,9 +26,9 @@ class UnionFind(Generic[Node]):
             rank_x = self.rank.setdefault(x, 1)
             rank_y = self.rank.setdefault(y, 1)
             if rank_x > rank_y:
-                # We dont' swap rank_x and rank_y because after this,
+                # We don't swap rank_x and rank_y because after this,
                 # we only care if they're equal
                 x, y = y, x
             self.parent[x] = y
             if rank_x == rank_y:
-                self.ranky = rank_y + 1
+                self.rank[y] = rank_y + 1

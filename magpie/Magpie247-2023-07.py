@@ -1,10 +1,4 @@
-from collections import defaultdict
-from itertools import permutations
-
-from solver import Clue, Clues, ConstraintSolver, EquationSolver
-from solver.constraint_solver import KnownClueDict
-from solver.equation_parser import EquationParser
-from solver.equation_solver import KnownLetterDict
+from solver import Clues, EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
 XXXXXXXX
@@ -84,13 +78,8 @@ class Listener4764(EquationSolver):
         clue_list = Clues.create_from_text(ACROSS, DOWN, locations)
         return clue_list
 
-    def draw_grid(self, location_to_entry, known_letters, **args) -> None:
-        reverse = {str(value): letter for letter, value in known_letters.items()}
-        line = [location_to_entry[row, column] for row in range(1, 9) for column in range(1, 9)]
-        output = []
-        print(''.join(line))
-        super().draw_grid(location_to_entry=location_to_entry,
-                          subtext="YOU JUST GET USED TO THEM", **args)
+    def draw_grid(self, **args) -> None:
+        super().draw_grid(subtext="YOU JUST GET USED TO THEM", **args)
 
 if __name__ == '__main__':
     Listener4764.run()

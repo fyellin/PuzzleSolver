@@ -1,20 +1,20 @@
 import itertools
 import multiprocessing
 import pickle
+import re
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Callable, Sequence
 from datetime import datetime
 from operator import itemgetter
-from typing import Any, Callable, NamedTuple, Optional, Pattern, Sequence, Union
+from typing import Any, NamedTuple
 
-from .base_solver import BaseSolver
+from .base_solver import BaseSolver, KnownClueDict
 from .clue import Clue
-from .clue_types import ClueValue, Letter, Location
+from .clue_types import Letter, Location
 from .evaluator import Evaluator
 from .intersection import Intersection
 
-KnownLetterDict = dict[Letter, int]
-KnownClueDict = dict[Clue, ClueValue]
+type KnownLetterDict = dict[Letter, int]
 
 
 class ClueInfo(NamedTuple):
@@ -29,15 +29,15 @@ class SolvingStep(NamedTuple):
     clue: Clue  # The clue we are solving
     evaluator: Evaluator
     letters: Sequence[Letter]  # The letters we are assigning a value in this step
-    pattern_maker: Callable[[KnownClueDict], Pattern[str]]  # a pattern maker
+    pattern_maker: Callable[[KnownClueDict], re.Pattern[str]]  # a pattern maker
     constraints: Sequence[Callable[[], bool]]
 
 
 class EquationSolver(BaseSolver):
     _step_count: int
-    _solutions: list[tuple[dict[Clue, ClueValue], KnownLetterDict]]
+    _solutions: list[tuple[KnownClueDict, KnownLetterDict]]
     _known_letters: KnownLetterDict
-    _known_clues: dict[Clue, ClueValue]
+    _known_clues: KnownClueDict
     _solving_order: Sequence[SolvingStep]
     _items: Sequence[int]
     _all_constraints: list[tuple[tuple[Clue, ...], Callable[[], bool]]]
@@ -50,8 +50,8 @@ class EquationSolver(BaseSolver):
         self._all_constraints = []
         Clue.set_pickle_solver(self)
 
-    def add_constraint(self, clues: Sequence[Union[Clue, str]], predicate: Callable[..., bool], *,
-                       name: Optional[str] = None) -> None:
+    def add_constraint(self, clues: Sequence[Clue | str], predicate: Callable[..., bool], *,
+                       name: str | None = None) -> None:
         if isinstance(clues, str):
             clues = clues.split()
         assert len(clues) >= 1
@@ -284,7 +284,7 @@ class EquationSolver(BaseSolver):
 
 
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
-            Callable[[dict[Clue, ClueValue]], Pattern[str]]:
+            Callable[[KnownClueDict], re.Pattern[str]]:
         """
         This method takes a clue and the intersections of this clue with other clues whose values are already
         known when we assign a value to this clue.  It returns a function.
