@@ -13,7 +13,7 @@ from .clue import Clue, ClueValueGenerator
 from .clue_types import ClueValue
 from .intersection import Intersection
 
-UnknownClueDict = dict[Clue, Sequence[ClueValue]]
+type UnknownClueDict = dict[Clue, Sequence[ClueValue]]
 
 
 class ConstraintSolver(BaseSolver):

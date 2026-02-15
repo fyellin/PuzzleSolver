@@ -8,7 +8,6 @@ from .constraint_solver import ConstraintSolver, Constraint, LCH_Info, LetterCou
 from .dancing_links import DancingLinks, DLConstraint
 from .equation_parser import EquationParser, Parse
 from .equation_solver import EquationSolver, KnownLetterDict
-from .generators import ClueValueGenerator
 from .multi_equation_solver import MultiEquationSolver
 from .evaluator import Evaluator
 from .intersection import Intersection

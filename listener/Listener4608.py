@@ -1,15 +1,9 @@
 import itertools
 import math
-from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Set
-
-from solver import (
-    Clue,
-    ClueValue, ClueValueGenerator,
-    ConstraintSolver,
-    KnownClueDict,
-    Location,
-    generators,
-)
+from collections.abc import Callable, Iterator, Sequence
+from typing import Any, Optional
+from solver import Clue, ClueValue, ClueValueGenerator, ConstraintSolver, \
+    KnownClueDict, Location, generators
 
 
 def generate_L(clue: Clue) -> Iterator[int]:

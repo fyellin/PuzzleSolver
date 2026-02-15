@@ -1,8 +1,7 @@
 from collections import defaultdict
 from itertools import permutations
 
-from solver import Clue, ConstraintSolver, EquationSolver
-from solver import KnownClueDict, EquationParser
+from solver import Clue, ConstraintSolver, EquationSolver, KnownClueDict, EquationParser
 
 
 def get_bcef_g_list():
