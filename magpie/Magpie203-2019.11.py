@@ -2,7 +2,7 @@ import re
 from typing import Dict, Sequence, List, Iterable, cast
 
 from solver import Clue, Clues, EquationSolver, Letter, ClueValue
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import KnownClueDict, KnownLetterDict
 
 GRID = """
 X.X..XXX..XXX

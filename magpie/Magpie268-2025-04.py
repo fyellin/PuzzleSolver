@@ -1,8 +1,7 @@
 import math
 from functools import cache
 
-from solver import ClueValue, Clues, DancingLinks
-from solver.equation_solver import EquationSolver
+from solver import ClueValue, Clues, DancingLinks, EquationSolver
 
 
 @cache

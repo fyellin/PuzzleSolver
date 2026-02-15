@@ -4,8 +4,7 @@ from collections.abc import Sequence
 from itertools import combinations, pairwise
 from math import isqrt
 
-from solver import Clue, Clues, ConstraintSolver, EquationSolver, generators
-from solver.constraint_solver import KnownClueDict
+from solver import Clue, Clues, ConstraintSolver, EquationSolver, generators, KnownClueDict
 
 GRID = """
 X.XXX.X

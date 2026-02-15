@@ -1,9 +1,8 @@
 import itertools
 from typing import Sequence, List, Dict, Tuple, Optional, Iterable, Iterator, Union
 
-from solver import Clue, ConstraintSolver, ClueValueGenerator
+from solver import Clue, ConstraintSolver, ClueValueGenerator, KnownClueDict
 from solver import generators
-from solver.constraint_solver import KnownClueDict
 
 
 class Solver212(ConstraintSolver):

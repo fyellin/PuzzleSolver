@@ -8,9 +8,7 @@ from typing import Any, Iterable, Iterator, Optional, Sequence
 from matplotlib.patches import Arc
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, EquationSolver, Evaluator, \
-    Letter, generators
-from solver.constraint_solver import KnownClueDict
-from solver.equation_solver import KnownLetterDict
+    Letter, generators, KnownClueDict, KnownLetterDict
 
 GRID = """
 x.xxxxxx

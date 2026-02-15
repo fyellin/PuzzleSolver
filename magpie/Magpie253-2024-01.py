@@ -1,15 +1,9 @@
-import itertools
 import math
-from typing import Any, Optional
-
-from networkx import Graph, greedy_color
+from typing import Any
 
 from misc.Pentomino import PentominoSolver, get_graph_shading
-from solver import Clue, ClueValue, Clues, ConstraintSolver, Location
-from solver.constraint_solver import LetterCountHandler
-from solver.equation_solver import KnownClueDict
-from solver.generators import allvalues, fibonacci, known, palindrome, prime, \
-    triangular
+from solver import Clue, Clues, ClueValue, ConstraintSolver, KnownClueDict, LetterCountHandler
+from solver.generators import allvalues, fibonacci, known, palindrome, prime, triangular
 
 
 def dp(x):
@@ -119,8 +113,9 @@ class Magpie253 (ConstraintSolver):
         self.clue_named("17a").generator = fibonacci
         self.add_constraint("18a", lambda x: is_harshad(int(x)) and is_cube(int(x) + 1))
         self.add_constraint("19a", lambda x: x[0] > x[1] > x[2])
-        self.add_constraint("21a", lambda x: dp(x) > 0 and int(x) % dp(x) == 0 and int(x) % ds(x) == 0
-                                             and (ds(x) * dp(x)) % int(x) == 0)
+        self.add_constraint("21a",
+                            lambda x: dp(x) > 0 and int(x) % dp(x) == 0 and int(x) % ds(x) == 0
+                            and (ds(x) * dp(x)) % int(x) == 0)
         self.clue_named("22a").generator = triangular
         self.clue_named("23a").generator = known(1, 5, 12, 22, 35, 51, 70, 92, 117, 145, 176, 210, 247, 287, 330, 376, 425, 477, 532, 590, 651, 715, 782, 852, 925)
         self.clue_named("25a").generator = known(*{x**2 + y**2

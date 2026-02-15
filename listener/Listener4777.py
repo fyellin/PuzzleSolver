@@ -4,8 +4,7 @@ from itertools import combinations, count, pairwise
 
 from misc.factors import factor_list, prime_factors
 from solver import Clue, ConstraintSolver, EquationSolver, Evaluator, Location, generators
-from solver.constraint_solver import KnownClueDict
-from solver.equation_solver import KnownLetterDict
+from solver import KnownClueDict, KnownLetterDict
 
 GRID = [
     (112, 132, 153, 213, 242, 262, 312, 332, 353, 417, 513, 542, 562, 612, 632, 653, 713,

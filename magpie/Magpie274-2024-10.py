@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import collections
 import itertools
 from collections.abc import Iterable, Sequence
 from functools import cache
-from typing import Any, Optional
+from typing import Any
 
-from misc.factors import prime_factors
 from misc.primes import PRIMES
-from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, Intersection, Letter
-from solver.equation_solver import KnownClueDict, KnownLetterDict
-
+from solver import Clues, ClueValue, EquationSolver, Evaluator, KnownClueDict, \
+    KnownLetterDict, Letter
 
 ACROSS_LENGTHS = "413/332/44/44/233/314"
 DOWN_LENGTHS = "222/33/24/33/33/42/33/222"

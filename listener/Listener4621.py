@@ -3,8 +3,7 @@ import re
 from typing import Dict, Sequence, Pattern, Callable, List, Optional, Tuple, Any
 
 from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
-from solver import EquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
 X.XXXXXXXX

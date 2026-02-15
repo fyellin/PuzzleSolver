@@ -7,8 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, Location, \
-    generators
-from solver.constraint_solver import LetterCountHandler
+    generators, LetterCountHandler
 
 GRID = """
 XX.XXXXX

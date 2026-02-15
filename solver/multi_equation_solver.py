@@ -10,7 +10,8 @@ from collections.abc import Sequence
 
 from . import Clue
 from .clue_types import ClueValue, Letter
-from .equation_solver import EquationSolver, KnownClueDict, KnownLetterDict
+from .base_solver import KnownClueDict
+from .equation_solver import EquationSolver, KnownLetterDict
 from .mytaskqueue import MyTaskQueue
 
 State = tuple[KnownClueDict, KnownLetterDict]

@@ -2,9 +2,7 @@ import itertools
 from fractions import Fraction
 from typing import Dict, Sequence, Iterable, FrozenSet, Set
 
-from solver import Clue, Clues
-from solver import EquationSolver
-from solver.equation_solver import KnownLetterDict
+from solver import Clue, Clues, EquationSolver, KnownLetterDict
 
 GRID = """
 XX.XXXXX

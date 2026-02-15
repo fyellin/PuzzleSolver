@@ -2,8 +2,7 @@ import math
 from typing import Any
 
 from misc.Pentomino import get_graph_shading, get_hard_bars
-from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, Location
-from solver.constraint_solver import LetterCountHandler
+from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, Location, LetterCountHandler
 from solver.generators import allvalues, cube, known, palindrome, prime, \
     square, sum_of_2_cubes, triangular
 

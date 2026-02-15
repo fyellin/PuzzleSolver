@@ -1,9 +1,8 @@
 import itertools
 import re
 
-from solver import Clue, EquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
-from solver.fill_in_crossword_grid import FillInCrosswordGridMushed
+from solver import Clue, EquationSolver, KnownClueDict, KnownLetterDict
+from solver.fill_in_crossword_grid import FillInCrosswordGridMushed, SquareType
 
 CLUES = """
 E G (2) 
@@ -61,7 +60,7 @@ class Magpie238(EquationSolver):
                   for clue in self._clue_list]
         result.sort()
         filler = FillInCrosswordGridMushed(result, width=6, height=5)
-        results = filler.run(debug=3, black_squares_okay=False)
+        results = filler.run(debug=3, square_type=SquareType.FILLED)
         if results:
             self.show_letter_values(known_letters)
 

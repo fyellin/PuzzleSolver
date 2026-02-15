@@ -6,8 +6,7 @@ from typing import Any, Iterable
 import math
 
 from solver import Clue, ClueValue, Clues, Evaluator, Location, \
-    MultiEquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+    MultiEquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
 XXXXX.XX

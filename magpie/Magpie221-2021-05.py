@@ -2,8 +2,7 @@ import itertools
 import math
 from collections.abc import Sequence, Iterator
 
-from solver import ConstraintSolver, Clues, Clue
-from solver.constraint_solver import KnownClueDict
+from solver import ConstraintSolver, Clues, Clue, KnownClueDict
 
 GRID = """
 XXX.X

@@ -2,7 +2,7 @@ import itertools
 from typing import Any, Optional
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, generators
-from solver.constraint_solver import AbstractLetterCountHandler
+from solver import AbstractLetterCountHandler
 
 ACROSS_LENGTHS = "132/321/222/222/123/231"
 DOWN_LENGTHS = "222/123/24/42/321/222"

@@ -4,8 +4,7 @@ import math
 from typing import Sequence, Iterator, Any
 
 import solver
-from solver import generators, ConstraintSolver, Clues, Clue, ClueValue
-from solver.constraint_solver import KnownClueDict
+from solver import generators, ConstraintSolver, Clues, Clue, ClueValue, KnownClueDict
 
 GRID = """
 XXX.
