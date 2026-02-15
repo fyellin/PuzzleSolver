@@ -17,21 +17,23 @@ class _Purified:
 
 PURIFIED: Final = _Purified()
 
+type DLConstraint = str | tuple[str, str]
+
 
 class DancingLinks[Row: Hashable]:
-    constraints: dict[Row, list[str | tuple[str, str]]]
+    constraints: dict[Row, list[DLConstraint]]
     optional_constraints: set[str]
     row_printer: Optional[Callable[[Sequence[Row]], None]]
     names: dict[int, str]
     spacer_indices: list[int]
     memory: list[list[Optional[int]]]
     colors: dict[int, str | _Purified]
-    debug: Optional[int]
+    debug: bool
     max_debugging_depth: int
 
     def __init__(
         self,
-        constraints: dict[Row, list[str | tuple[str, str]]],
+        constraints: dict[Row, list[DLConstraint]],
         *,
         row_printer: Optional[Callable[[Sequence[Row]], None]] = None,
         optional_constraints: Optional[set[str]] = None,
@@ -286,13 +288,9 @@ class DancingLinks[Row: Hashable]:
         left[primary_length + 1] = len(right) - 1
         lengths = [0] * (total_length + 2)
 
-        names = {
-            index: name
-            for index, name in enumerate(
-                chain(sorted(primary_constraints), sorted(secondary_constraints)),
-                start=1,
-            )
-        }
+        constraints_iter = chain(
+            sorted(primary_constraints), sorted(secondary_constraints))
+        names = dict(enumerate(constraints_iter, start=1))
         names_map = {name: index for index, name in names.items()}
         spacer_indices = []
         constraints_length = sum(1 + len(x) for x in self.constraints.values()) + 1

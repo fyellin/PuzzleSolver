@@ -2,7 +2,7 @@ import ast
 import itertools
 from collections import defaultdict
 
-from solver import Clue, Clues, ConstraintSolver, DancingLinks, Encoder
+from solver import Clue, Clues, ConstraintSolver, DancingLinks
 from solver.constraint_solver import Constraint
 from solver.equation_parser import EquationParser
 from solver.equation_solver import KnownClueDict
@@ -182,20 +182,21 @@ class Magpie263b(ConstraintSolver):
         self.plot_board(clue_values)
 
     def dancing_links(self):
-        encoder = Encoder.digits()
+        optional_constraints = {f'r{row}c{column}'
+                                for row in range(1, 9) for column in range(1, 9)}
         constraints = {}
         for clue in self._clue_list:
             for xletter, values in self.solution:
                 for value in (str(x) for x in values):
                     if clue.length == len(value):
-                        constraint = [f'{clue.name}', f'{xletter}']
-                        for location, letter in zip(clue.locations, value, strict=True):
-                            if self.is_intersection(location):
-                                constraint.extend(
-                                    encoder.encode(letter, location, clue.is_across))
-                        constraints[(clue.name, value)] = constraint
+                        constraints[clue.name, value] = [
+                            f'{clue.name}', f'{xletter}',
+                            *((f'r{r}c{c}', letter)
+                              for (r, c), letter in zip(clue.locations, value, strict=True))]
         solutions = []
-        solver = DancingLinks(constraints, row_printer=lambda x: solutions.append(x))
+        solver = DancingLinks(constraints,
+                              optional_constraints=optional_constraints,
+                              row_printer=lambda x: solutions.append(x))
         solver.solve()
         solution, = solutions
         return solution
