@@ -3,8 +3,7 @@ from typing import Any, Sequence
 
 import solver.generators as gen
 from misc.Pentomino import Pentomino, PentominoSolver, get_graph_shading, get_hard_bars
-from solver import Clue, Clues
-from solver.constraint_solver import Constraint, ConstraintSolver, KnownClueDict
+from solver import Clue, Clues, Constraint, ConstraintSolver, KnownClueDict
 
 GRID = """
 X.XXXX

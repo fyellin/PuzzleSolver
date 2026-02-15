@@ -2,8 +2,7 @@ import itertools
 from collections import defaultdict, Counter
 from typing import Dict, Tuple, List, Sequence, Iterator, Callable, FrozenSet
 
-from solver import Clues, ConstraintSolver, Clue, generators, ClueValue
-from solver.constraint_solver import KnownClueDict
+from solver import Clues, ConstraintSolver, Clue, generators, ClueValue, KnownClueDict
 
 
 def is_harshad(value: int) -> bool:

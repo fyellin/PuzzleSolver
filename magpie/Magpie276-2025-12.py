@@ -11,8 +11,7 @@ from typing import Sequence
 import math
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks as DancingLinks, \
-    Evaluator, Letter, MultiEquationSolver
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+    Evaluator, Letter, MultiEquationSolver, KnownClueDict, KnownLetterDict
 
 CLUES = """
 a H! −E+A−D

@@ -2,8 +2,7 @@ from collections import defaultdict
 from itertools import permutations
 
 from solver import Clue, ConstraintSolver, EquationSolver
-from solver.constraint_solver import KnownClueDict
-from solver.equation_parser import EquationParser
+from solver import KnownClueDict, EquationParser
 
 
 def get_bcef_g_list():

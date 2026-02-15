@@ -1,8 +1,7 @@
 import itertools
 from typing import Sequence, Iterator, Callable, Any
 
-from solver import Clue, generators, Clues, ConstraintSolver
-from solver.constraint_solver import KnownClueDict
+from solver import Clue, generators, Clues, ConstraintSolver, KnownClueDict
 
 
 def digit_sum(number: int) -> int:

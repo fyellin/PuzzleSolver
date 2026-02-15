@@ -5,8 +5,7 @@ import math
 import operator
 from typing import Sequence, Tuple, Iterator
 
-from solver import generators, ConstraintSolver, Clues, Clue
-from solver.constraint_solver import KnownClueDict
+from solver import generators, ConstraintSolver, Clues, Clue, KnownClueDict
 from solver.generators import allvalues
 
 

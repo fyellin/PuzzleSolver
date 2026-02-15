@@ -1,10 +1,8 @@
 import re
-from collections import Counter
 from itertools import permutations
-from typing import Any
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, Letter, Location, generators
-from solver.constraint_solver import LCH_Info, LetterCountHandler
+from solver import LCH_Info, LetterCountHandler
 
 GRID = """
 XXXXXX

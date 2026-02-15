@@ -2,9 +2,8 @@ import itertools
 import re
 from typing import Any, Iterable, Sequence
 
-from solver import Clue, Clues, EquationSolver, Evaluator, equation_parser
-from solver.equation_parser import Parse
-from solver.equation_solver import KnownLetterDict
+from solver import Clue, Clues, EquationSolver, Evaluator, equation_parser, Parse
+from solver import KnownLetterDict
 
 CLUES = """
 15 fh + mh = (l + z)h

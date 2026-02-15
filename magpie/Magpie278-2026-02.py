@@ -3,7 +3,7 @@ from typing import Any
 
 from misc.primes import PRIMES
 from solver import ClueValue, Clues, ConstraintSolver, Location
-from solver.constraint_solver import Constraint, KnownClueDict, LetterCountHandler
+from solver import Constraint, KnownClueDict, LetterCountHandler
 from solver.generators import allvalues, prime, square, triangular
 
 ACROSS_LENGTHS = "33/231/132/33"

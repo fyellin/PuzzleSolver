@@ -5,8 +5,7 @@ from collections.abc import Iterator, Sequence
 from typing import Any, Union
 
 from misc.primes import PRIMES
-from solver import Clue, ClueValue, Clues, ConstraintSolver, generators
-from solver.constraint_solver import Constraint
+from solver import Clue, ClueValue, Clues, ConstraintSolver, generators, Constraint
 from solver.generators import square_pyramidal_generator
 
 

@@ -5,8 +5,7 @@ from functools import cache
 from typing import Any, Deque, Iterable
 
 from misc.Tester import FastDijkstra, State
-from solver import Clue, Clues, ConstraintSolver, generators
-from solver.constraint_solver import Constraint
+from solver import Clue, Clues, ConstraintSolver, generators, Constraint
 from solver.generators import known, palindrome, prime, square
 
 GRID = """

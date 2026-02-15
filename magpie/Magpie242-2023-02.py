@@ -4,8 +4,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
-from solver import Clue, Clues, ConstraintSolver, generators
-from solver.constraint_solver import KnownClueDict
+from solver import Clue, Clues, ConstraintSolver, generators, KnownClueDict
 from solver.generators import allvalues, known
 
 

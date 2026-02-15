@@ -2,8 +2,7 @@ import itertools
 from typing import Sequence, List, Set, Iterator, Callable, Union, Dict, Any
 
 from solver import Clue, ConstraintSolver, ClueValue, Location, ClueValueGenerator
-from solver import generators
-from solver.constraint_solver import KnownClueDict
+from solver import generators, KnownClueDict
 
 squares = set(itertools.takewhile(lambda x: x < 1000, (x**2 for x in itertools.count())))
 triangles = set(itertools.takewhile(lambda x: x < 1000, (x * (x + 1) // 2 for x in itertools.count())))

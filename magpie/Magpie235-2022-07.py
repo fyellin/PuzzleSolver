@@ -7,8 +7,7 @@ import numpy
 
 from misc.primes import PRIMES
 from solver import Clue, Clues, ConstraintSolver, EquationSolver
-from solver.dancing_links import DancingLinks
-from solver.equation_solver import KnownClueDict, KnownLetterDict
+from solver import DancingLinks, KnownClueDict, KnownLetterDict
 
 EQUATIONS = """
 1 EGH

@@ -13,8 +13,7 @@ from .clue_types import ClueValue, Letter, Location
 from .evaluator import Evaluator
 from .intersection import Intersection
 
-KnownLetterDict = dict[Letter, int]
-KnownClueDict = dict[Clue, ClueValue]
+type KnownLetterDict = dict[Letter, int]
 
 
 class ClueInfo(NamedTuple):

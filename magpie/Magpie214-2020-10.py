@@ -3,7 +3,7 @@ from typing import Sequence
 
 from misc.factors import factor_sum, factor_count, shared_factor_count, odd_factor_count, even_factor_count
 from solver import generators, ConstraintSolver, Clues, Clue
-from solver.generators import filtering, allvalues
+from solver.generators import filterer, allvalues
 
 GRID = """
 XX.XX
@@ -31,9 +31,9 @@ class Solver214(ConstraintSolver):
         grid_locations = [(-1, -1)] + Clues.get_locations_from_grid(GRID)
 
         clues = [
-            Clue("1a", True, grid_locations[1], 3, generator=filtering(lambda x: factor_count(x) == 6)),
+            Clue("1a", True, grid_locations[1], 3, generator=filterer(lambda x: factor_count(x) == 6)),
             Clue("3a", True, grid_locations[3], 2, generator=allvalues),
-            Clue("5a", True, grid_locations[5], 2, generator=filtering(lambda x: factor_count(factor_sum(x)) == 15)),
+            Clue("5a", True, grid_locations[5], 2, generator=filterer(lambda x: factor_count(factor_sum(x)) == 15)),
             Clue("6a", True, grid_locations[6], 3, generator=allvalues),
             Clue("8a", True, grid_locations[8], 3, generator=allvalues),
             Clue("10a", True, grid_locations[10], 3, generator=allvalues),
@@ -42,7 +42,7 @@ class Solver214(ConstraintSolver):
             Clue("15a", True, grid_locations[15], 3, generator=allvalues),
 
             Clue("1d", False, grid_locations[1], 2, generator=allvalues),
-            Clue("2d", False, grid_locations[2], 3, generator=filtering(lambda x: factor_count(factor_sum(x)) == 16)),
+            Clue("2d", False, grid_locations[2], 3, generator=filterer(lambda x: factor_count(factor_sum(x)) == 16)),
             Clue("3d", False, grid_locations[3], 2, generator=allvalues),
             Clue("4d", False, grid_locations[4], 3, generator=allvalues),
             Clue("6d", False, grid_locations[6], 3, generator=allvalues),
