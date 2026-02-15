@@ -10,7 +10,7 @@ from .clue import Clue
 """A collection of generators to use in various other puzzles."""
 BASE = 10
 
-ClueValueGenerator = Callable[[Clue], Iterable[Union[str, int]]]
+ClueValueGenerator = Callable[[Clue], Iterable[str | int]]
 
 
 def allvalues(clue: Clue) -> Iterable[int]:

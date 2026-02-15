@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from itertools import permutations
 
-from solver import Clue, Clues, DancingLinks, Encoder, EquationSolver
+from solver import Clue, Clues, DancingLinks, DLConstraint, EquationSolver
 
 GRID = """
 XXXXXXXX
@@ -66,8 +66,8 @@ class Magpie252 (EquationSolver):
         solver.verify_is_180_symmetric()
         results = solver.step1_mp()
         assert len(results) == 1
-        vars, values = results[0]
-        solver.step2(vars, values)
+        variables, values = results[0]
+        solver.step2(variables, values)
 
     VARIABLES = ('A', 'C', 'E', 'M', 'N', 'O', 'S', 'T', 'U', 'W')
     DELTAS = (0, 3, 4, 5, 9, 10, 10, 10, 12, 15, 15, 16, 18, 18, 20, 25, 25, 27,
@@ -163,7 +163,6 @@ class Magpie252 (EquationSolver):
                1132, 220, 262, 186, 174, 512, 124, 64)
 
     def step2(self, values=VALUES, results=RESULTS):
-        encoder = Encoder.digits()
         counter = Counter(self.DELTAS)
         # self.show_letter_values(dict(zip(self.vars, values)))
 
@@ -178,16 +177,17 @@ class Magpie252 (EquationSolver):
                                 for delta, clues in double_delta_clues.items()
                                 for clue in clues
                                 for f in range(counter[delta])}
+        optional_constraints |= {f'r{r}c{c}' for r in range(1, 9) for c in range(1, 9)}
 
         for clue_index, (clue, result) in enumerate(zip(self._clue_list, results)):
             if self.ok_values[result]:
                 for xy, x, y, delta in self.ok_values[result]:
                     if len(str(xy)) == clue.length:
                         for f in range(counter[delta]):
+                            row: list[DLConstraint]
                             row = [f'C-{clue.name}', f'D{delta}-{f}']
-                            row.extend(item for location, digit in zip(clue.locations, str(xy))
-                                       if self.is_intersection(location)
-                                       for item in encoder.encode(digit, location, clue.is_across))
+                            row.extend((f'r{r}c{c}', digit)
+                                       for (r, c), digit in zip(clue.locations, str(xy), strict=True))
                             if delta in double_delta_clues:
                                 row.append(f'X-{clue.name}-{delta}-{f}')
                                 if f > 0:
@@ -198,9 +198,8 @@ class Magpie252 (EquationSolver):
             else:
                 assert len(str(result)) == clue.length
                 row = [f'C-{clue.name}']
-                for location, digit in zip(clue.locations, str(result)):
-                    if self.is_intersection(location):
-                        row.extend(encoder.encode(digit, location, clue.is_across))
+                row.extend((f'r{r}c{c}', digit)
+                           for (r, c), digit in zip(clue.locations, str(result), strict=True))
                 constraints[clue.name, result, 0, 0, 0] = row
 
         def my_row_printer(solution):

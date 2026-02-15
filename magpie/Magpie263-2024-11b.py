@@ -1,16 +1,11 @@
-import ast
 import itertools
 import re
 import string
 from collections import Counter, defaultdict
 from typing import Any
 
-from solver import Clue, Clues, ConstraintSolver, DancingLinks, Encoder, Location, \
-    generators
-from solver.constraint_solver import Constraint
-from solver.equation_parser import EquationParser
+from solver import Clue, Clues, ConstraintSolver, Location, generators
 from solver.equation_solver import KnownClueDict
-from solver.generators import known, prime_generator
 
 ACROSS = """
 9 Present song losing essential character in transmission down line (8;2,5) HERE,DITY
@@ -99,7 +94,7 @@ class Magpie263b(ConstraintSolver):
                 line = line.strip()
                 match = re.fullmatch(r'(\d+)\s*.*\((\d+);(\d+),(\d+)\)(.*)', line)
                 number, length, start, end, word = match.groups()
-                number, length, start, end = int(number), int(length), int(start), int(end)
+                number, length, start, end = map(int, (number, length, start, end))
                 word = ''.join(x for x in word if x in string.ascii_uppercase)
                 name = str(number) + ("a" if is_across else "d")
                 clue = Clue(name, is_across, grid[number - 1], length)
@@ -122,7 +117,6 @@ class Magpie263b(ConstraintSolver):
         permutations = [letter1 + ''.join(p) + letter2 for p in permutations]
         return generators.known(*permutations)
 
-
     def get_allowed_regexp(self, location: Location) -> str:
         return self.fixed.get(location, '.')
 
@@ -143,7 +137,6 @@ class Magpie263b(ConstraintSolver):
         super().draw_grid(location_to_entry=location_to_entry,
                           font_multiplier=.5,
                           **args)
-
 
 
 if __name__ == '__main__':
