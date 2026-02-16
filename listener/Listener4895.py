@@ -6,7 +6,7 @@ import math
 
 from misc.factors import prime_factors
 from misc.primes import PRIMES
-from solver import Clue, ClueValue, ConstraintSolver, KnownClueDict
+from solver import Clue, ConstraintSolver, KnownClueDict
 from solver.generators import allvalues, filterer, get_min_max, nth_power, square
 
 

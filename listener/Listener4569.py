@@ -2,7 +2,7 @@ import re
 from collections.abc import Sequence
 from typing import Any
 
-from solver import Clue, ClueValue, KnownClueDict, KnownLetterDict, Letter, Location
+from solver import Clue, KnownClueDict, KnownLetterDict, Location
 from solver import EquationSolver
 
 ACROSS = """

@@ -1,7 +1,7 @@
 import itertools
 from typing import Any
 
-from solver import Clue, ClueValue, Clues, EquationSolver, KnownClueDict
+from solver import Clues, EquationSolver, KnownClueDict
 
 GRID = """
 XXXXXXXX

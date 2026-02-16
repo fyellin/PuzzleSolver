@@ -3,8 +3,7 @@ import itertools
 from enum import Enum
 from collections.abc import Iterable, Sequence
 
-from solver import Clue, ClueValueGenerator, KnownClueDict, Location, ClueValue, \
-    ConstraintSolver
+from solver import Clue, ClueValueGenerator, KnownClueDict, Location,  ConstraintSolver
 from solver import generators
 
 

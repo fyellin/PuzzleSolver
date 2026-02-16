@@ -6,7 +6,7 @@ import functools
 import itertools
 from collections.abc import Callable, Iterable, Sequence
 
-from solver import Clue, ClueValue, ClueValueGenerator, KnownClueDict
+from solver import Clue, ClueValueGenerator, KnownClueDict
 from solver import ConstraintSolver, Location
 from solver import generators
 
