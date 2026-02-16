@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 
-from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, Letter
+from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, KnownLetterDict
 
 GRID = """
 X.XXXX
@@ -61,7 +61,7 @@ class Magpie216(EquationSolver):
             cubed_expression = clue.expression.replace(var, f'({var}**3)')
             evaluators.append(Evaluator.create_evaluator(cubed_expression))
 
-        def my_wrapper(_evaluator: Evaluator, value_dict: dict[Letter, int]
+        def my_wrapper(_evaluator: Evaluator, value_dict: KnownLetterDict
                        ) -> Iterable[ClueValue]:
             return {result for evaluator in evaluators
                     for result in evaluator(value_dict)}

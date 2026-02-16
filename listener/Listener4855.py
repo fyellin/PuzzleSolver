@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 
-from solver import Clues, EquationSolver, Letter
+from solver import Clues, EquationSolver
 from solver import KnownClueDict, KnownLetterDict
 
 ACROSS = """
@@ -70,7 +70,7 @@ class Listener4855(EquationSolver):
                       known_letters: KnownLetterDict) -> None:
         super().show_solution(known_clues, known_letters)
 
-    def get_letter_values(self, known_letters: dict[Letter, int],
+    def get_letter_values(self, known_letters: KnownLetterDict,
                           letters: Sequence[str]) -> Iterable[Sequence[int]]:
         self.duplicates = self.get_letter_values_with_duplicates(known_letters,
                                                                  len(letters), 2)

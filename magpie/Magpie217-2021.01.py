@@ -3,7 +3,7 @@ import re
 from collections.abc import Iterable, Sequence
 from typing import Any
 
-from solver import ClueValue, EquationSolver, Evaluator, Clue, Letter
+from solver import ClueValue, EquationSolver, Evaluator, Clue
 
 EQUATIONS = """
 1 A – B + BOT                , ((ANY – O)(N + E))**2
@@ -55,7 +55,7 @@ class Magpie217 (EquationSolver):
     def fix_clue_evaluator(self, clue: Clue, equation1: str, equation2: str):
         evaluator1, evaluator2 = Evaluator.create_evaluators(f'{equation1} = {equation2}')
 
-        def my_evaluator(_evaluator: Evaluator, values: dict[Letter, int]) -> Iterable[ClueValue]:
+        def my_evaluator(_evaluator: Evaluator, values: KnownLetterDict) -> Iterable[ClueValue]:
             values1 = list(evaluator1(values))
             if not values1 or (v1 := values1[0]) not in self.graph:
                 return ()

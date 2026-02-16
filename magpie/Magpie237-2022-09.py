@@ -9,7 +9,7 @@ from collections.abc import Iterator, Iterable, Sequence
 from matplotlib.patches import Arc
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, EquationSolver, Evaluator, \
-    Letter, generators, KnownClueDict, KnownLetterDict
+    generators, KnownClueDict, KnownLetterDict
 
 GRID = """
 x.xxxxxx
@@ -228,7 +228,7 @@ class Solver237(ConstraintSolver):
         return result
 
     @staticmethod
-    def base_eight_wrapper(evaluator: Evaluator, value_dict: dict[Letter, int]
+    def base_eight_wrapper(evaluator: Evaluator, value_dict: KnownLetterDict
                            ) -> Iterable[ClueValue]:
         try:
             result = evaluator.raw_call(value_dict)

@@ -85,7 +85,7 @@ DOWN = """
 
 
 class MySolver(EquationSolver):
-    def get_letter_values(self, known_letters: dict[Letter, int], letters: Sequence[str]) -> Iterable[Sequence[int]]:
+    def get_letter_values(self, known_letters: KnownLetterDict, letters: Sequence[str]) -> Iterable[Sequence[int]]:
         """
         Returns the values that can be assigned to the next "count" variables.  We know that we have already assigned
         values to the variables indicated in known_letters.
