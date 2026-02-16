@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 import inflect  # type: ignore
 
-from solver import Clue, ClueValue, ClueValueGenerator
+from solver import Clue, ClueValue, ClueValueGenerator, KnownClueDict
 from solver import ConstraintSolver
 from solver import Evaluator
 from solver import Location
@@ -88,7 +88,7 @@ class MySolver(ConstraintSolver):
         constraint_vars = [clue.name] + list(evaluator.vars)
         self.add_constraint(constraint_vars, constraint, name=f'Clue {clue.name}')
 
-    def show_solution(self, known_clues: dict[Clue, ClueValue]) -> None:
+    def show_solution(self, known_clues: KnownClueDict) -> None:
         super().show_solution(known_clues)
         pairs = [(clue.name, int(value)) for clue, value in known_clues.items()]
         max_length = max(len((str(i))) for (_, i) in pairs)

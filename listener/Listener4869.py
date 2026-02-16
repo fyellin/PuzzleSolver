@@ -126,7 +126,6 @@ class Listener4869b(ConstraintSolver):
         assert len(self.original_clue_values.values()) == len(set(self.original_clue_values.values()))
         return set(known_clues.values()).isdisjoint(set(self.original_clue_values.values()))
 
-
     def show_solution(self, known_clues: KnownClueDict) -> None:
         for clue in sorted(
                 self._clue_list, key=lambda x: (not x.is_across, x.locations[0])):

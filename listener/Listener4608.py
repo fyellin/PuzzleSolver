@@ -262,7 +262,7 @@ def run() -> None:
     solver.show_solution(known_clues)
 
 
-
 if __name__ == '__main__':
+    # This Puzzle does not work.  Let's come back to it.
     run()
 

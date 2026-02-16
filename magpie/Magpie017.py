@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 from collections.abc import Sequence
 
-from solver import BaseSolver
+from solver import BaseSolver, KnownClueDict, KnownLetterDict
 from solver import Clue, Clues, ClueValue, Letter
 from solver import EquationSolver, Intersection
 
@@ -168,7 +168,7 @@ class Magpie017Solver(BaseSolver):
             del known_letters[Letter(expression.name)]
             del known_clues[clue]
 
-    def show_solution(self, known_clues: dict[Clue, ClueValue], known_letters: dict[Letter, int]) -> None:
+    def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
         EquationSolver(self._clue_list).show_solution(known_clues, known_letters)
 
     def make_runtime_pattern(self, clue: Clue, known_clues: dict[Clue, ClueValue]) -> re.Pattern[str]:

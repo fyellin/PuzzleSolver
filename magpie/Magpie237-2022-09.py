@@ -218,8 +218,8 @@ class Solver237(ConstraintSolver):
             def run(self):
                 self.solve(debug=True)
 
-            def show_solution(self, clue_values: KnownClueDict, known_letters: KnownLetterDict
-                              ) -> None:
+            def show_solution(self, clue_values: KnownClueDict,
+                              known_letters: KnownLetterDict) -> None:
                 nonlocal result
                 result = dict(known_letters)
                 self.plot_board(clue_values)
