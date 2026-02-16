@@ -1,9 +1,10 @@
 import itertools
 import re
-from typing import Any
+from typing import Any, Unpack
 from collections.abc import Iterable, Sequence
 
-from solver import Clue, Clues, EquationSolver, Evaluator, equation_parser, Parse, \
+from solver import Clue, Clues, DrawGridArgs, EquationSolver, Evaluator, equation_parser, \
+    Parse, \
     KnownLetterDict
 
 CLUES = """
@@ -188,7 +189,7 @@ class Listener4843(EquationSolver):
             clue_values[self.fake_clues[3]] = letters[30:][::-1]
         super().plot_board(clue_values, font_multiplier=0.7, **more_args)
 
-    def draw_grid(self, top_bars, left_bars, **args) -> None:
+    def draw_grid(self, top_bars, left_bars, **args: Unpack[DrawGridArgs]) -> None:
         left_bars -= {(1, 11), (11, 2)}
         top_bars -= {(11, 11)}
         super().draw_grid(top_bars=top_bars, left_bars=left_bars, **args)

@@ -1,12 +1,12 @@
 import re
 from collections import defaultdict
 from itertools import combinations, product
-from typing import Any
+from typing import Any, Unpack
 
 import numpy
 
 from misc.primes import PRIMES
-from solver import Clue, Clues, ConstraintSolver, EquationSolver
+from solver import Clue, Clues, ConstraintSolver, DrawGridArgs, EquationSolver
 from solver import DancingLinks, KnownClueDict, KnownLetterDict
 
 EQUATIONS = """
@@ -162,7 +162,7 @@ class SolverMagpie235Links (ConstraintSolver):
                         for clue, value in zip(clues, base_values)}
         self.plot_board(clue_answers)
 
-    def draw_grid(self, location_to_clue_numbers, **args: Any) -> None:
+    def draw_grid(self, location_to_clue_numbers, **args: Unpack[DrawGridArgs]) -> None:
         super().draw_grid(location_to_clue_numbers={}, **args)
 
     @staticmethod

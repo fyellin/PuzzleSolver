@@ -1,8 +1,8 @@
 import re
 from collections import Counter, defaultdict
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, Clues, EquationSolver
+from solver import Clue, Clues, DrawGridArgs, EquationSolver
 
 GRID = """
 ..X.XXX.X..X..
@@ -226,7 +226,7 @@ class Junk(EquationSolver):
         return result
 
     def draw_grid(self, location_to_entry, top_bars, left_bars,
-                  **args: Any) -> None:
+                  **args: Unpack[DrawGridArgs]) -> None:
         # Verify we've entered values correctly
         for clue in self._clue_list:
             assert clue.context == ''.join(location_to_entry[location]

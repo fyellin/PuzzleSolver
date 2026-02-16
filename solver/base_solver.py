@@ -2,15 +2,15 @@ import itertools
 import re
 from abc import ABC, abstractmethod
 from collections import Counter, OrderedDict, defaultdict
-from collections.abc import Sequence, Mapping
-from typing import Any, Optional
+from collections.abc import Mapping, Sequence
+from typing import Sequence, Unpack
 
-from .clue import Clue
-from .clue import Location
+from .clue import Clue, Location
 from .clue_types import ClueValue
-from .draw_grid import draw_grid
+from .draw_grid import DrawGridArgs, draw_grid
 
 type KnownClueDict = dict[Clue, ClueValue]
+
 
 class BaseSolver(ABC):
     _clue_list: Sequence[Clue]
@@ -96,7 +96,8 @@ class BaseSolver(ABC):
         """Creates the set of (start-location, length, is-across) tuples for all clues in the puzzle"""
         return {(clue.base_location, clue.length, clue.is_across) for clue in self.__name_to_clue.values()}
 
-    def plot_board(self, clue_values: Optional[KnownClueDict] = None, **more_args: Any) -> None:
+    def plot_board(self, clue_values: KnownClueDict | None = None,
+                   **more_args: Unpack[DrawGridArgs]) -> None:
         """Draws a picture of the grid with the specified clues filled in."""
         max_row = self.__max_row
         max_column = self.__max_column
@@ -138,20 +139,25 @@ class BaseSolver(ABC):
             # These are internal locations of an answer, so a heavy bar isn't needed.
             (left_bars if clue.is_across else top_bars).difference_update(clue.locations[1:])
 
-        args = dict(max_row=max_row, max_column=max_column,
-                   clued_locations=clued_locations,
-                   clue_values=clue_values,
-                   location_to_entry=location_to_entry,
-                   location_to_clue_numbers=location_to_clue_numbers,
-                   top_bars=top_bars,
-                   left_bars=left_bars) | more_args
+        args: DrawGridArgs = dict(
+            max_row=max_row, max_column=max_column,
+            clued_locations=clued_locations,
+            clue_values=clue_values,
+            location_to_entry=location_to_entry,
+            location_to_clue_numbers=location_to_clue_numbers,
+            top_bars=top_bars,
+            left_bars=left_bars) | more_args
 
         self.draw_grid(**args)
 
-    def draw_grid(self, **args: Any) -> None:
-        """Override this method if you need to intercept the call to the draw_grid() function."""
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
+        """
+        Draws a grid on the specified context using the provided arguments.
+        """
         draw_grid(**args)
 
     @abstractmethod
-    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int:
+    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: int | None = None) -> int:
         ...
+
+

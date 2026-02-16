@@ -1,9 +1,9 @@
 import itertools
 from collections import defaultdict, Counter
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import Any, Unpack, cast
 
-from solver import Clue, generators
+from solver import Clue, DrawGridArgs, generators
 from solver import ConstraintSolver
 from solver import Location, KnownClueDict
 
@@ -190,7 +190,7 @@ class Listener4634(ConstraintSolver):
 
         return None
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         location_to_clue_numbers = defaultdict(list)
         clue_values: KnownClueDict = args['clue_values']
         for letter, value in self.check_all_constraints(clue_values).items():

@@ -1,7 +1,7 @@
-from typing import Any
+from typing import Unpack
 from collections.abc import Sequence
 
-from solver import Clue, Clues, Location, EquationSolver
+from solver import Clue, Clues, DrawGridArgs, Location, EquationSolver
 
 ACROSS = """
 1 JE(RK + S) (4)
@@ -63,7 +63,7 @@ X...X..X...
 
 
 class MySolver(EquationSolver):
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         location_to_entry: dict[Location, str] = args['location_to_entry']
         args['shading'] = {
             location: 'lightblue' for (location, value) in location_to_entry.items() if value in '378'

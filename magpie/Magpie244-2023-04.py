@@ -4,9 +4,9 @@ import math
 import pickle
 from functools import cache
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import NamedTuple, Unpack
 
-from solver import Clue, Clues, ConstraintSolver, DancingLinks
+from solver import Clue, Clues, ConstraintSolver, DancingLinks, DrawGridArgs
 
 GRID = """
 X.XXXXX
@@ -180,7 +180,7 @@ class Magpie244(ConstraintSolver):
                         for clue in self._clue_list)
         return entries
 
-    def draw_grid(self, location_to_entry, **args: Any) -> None:
+    def draw_grid(self, location_to_entry, **args: Unpack[DrawGridArgs]) -> None:
         shading = {location: (.8, 1.0, .8)
                    for location, value in location_to_entry.items()
                    if value >= '5'}

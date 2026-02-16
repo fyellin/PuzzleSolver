@@ -2,8 +2,9 @@ from collections import Counter, defaultdict
 from collections.abc import Sequence
 from datetime import datetime
 from itertools import permutations
+from typing import Unpack
 
-from solver import Clue, Clues, DancingLinks, DLConstraint, EquationSolver
+from solver import Clue, Clues, DancingLinks, DLConstraint, DrawGridArgs, EquationSolver
 
 GRID = """
 XXXXXXXX
@@ -210,7 +211,7 @@ class Magpie252 (EquationSolver):
                               row_printer=my_row_printer)
         solver.solve(debug=False)
 
-    def draw_grid(self, location_to_entry, values, **args) -> None:
+    def draw_grid(self, location_to_entry, values, **args: Unpack[DrawGridArgs]) -> None:
         number_to_letter = {str(digit): var for var, digit in zip(self.VARIABLES, values)}
         for x, y in ((1, 2), (2, 1), (3, 3), (4, 4)):
             for location in ((x, y), (9 - y, x), (9 - x, 9 - y), (y, 9 - x)):

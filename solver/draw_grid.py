@@ -1,5 +1,6 @@
 from collections.abc import Sequence, Callable
-from typing import Any, cast
+from pathlib import Path
+from typing import Any, Required, TypedDict, cast
 from itertools import product
 
 from matplotlib import pyplot as plt, patches
@@ -7,11 +8,36 @@ from matplotlib.axes import Axes
 
 from .clue_types import Location
 
+class DrawGridArgs(TypedDict, total=False):
+    max_row: Required[int]
+    max_column: Required[int]
+
+    clued_locations: set[Location] | None
+    location_to_entry: dict[Location, str] | None
+    location_to_clue_numbers: dict[Location, Sequence[str | int]] | None
+
+    top_bars: set[Location]
+    left_bars: set[Location]
+
+    shading: dict[Location, str] | None
+    coloring: dict[Location, str] | None
+    rotation: dict[Location, str] | None
+
+    circles: set[Location] | None
+
+    subtext: str | None
+    font_multiplier: float | None
+    blacken_unused: bool | None
+    file: str | Path | None
+
+    grid_drawer: Callable[["plt", "Axes"], None] | None
+    extra: Callable[["plt", "Axes"], None] | None
+
 
 def draw_grid(*, max_row: int, max_column: int,
               clued_locations: set[Location] | None = None,
               location_to_entry: dict[Location, str] = None,
-              location_to_clue_numbers: dict[Location, Sequence[str]] = None,
+              location_to_clue_numbers: dict[Location, Sequence[str | int]] = None,
               top_bars: set[Location] = frozenset(),
               left_bars: set[Location] = frozenset(),
               shading: dict[Location, str] = None,

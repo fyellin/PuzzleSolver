@@ -3,9 +3,9 @@ from __future__ import annotations
 import itertools
 from collections.abc import Iterable, Sequence
 from functools import cache
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, ClueValue, Evaluator, Letter, Location, \
+from solver import Clue, ClueValue, DrawGridArgs, Evaluator, Letter, Location, \
     MultiEquationSolver, KnownClueDict, KnownLetterDict
 
 ACROSS_LENGTHS = "413/332/44/44/233/314"
@@ -104,7 +104,7 @@ class Magpie275 (MultiEquationSolver):
             print(clue.name, int_result * int_result)
         super().show_solution(known_clues, known_letters)
 
-    def draw_grid(self, left_bars, top_bars, location_to_clue_numbers, **args: Any) -> None:
+    def draw_grid(self, left_bars, top_bars, location_to_clue_numbers, **args: Unpack[DrawGridArgs]) -> None:
         left_bars = [(r, c + delta) for r, c in location_to_clue_numbers for delta in (0, 1)]
         top_bars = [(r + delta, c) for r, c in location_to_clue_numbers for delta in (0, 1)]
         super().draw_grid(location_to_clue_numbers=location_to_clue_numbers,

@@ -1,7 +1,8 @@
 import math
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, ConstraintSolver, Evaluator, generators, Constraint, KnownClueDict
+from solver import Clue, ConstraintSolver, DrawGridArgs, Evaluator, generators, \
+    Constraint, KnownClueDict
 
 TRIANGLES = list(i * (i + 1) // 2 for i in range(2000))
 SQUARES = list(i * i for i in range(1000))
@@ -92,7 +93,7 @@ class Magpie243(ConstraintSolver):
             evaluator(vars)
         super().show_solution(known_clues)
 
-    def draw_grid(self, location_to_clue_numbers, **args: Any) -> None:
+    def draw_grid(self, location_to_clue_numbers, **args: Unpack[DrawGridArgs]) -> None:
         for location, clues in location_to_clue_numbers.items():
             if len(clues) == 1 and clues[0].islower():
                 clues.insert(0, '')

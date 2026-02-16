@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Iterable
-from typing import Any, cast
+from typing import Unpack, cast
 
 from misc.primes import PRIMES
-from solver import ClueValue, Clues, EquationSolver, Evaluator, KnownClueDict, KnownLetterDict
+from solver import ClueValue, Clues, DrawGridArgs, EquationSolver, Evaluator, \
+    KnownClueDict, KnownLetterDict
 
 
 class MultiValue:
@@ -123,7 +124,7 @@ class Magpie234 (EquationSolver):
         assert len(temp) == 35
         return sum(temp.values()) in known_letters['J']
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         super().draw_grid(font_multiplier=.8, **args)
 
     @staticmethod

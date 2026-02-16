@@ -1,9 +1,12 @@
+from typing import Unpack
+
 import math
 import re
 from itertools import combinations, count, pairwise
 
 from misc.factors import factor_list, prime_factors
-from solver import Clue, ConstraintSolver, EquationSolver, Evaluator, Location, generators
+from solver import Clue, ConstraintSolver, DrawGridArgs, EquationSolver, Evaluator, \
+    Location, generators
 from solver import KnownClueDict, KnownLetterDict
 
 GRID = [
@@ -201,7 +204,7 @@ class Solver2(ConstraintSolver):
                 self.result_digits.append(digit)
         return bool(self.result_digits)
 
-    def draw_grid(self, location_to_entry, location_to_clue_numbers, **more_args):
+    def draw_grid(self, location_to_entry, location_to_clue_numbers, **more_args: Unpack[DrawGridArgs]) -> None:
         my_dict = dict(zip("0123456789abcdefg", self.letters))
         location_to_clue_numbers.clear()
         for digit in self.result_digits:

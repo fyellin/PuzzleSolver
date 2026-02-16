@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Iterator, Sequence
-from typing import Any
+from typing import Any, Unpack
 
 from misc.primes import PRIMES
-from solver import Clue, ClueValue, Clues, ConstraintSolver, generators, Constraint
+from solver import Clue, ClueValue, Clues, ConstraintSolver, DrawGridArgs, generators, \
+    Constraint
 from solver.generators import square_pyramidal_generator
 
 
@@ -194,7 +195,7 @@ class Magpie229 (ConstraintSolver):
                 if len(others) > 1:
                     self.add_constraint(clues, lambda *values, loc=others: check_all_different(values, loc))
 
-    def draw_grid(self, location_to_clue_numbers, **args: Any) -> None:
+    def draw_grid(self, location_to_clue_numbers, **args: Unpack[DrawGridArgs]) -> None:
         location_to_clue_numbers = {location: [str((int(value) - 1) % 10 + 1) for value in values]
                                     for location, values in location_to_clue_numbers.items()}
         super().draw_grid(location_to_clue_numbers=location_to_clue_numbers, font_multiplier=.8, **args)

@@ -3,12 +3,13 @@ import operator
 from collections import defaultdict
 from collections.abc import Sequence, Iterator, Iterable, Callable
 
-from typing import Any
+from typing import Any, Unpack
 
 from sortedcontainers import SortedDict, SortedSet
 
 from misc.primes import PRIMES
-from solver import Clue, Clues, ConstraintSolver, ClueValue, ClueValueGenerator
+from solver import Clue, Clues, ConstraintSolver, ClueValue, ClueValueGenerator, \
+    DrawGridArgs
 
 
 class MyString(str):
@@ -150,7 +151,7 @@ class Magpie223 (ConstraintSolver):
             if clue1.is_across and clue2.is_across:
                 self.add_constraint((clue1, clue2), different_length)
 
-    def plot_board(self, clue_values: dict[Clue, ClueValue] | None = None, **more_args: Any) -> None:
+    def plot_board(self, clue_values: dict[Clue, ClueValue] | None = None, **more_args: Unpack[DrawGridArgs]) -> None:
         special = int(clue_values[self.clue_named('3d')])
         sequences = len(SUM_LIST[special])
         subtext = f'[{sequences}]'

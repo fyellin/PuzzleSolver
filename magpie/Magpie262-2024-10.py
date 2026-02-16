@@ -1,12 +1,12 @@
 import itertools
 import re
 from pathlib import Path
-from typing import Any
+from typing import Unpack
 from collections.abc import Iterable
 
 import math
 
-from solver import Clue, ClueValue, Clues, Evaluator, Location, \
+from solver import Clue, ClueValue, Clues, DrawGridArgs, Evaluator, Location, \
     MultiEquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
@@ -133,7 +133,7 @@ class Magpie260 (MultiEquationSolver):
         print(temp)
         return super().check_solution(known_clues, known_letters)
 
-    def draw_gridx(self, location_to_entry, clued_locations, **args: Any) -> None:
+    def draw_gridx(self, location_to_entry, clued_locations, **args: Unpack[DrawGridArgs]) -> None:
         location_to_entry = {location: str(ALPHABET.index(value))
                                            for location, value in location_to_entry.items()}
         clued_locations = set(itertools.product(range(1, 9), repeat=2))
@@ -181,7 +181,7 @@ class Magpie260 (MultiEquationSolver):
         clue_values = {self.clue_named(name): value for name, value in SOLUTION.items()}
         self.plot_board(clue_values)
 
-    def draw_grid(self, location_to_entry, clued_locations, left_bars, top_bars, **args: Any) -> None:
+    def draw_grid(self, location_to_entry, clued_locations, left_bars, top_bars, **args: Unpack[DrawGridArgs]) -> None:
         reverse_info = dict(zip(LETTERS, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
         clued_locations = set(itertools.product(range(1, 9), repeat=2))
         center_locations = list(itertools.product((4, 5), range(3, 7)))

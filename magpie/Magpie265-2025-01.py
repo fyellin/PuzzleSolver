@@ -1,7 +1,7 @@
-from typing import Any
+from typing import Unpack
 
 from misc.Pentomino import get_graph_shading
-from solver import Clue, Clues, ConstraintSolver, EquationSolver
+from solver import Clue, Clues, ConstraintSolver, DrawGridArgs, EquationSolver
 
 ACROSS = """
 1 O(TV – W) – N (4) 
@@ -79,7 +79,7 @@ class Magpie265 (EquationSolver):
         return clues
 
     def draw_grid(self, location_to_entry, known_letters,
-                  top_bars, left_bars, location_to_clue_numbers, **args: Any) -> None:
+                  top_bars, left_bars, location_to_clue_numbers, **args: Unpack[DrawGridArgs]) -> None:
         substitution = [''] * 10
         for letter, value in known_letters.items():
             value = value % 26

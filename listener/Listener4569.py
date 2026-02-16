@@ -1,8 +1,8 @@
 import re
 from collections.abc import Sequence
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, ClueValue, Letter, Location
+from solver import Clue, ClueValue, DrawGridArgs, Letter, Location
 from solver import EquationSolver
 
 ACROSS = """
@@ -70,7 +70,7 @@ class MySolver (EquationSolver):
         for clue in self._clue_list:
             print(clue.name, known_clues[clue])
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         # The only thick bars we want are between each of the sections.
         args['left_bars'] = set()
         args['top_bars'] = {(row, column) for row in (5, 9, 13) for column in (1, 2, 3, 4)}

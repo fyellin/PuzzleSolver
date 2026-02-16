@@ -1,8 +1,8 @@
 import itertools
-from typing import Any
+from typing import Unpack
 from collections.abc import Sequence
 
-from solver import Clue, ConstraintSolver, Location, ClueValue
+from solver import Clue, ConstraintSolver, DrawGridArgs, Location, ClueValue
 from solver import generators
 
 CLUES = """
@@ -42,7 +42,7 @@ class Solver208(ConstraintSolver):
         clue_list = self.make_clue_list()
         super(Solver208, self).__init__(clue_list)
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         clue_values: dict[Clue, ClueValue] = args['clue_values']
 
         specials = self.__get_specials()

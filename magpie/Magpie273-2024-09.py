@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Unpack
 
-from solver import ClueValue, Clues, EquationSolver
+from solver import ClueValue, Clues, DrawGridArgs, EquationSolver
 
 
 def digit_sum(value: ClueValue | str | int) -> int:
@@ -65,7 +65,7 @@ class Magpie273 (EquationSolver):
         clues = Clues.create_from_text(ACROSSES, DOWNS, grid)
         super().__init__(clues, items=range(1, 17))
 
-    def draw_grid(self, location_to_entry, **args: Any) -> None:
+    def draw_grid(self, location_to_entry, **args: Unpack[DrawGridArgs]) -> None:
         l2 = {location: '●' if x in "24680" else ' ' for location, x in location_to_entry.items()}
         super().draw_grid(location_to_entry=l2, subtext="TAKE A BOW", **args)
 

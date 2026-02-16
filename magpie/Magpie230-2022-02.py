@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Iterable
-from typing import Any, cast
+from typing import Unpack, cast
 
-from solver import ClueValue, Clues, EquationSolver, Evaluator
+from solver import ClueValue, Clues, DrawGridArgs, EquationSolver, Evaluator
 
 
 class MultiValue:
@@ -132,7 +132,7 @@ class Magpie230 (EquationSolver):
         # This cast is a bald-faced lie.  But it works.
         super().__init__(clues, items=cast(tuple[int], MultiValue.make_all()))
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         super().draw_grid(font_multiplier=.8, **args)
 
 

@@ -3,12 +3,13 @@ import itertools
 import re
 from collections import Counter
 from enum import Enum, auto
-from typing import Any
+from typing import Unpack
 from collections.abc import Iterator, Iterable, Sequence
 
 from matplotlib.patches import Arc
 
-from solver import Clue, ClueValue, Clues, ConstraintSolver, EquationSolver, Evaluator, \
+from solver import Clue, ClueValue, Clues, ConstraintSolver, DrawGridArgs, EquationSolver, \
+    Evaluator, \
     Letter, generators, KnownClueDict, KnownLetterDict
 
 GRID = """
@@ -152,7 +153,7 @@ class Solver237(ConstraintSolver):
             clue.generator = lambda clue, evaluator=evaluator: itertools.takewhile(
                 lambda x: len(x) <= clue.length, evaluator(values))
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         converter = {"0": Picture.ACROSS, "4": Picture.ACROSS,
                      "1": Picture.NW_SE, "2": Picture.NW_SE,
                      "3": Picture.NE_SW, "5": Picture.NE_SW,

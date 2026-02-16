@@ -1,8 +1,9 @@
 import itertools
 from collections.abc import Iterable, Sequence
-from typing import Any
+from typing import Unpack
 
-from solver import ClueValue, Clues, EquationSolver, Evaluator, Letter, Location, \
+from solver import ClueValue, Clues, DrawGridArgs, EquationSolver, Evaluator, Letter, \
+    Location, \
     MultiEquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
@@ -152,7 +153,7 @@ class Listener4738(MultiEquationSolver):
         print(known_letters)
 
     def draw_grid(self, max_row, clue_values, left_bars, top_bars, location_to_entry,
-                  clued_locations, **args: Any) -> None:
+                  clued_locations, **args: Unpack[DrawGridArgs]) -> None:
         max_row += 3
         clued_locations |= {(row, column) for row in range(10, 13) for column in range(1, 11)}
 

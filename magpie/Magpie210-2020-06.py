@@ -1,8 +1,9 @@
 import itertools
-from typing import Any
+from typing import Unpack
 from collections.abc import Iterator, Sequence, Callable
 
-from solver import Clue, ConstraintSolver, ClueValue, Location, ClueValueGenerator
+from solver import Clue, ConstraintSolver, ClueValue, DrawGridArgs, Location, \
+    ClueValueGenerator
 from solver import generators, KnownClueDict
 
 squares = set(itertools.takewhile(lambda x: x < 1000, (x**2 for x in itertools.count())))
@@ -161,7 +162,7 @@ class Solver210(ConstraintSolver):
         self.solutions.append(known_clues.copy())
         super().show_solution(known_clues)
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         location_to_entry: dict[Location, str] = args['location_to_entry']
         location_to_entry[3,3] = 'A'
         location_to_entry[3,9] = 'B'

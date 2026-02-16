@@ -1,11 +1,11 @@
 import math
 import re
-from typing import Any
+from typing import Unpack
 from collections.abc import Sequence
 
 from matplotlib import pyplot as plt
 
-from solver import Clue, Clues, EquationSolver, Evaluator, Location
+from solver import Clue, Clues, DrawGridArgs, EquationSolver, Evaluator, Location
 
 GRID = """
 x...xxx..x....x
@@ -115,7 +115,7 @@ class Solver236(EquationSolver):
                   location_to_entry: dict[Location, str],
                   location_to_clue_numbers: dict[Location, Sequence[str]],
                   shading: dict[Location, str] = None,
-                  **args: Any) -> None:
+                  **args: Unpack[DrawGridArgs]) -> None:
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
         # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
         axes.axis([1, 9, 9, 1])

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .base_solver import BaseSolver, KnownClueDict
+from .base_solver import BaseSolver, DrawGridArgs, KnownClueDict
 from .clue import Clue, ClueValueGenerator
 from .clue_types import Location, ClueValue, Letter
 from .clues import Clues

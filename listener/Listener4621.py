@@ -1,9 +1,10 @@
 import functools
 import re
-from typing import Any
+from typing import Unpack
 from collections.abc import Sequence, Callable
 
-from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
+from solver import Clue, ClueValue, DrawGridArgs, Location, Clues, ConstraintSolver, \
+    Intersection, Letter
 from solver import EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
@@ -187,7 +188,7 @@ class InnerSolver(ConstraintSolver):
             result = [chr(int(digit) + 48) for digit in parsing]
             yield ''.join(result)
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         location_to_entry: dict[Location, str] = args['location_to_entry']
         args['location_to_entry'] = {location : str(ord(code) - 48) for location, code in location_to_entry.items()}
         super().draw_grid(**args)

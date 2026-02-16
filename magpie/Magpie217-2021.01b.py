@@ -1,8 +1,8 @@
-from typing import Any
+from typing import Unpack
 
 from matplotlib import pyplot as plt, patches
 
-from solver import Clues, Clue, ConstraintSolver
+from solver import Clues, Clue, ConstraintSolver, DrawGridArgs
 
 EQUATIONS = """
 """
@@ -109,7 +109,7 @@ class PrettyPrinter (ConstraintSolver):
     def get_filled_in_clues(self):
         return {clue: ''.join(x for x in clue.context if x not in 'NSEW') for clue in self._clue_list}
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         """Override this method if you need to intercept the call to the draw_grid() function."""
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
         args['axes'] = axes

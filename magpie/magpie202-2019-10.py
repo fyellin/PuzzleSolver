@@ -1,9 +1,10 @@
 import itertools
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Sequence, Callable
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, Clues, ClueValueGenerator, ClueValue, ConstraintSolver, Location, generators
+from solver import Clue, Clues, ClueValueGenerator, ClueValue, ConstraintSolver, \
+    DrawGridArgs, Location, generators
 
 GRID = """
 .....XX.....
@@ -221,7 +222,7 @@ class MySolver(ConstraintSolver):
         self.add_constraint(('18d', '9d', '7d'), lambda x, y, z: xi(x) == xi(y) - xi(z))
 
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
 
         args['location_to_clue_numbers'] = {clue.base_location: [clue.name[0:-1]] for clue in self._clue_list}
         super().draw_grid(**args)

@@ -1,9 +1,9 @@
 import itertools
 import math
 from collections.abc import Callable, Iterator, Sequence
-from typing import Any
+from typing import Unpack
 from solver import Clue, ClueValue, ClueValueGenerator, ConstraintSolver, \
-    KnownClueDict, Location, generators
+    DrawGridArgs, KnownClueDict, Location, generators
 
 
 def generate_L(clue: Clue) -> Iterator[int]:
@@ -238,7 +238,7 @@ class Listener4608(ConstraintSolver):
         letters = [chr(ord('A') + digit - 1) for digit in pieces]
         print(''.join(letters))
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         location_to_clue_numbers: dict[Location, list[str]] = args['location_to_clue_numbers']
         location_to_clue_numbers[5, 2].pop()
 

@@ -1,10 +1,11 @@
 import itertools
 from collections.abc import Sequence
-from typing import Any
+from typing import Unpack
 import numpy as np
 
 from misc.primes import PRIMES
-from solver import Clue, Clues, EquationSolver, KnownClueDict, KnownLetterDict
+from solver import Clue, Clues, DrawGridArgs, EquationSolver, KnownClueDict, \
+    KnownLetterDict
 
 GRID = """
 XX.XXXXX
@@ -89,7 +90,7 @@ class Listener4712(EquationSolver):
     # Sequence 1 (power of 4): 493,68-98,160-49,8114,43-54,12-18,41-14,514,882,8208
     # Sequence 2 (power of 3): 845, 701, 344, 155, 251, 134, 92, 737, 713, 371
     # Sequence 3 (power of 5): 472, 17-863, 575-95, 85-231, 36-169, 748-45, 547-48.
-    def draw_grid(self, clue_values, **args: Any) -> None:
+    def draw_grid(self, clue_values, **args: Unpack[DrawGridArgs]) -> None:
         shading = {}
         for clue, value in clue_values.items():
             if int(value) in (845, 472):

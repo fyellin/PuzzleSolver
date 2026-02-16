@@ -4,9 +4,10 @@ import itertools
 from collections import Counter
 from collections.abc import Iterator, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Unpack
 
-from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, Location, \
+from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, DrawGridArgs, \
+    Location, \
     generators, LetterCountHandler
 
 GRID = """
@@ -185,7 +186,7 @@ class Magpie233 (ConstraintSolver):
         axes.add_artist(ab)
 
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         super().draw_grid(**args, blacken_unused=False)
         return
         location_to_entry = args['location_to_entry']

@@ -1,10 +1,10 @@
 import math
-from typing import Any
+from typing import Any, Unpack
 from collections.abc import Sequence
 
 import solver.generators as gen
 from misc.Pentomino import Pentomino, PentominoSolver, get_graph_shading, get_hard_bars
-from solver import Clue, Clues, Constraint, ConstraintSolver, KnownClueDict
+from solver import Clue, Clues, Constraint, ConstraintSolver, KnownClueDict, DrawGridArgs
 
 GRID = """
 X.XXXX
@@ -124,7 +124,7 @@ class Magpie255 (ConstraintSolver):
             self.last_result = result[0]
         return bool(result)
 
-    def draw_grid(self, top_bars, left_bars, location_to_clue_numbers, **args: Any) -> None:
+    def draw_grid(self, top_bars, left_bars, location_to_clue_numbers, **args: Unpack[DrawGridArgs]) -> None:
         shading = get_graph_shading(self.last_result)
         # left_bars, top_bars = get_hard_bars(self.last_result)
         super().draw_grid(shading=shading,

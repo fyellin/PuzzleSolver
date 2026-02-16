@@ -2,9 +2,10 @@ import itertools
 from collections import defaultdict
 from collections.abc import Sequence
 from functools import cache
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, Clues, Constraint, ConstraintSolver, DancingLinks, Location, \
+from solver import Clue, Clues, Constraint, ConstraintSolver, DancingLinks, DrawGridArgs, \
+    Location, \
     generators, KnownClueDict
 from solver.generators import cube, palindrome, prime, square, triangular
 
@@ -99,7 +100,8 @@ class Magpie246 (ConstraintSolver):
             for location, digit in zip(clue.locations, value):
                 self.summary[location].add(int(digit))
 
-    def draw_grid(self, location_to_entry, solution=None, **args: Any) -> None:
+    def draw_grid(self, location_to_entry, solution=None, **args: Unpack[DrawGridArgs]
+                  ) -> None:
         if solution is not None:
             location_to_entry = solution
         colors = ['pink', 'lightblue', 'lightgreen', 'yellow', 'white', 'lightgray']

@@ -1,8 +1,8 @@
 import itertools
-from typing import Any
+from typing import Unpack
 from collections.abc import Sequence
 
-from solver import Clue, EquationSolver, Clues, Location
+from solver import Clue, DrawGridArgs, EquationSolver, Clues, Location
 
 GRID = """
 XX.X.XX.X.XX
@@ -69,7 +69,7 @@ class Listener4609(EquationSolver):
     @staticmethod
     def run():
         solver = Listener4609()
-        solver.plot_board({})
+        solver.plot_board()
         solver.verify_is_180_symmetric()
 
     def __init__(self) -> None:
@@ -89,7 +89,7 @@ class Listener4609(EquationSolver):
         locations = Clues.get_locations_from_grid(GRID)
         return Clues.create_from_text(ACROSS, DOWN, locations)
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         location_to_entry: dict[Location, str] = args['location_to_entry']
         for letter, (row, column) in zip(self.array, itertools.product(range(1, 13), repeat=2)):
             location_to_entry[row, column] = letter

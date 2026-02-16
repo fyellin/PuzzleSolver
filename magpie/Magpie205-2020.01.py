@@ -1,9 +1,10 @@
 import itertools
 import re
-from typing import Any, cast
+from typing import Unpack, cast
 from collections.abc import Sequence, Iterator
 
-from solver import Clue, ConstraintSolver, Location, Clues, ClueValue, KnownClueDict
+from solver import Clue, ConstraintSolver, DrawGridArgs, Location, Clues, ClueValue, \
+    KnownClueDict
 
 GRID = """
 XXXXXXX
@@ -67,7 +68,7 @@ class Solver205(ConstraintSolver):
         super().__init__(self.make_clue_list())
         self.generator_dict: dict[tuple[Clue, str], tuple[Sequence[int], int]] = {}
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         location_to_entry: dict[Location, str] = args['location_to_entry']
         location_to_entry = {location: str(ord(value) - 48) for location, value in location_to_entry.items()}
         args['location_to_entry'] = location_to_entry

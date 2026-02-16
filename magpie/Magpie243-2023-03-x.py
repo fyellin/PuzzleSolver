@@ -2,9 +2,9 @@ import collections
 import itertools
 import re
 from functools import cache
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, Clues, ConstraintSolver
+from solver import Clue, Clues, ConstraintSolver, DrawGridArgs
 
 GRID = """
 XXX.X.X.XX
@@ -216,7 +216,7 @@ class Magpie243b(ConstraintSolver):
 
         return done
 
-    def draw_grid(self, plotter=None, **args: Any) -> None:
+    def draw_grid(self, plotter=None, **args: Unpack[DrawGridArgs]) -> None:
         if plotter:
             args |= dict(location_to_entry=plotter)
         super().draw_grid(**args, font_multiplier=.5)

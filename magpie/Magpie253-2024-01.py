@@ -1,8 +1,9 @@
 import math
-from typing import Any
+from typing import Any, Unpack
 
 from misc.Pentomino import PentominoSolver, get_graph_shading
-from solver import Clue, Clues, ClueValue, ConstraintSolver, KnownClueDict, LetterCountHandler
+from solver import Clue, Clues, ClueValue, ConstraintSolver, DrawGridArgs, KnownClueDict, \
+    LetterCountHandler
 from solver.generators import allvalues, fibonacci, known, palindrome, prime, triangular
 
 
@@ -73,7 +74,7 @@ class Magpie253 (ConstraintSolver):
             clue.generator = allvalues
         return clues
 
-    def draw_grid(self, location_to_entry, **more_args: Any) -> None:
+    def draw_grid(self, location_to_entry, **more_args: Unpack[DrawGridArgs]) -> None:
         shading = {}
         if location_to_entry:
             # Figure out how to divide the graph into pentominos

@@ -1,8 +1,8 @@
 import itertools
 from collections.abc import Iterable
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, Letter
+from solver import Clue, ClueValue, Clues, DrawGridArgs, EquationSolver, Evaluator, Letter
 from solver import KnownClueDict, KnownLetterDict
 
 GRID = """
@@ -123,7 +123,7 @@ class Magpie239(EquationSolver):
         self.plot_board(known_clues, known_letters=known_letters)
 
     def draw_grid(self, max_column, clue_values, left_bars, top_bars, location_to_entry,
-                  clued_locations, **args: Any) -> None:
+                  clued_locations, **args: Unpack[DrawGridArgs]) -> None:
         max_column += 1
         clued_locations |= {(row, column) for row in range(1, 11) for column in (1, 10)}
         left_bars |= {(i, 10) for i in range(1, 11)}

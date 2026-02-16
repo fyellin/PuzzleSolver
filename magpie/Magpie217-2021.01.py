@@ -1,9 +1,9 @@
 import itertools
 import re
 from collections.abc import Iterable, Sequence
-from typing import Any
+from typing import Unpack
 
-from solver import ClueValue, EquationSolver, Evaluator, Clue, Letter
+from solver import ClueValue, DrawGridArgs, EquationSolver, Evaluator, Clue, Letter
 
 EQUATIONS = """
 1 A – B + BOT                , ((ANY – O)(N + E))**2
@@ -68,7 +68,7 @@ class Magpie217 (EquationSolver):
 
         clue.evaluators[0].set_wrapper(my_evaluator)
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         left_bars = []
         top_bars = []
         shading = {}

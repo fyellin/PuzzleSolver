@@ -1,10 +1,11 @@
 import itertools
 from functools import cache
+from typing import Unpack
 
 from sortedcontainers import SortedDict
 
 from misc.primes import PRIMES
-from solver import Clue, ConstraintSolver, DancingLinks, generators
+from solver import Clue, ConstraintSolver, DancingLinks, DrawGridArgs, generators
 
 C = [x for i in range(2, 100) for x in [i ** 3] if 2 <= x < 10_000]
 S = [x for i in range(2, 1000) for x in [i ** 2] if 2 <= x < 10_000]
@@ -292,7 +293,7 @@ class Solver251 (ConstraintSolver):
               '#bfef45', '#fabed4', '#469990', '#dcbeff', '#9A6324', '#fffac8', '#800000', '#aaffc3',
               '#808000', '#ffd8b1', '#000075', '#a9a9a9', '#000000']
 
-    def draw_grid(self, location_to_clue_numbers, location_to_entry, **args) -> None:
+    def draw_grid(self, location_to_clue_numbers, location_to_entry, **args: Unpack[DrawGridArgs]) -> None:
         # self.COLORS[1] = '#A0A0A0'
         # shading = {square : 'red' for square in squares}
         #shading = {square: self.COLORS[int(value) + 1] for square, value in location_to_entry.items()}

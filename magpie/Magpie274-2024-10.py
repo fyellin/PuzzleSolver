@@ -3,10 +3,11 @@ from __future__ import annotations
 import itertools
 from collections.abc import Iterable, Sequence
 from functools import cache
-from typing import Any
+from typing import Unpack
 
 from misc.primes import PRIMES
-from solver import Clues, ClueValue, EquationSolver, Evaluator, KnownClueDict, \
+from solver import Clues, ClueValue, DrawGridArgs, EquationSolver, Evaluator, \
+    KnownClueDict, \
     KnownLetterDict, Letter
 
 ACROSS_LENGTHS = "413/332/44/44/233/314"
@@ -141,7 +142,7 @@ class Magpie274 (EquationSolver):
         self.line = doit(grid)
         return bool(self.line)
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         import numpy as np
         points = np.array(self.line)
         def extra(_plt, axes):

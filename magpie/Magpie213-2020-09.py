@@ -5,12 +5,12 @@ import math
 import re
 from collections import defaultdict, Counter
 from collections.abc import Sequence
-from typing import cast, Any
+from typing import Unpack, cast
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 
-from solver import generators, ConstraintSolver, Clues, Clue, Location
+from solver import DrawGridArgs, generators, ConstraintSolver, Clues, Clue, Location
 
 
 def make_min_max_factor_table() -> Sequence[tuple[int, int]]:
@@ -150,7 +150,8 @@ class Solver213(ConstraintSolver):
 
     def draw_grid(self, *,
                   location_to_entry: dict[Location, str],
-                  location_to_clue_numbers: dict[Location, Sequence[str]], **args: Any) -> None:
+                  location_to_clue_numbers: dict[Location, Sequence[str]],
+                  **args: Unpack[DrawGridArgs]) -> None:
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
         # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
         axes.axis([1, 9, 9, 1])

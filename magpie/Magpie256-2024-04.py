@@ -1,10 +1,10 @@
 import itertools
 import time
 from abc import abstractmethod
-from typing import Any, cast
+from typing import Unpack, cast
 from collections.abc import Sequence
 
-from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, Letter
+from solver import Clue, ClueValue, Clues, DrawGridArgs, EquationSolver, Evaluator, Letter
 
 ACROSS = """
 A AW**T – G**I
@@ -110,7 +110,7 @@ class Magpie256Base(EquationSolver):
 
     def draw_grid(self, location_to_entry, known_letters,
                   location_to_clue_numbers, left_bars, top_bars,
-                  **args: Any) -> None:
+                  **args: Unpack[DrawGridArgs]) -> None:
         if not DRAW_GRID:
             return
         letter_map = {str(value): letter for letter, value in known_letters.items()}

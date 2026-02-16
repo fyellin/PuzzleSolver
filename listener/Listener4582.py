@@ -1,9 +1,10 @@
 import re
 from os.path import commonprefix
-from typing import Any
+from typing import Unpack
 from collections.abc import Sequence, Callable
 
-from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
+from solver import Clue, ClueValue, DrawGridArgs, Location, Clues, ConstraintSolver, \
+    Intersection, Letter
 from solver import EquationSolver, KnownClueDict, KnownLetterDict
 
 # An X marks were the numbered squares are
@@ -140,7 +141,7 @@ class InnerSolver(ConstraintSolver):
                     for i, location in enumerate(clue.locations)
                     for j in (10, 11)]
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridArgs]) -> None:
         """
         Once we've solved the puzzle, we've overridden this function so that we print the graph with the shading
         that we want.

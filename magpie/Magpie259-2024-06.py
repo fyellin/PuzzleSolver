@@ -1,8 +1,9 @@
 import math
-from typing import Any
+from typing import Any, Unpack
 
 from misc.Pentomino import get_graph_shading, get_hard_bars
-from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, Location, LetterCountHandler
+from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, DrawGridArgs, \
+    Location, LetterCountHandler
 from solver.generators import allvalues, cube, known, palindrome, prime, \
     square, sum_of_2_cubes, triangular
 
@@ -78,7 +79,7 @@ class Magpie253 (ConstraintSolver):
             return all(x <= 8 for x in counter.values())
 
     def draw_grid(self, location_to_entry, location_to_clue_numbers,
-                  top_bars, left_bars, max_row, max_column, **args: Any) -> None:
+                  top_bars, left_bars, max_row, max_column, **args: Unpack[DrawGridArgs]) -> None:
         constraints = {}
         for row in range(1, max_row):
             for column in range(1, max_column):

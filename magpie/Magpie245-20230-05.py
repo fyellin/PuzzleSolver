@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Unpack
 
 import math
 from collections import defaultdict
@@ -6,7 +6,7 @@ from collections.abc import Sequence, Iterable
 from functools import cache
 
 from misc.Tester import FastDijkstra, State
-from solver import Clue, Clues, ConstraintSolver, generators, Constraint
+from solver import Clue, Clues, ConstraintSolver, DrawGridArgs, generators, Constraint
 from solver.generators import known, palindrome, prime, square
 
 GRID = """
@@ -115,7 +115,7 @@ class Magpie245 (ConstraintSolver):
                 clues.append(clue)
         return clues, constraints
 
-    def draw_grid(self, location_to_entry, **args: Any) -> None:
+    def draw_grid(self, location_to_entry, **args: Unpack[DrawGridArgs]) -> None:
         paths = self.get_paths(location_to_entry)
 
         # import matplotlib
