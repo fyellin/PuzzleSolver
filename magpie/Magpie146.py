@@ -9,7 +9,7 @@ The first solver is needed just to generate a list of numbers.  It has two speci
 import functools
 import itertools
 import re
-from typing import Sequence, Iterable, Callable, Dict, Pattern
+from collections.abc import Sequence, Iterable, Callable
 
 from solver import Clue, ClueValue, ConstraintSolver, EquationSolver, Intersection
 from solver import generators
@@ -109,7 +109,7 @@ class OuterSolver(EquationSolver):
                 self.add_constraint((clue1, clue2), lambda x, y: int(x) < int(y))
 
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
-            Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
+            Callable[[dict[Clue, ClueValue]], re.Pattern[str]]:
         pattern_string = f'.{{{clue.length}}}'   # e.g.  r'.{5}' if clue.length == 5.
         pattern = re.compile(pattern_string)
         return lambda _: pattern

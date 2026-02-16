@@ -3,7 +3,7 @@ import math
 import re
 from collections import Counter, defaultdict
 from fractions import Fraction
-from typing import Callable, Pattern, Sequence, Union
+from collections.abc import Callable, Sequence
 
 from solver.fill_in_crossword_grid import FillInCrosswordGrid
 from solver import Clue, ClueValue, EquationSolver, Evaluator, Intersection, KnownClueDict
@@ -227,7 +227,7 @@ class Listener4725(EquationSolver):
     PATTERN2 = re.compile(r".{4,8}")
 
     def make_pattern_generator(self, clue: Clue, _: Sequence[Intersection]) -> \
-            Callable[[dict[Clue, ClueValue]], Pattern[str]]:
+            Callable[[dict[Clue, ClueValue]], re.Pattern[str]]:
         if clue in self.a_numbers or clue in self.d_numbers:
             return lambda _: self.PATTERN1
         else:
@@ -267,7 +267,7 @@ class Listener4725(EquationSolver):
                 filler.display(result)
 
     @staticmethod
-    def factorial(x: Union[int, Fraction]):
+    def factorial(x: int | Fraction) -> int:
         if x >= 0 and x.denominator == 1:
             return math.factorial(x.numerator)
         else:

@@ -1,7 +1,7 @@
 import itertools
 import math
 from collections.abc import Callable, Iterator, Sequence
-from typing import Any, Optional
+from typing import Any
 from solver import Clue, ClueValue, ClueValueGenerator, ConstraintSolver, \
     KnownClueDict, Location, generators
 
@@ -60,7 +60,7 @@ def generate_r(clue: Clue) -> Iterator[str]:
         yield ''.join(digits)
 
 
-def make(name: str, length: int, base_location: Location, *, generator: Optional[ClueValueGenerator] = None) -> 'Clue':
+def make(name: str, length: int, base_location: Location, *, generator: ClueValueGenerator | None = None) -> 'Clue':
     return Clue(name, name.isupper(), base_location, length, generator=generator or generators.allvalues)
 
 
@@ -143,7 +143,7 @@ def is_anagram(x: int, y: int) -> bool:
     return sorted(str(x)) == sorted(str(y))
 
 
-def generator_fibonacci_to(limit: int) -> Set[int]:
+def generator_fibonacci_to(limit: int) -> set[int]:
     def generator() -> Iterator[int]:
         i, j = 0, 1
         while True:
@@ -239,10 +239,10 @@ class Listener4608(ConstraintSolver):
         print(''.join(letters))
 
     def draw_grid(self, **args: Any) -> None:
-        location_to_clue_numbers: Dict[Location, List[str]] = args['location_to_clue_numbers']
+        location_to_clue_numbers: dict[Location, list[str]] = args['location_to_clue_numbers']
         location_to_clue_numbers[5, 2].pop()
 
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
         shaded_squares = {location for location, value in location_to_entry.items() if value in "13579"}
         shading = {location: "lightgreen" for location in shaded_squares}
 

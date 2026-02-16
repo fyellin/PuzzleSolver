@@ -1,7 +1,8 @@
 import functools
 import itertools
 import math
-from typing import Any, Sequence, Iterator, Callable
+from typing import Any
+from collections.abc import Sequence, Iterator, Callable
 
 from solver import Clue, generators, Clues, ConstraintSolver, KnownClueDict
 

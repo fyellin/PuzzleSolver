@@ -1,6 +1,6 @@
 import collections
 from operator import itemgetter
-from typing import Tuple, Dict, List, Sequence
+from collections.abc import Sequence
 
 import inflect  # type: ignore
 
@@ -12,8 +12,8 @@ from solver import Location
 eng = inflect.engine()
 
 
-def create_length_to_integer_dict() -> Tuple[Dict[Tuple[int, int], List[int]], Dict[ClueValue, ClueValue]]:
-    result: Dict[Tuple[int, int], List[int]] = collections.defaultdict(list)
+def create_length_to_integer_dict() -> tuple[dict[tuple[int, int], list[int]], dict[ClueValue, ClueValue]]:
+    result: dict[tuple[int, int], list[int]] = collections.defaultdict(list)
     word_sums = dict()
     for i in range(1, 1000):
         clue_value = ClueValue(str(i))
@@ -29,7 +29,7 @@ LENGTHS_TO_INTEGERS, WORD_SUMS = create_length_to_integer_dict()
 
 
 def my_generator(num_letters: int) -> ClueValueGenerator:
-    def getter(clue: Clue) -> List[int]:
+    def getter(clue: Clue) -> list[int]:
         return LENGTHS_TO_INTEGERS[clue.length, num_letters]
     return getter
 
@@ -88,7 +88,7 @@ class MySolver(ConstraintSolver):
         constraint_vars = [clue.name] + list(evaluator.vars)
         self.add_constraint(constraint_vars, constraint, name=f'Clue {clue.name}')
 
-    def show_solution(self, known_clues: Dict[Clue, ClueValue]) -> None:
+    def show_solution(self, known_clues: dict[Clue, ClueValue]) -> None:
         super().show_solution(known_clues)
         pairs = [(clue.name, int(value)) for clue, value in known_clues.items()]
         max_length = max(len((str(i))) for (_, i) in pairs)

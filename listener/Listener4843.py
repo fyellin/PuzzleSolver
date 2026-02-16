@@ -1,6 +1,7 @@
 import itertools
 import re
-from typing import Any, Iterable, Sequence
+from typing import Any
+from collections.abc import Iterable, Sequence
 
 from solver import Clue, Clues, EquationSolver, Evaluator, equation_parser, Parse, \
     KnownLetterDict

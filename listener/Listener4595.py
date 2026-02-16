@@ -1,6 +1,6 @@
 import itertools
 from fractions import Fraction
-from typing import Dict, Sequence, Iterable, FrozenSet, Set
+from collections.abc import Sequence, Iterable
 
 from solver import Clue, Clues, EquationSolver, KnownLetterDict
 
@@ -82,7 +82,7 @@ ENDGAME = """
 
 
 class OuterSolver(EquationSolver):
-    power_to_values: Dict[int, FrozenSet[int]]
+    power_to_values: dict[int, frozenset[int]]
 
     @staticmethod
     def run() -> None:
@@ -128,8 +128,8 @@ class OuterSolver(EquationSolver):
                 yield result
 
     @staticmethod
-    def __get_values() -> Dict[int, FrozenSet[int]]:
-        temp: Dict[int, Set[int]] = {}
+    def __get_values() -> dict[int, frozenset[int]]:
+        temp: dict[int, set[int]] = {}
         for power in (2, 3, 4, 5, 6, 8):
             temp[power] = set(itertools.takewhile(lambda x: x < 1000, (i ** power for i in itertools.count(2))))
         temp[2] -= temp[4]
