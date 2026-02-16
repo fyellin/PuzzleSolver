@@ -1,7 +1,5 @@
 from collections.abc import Iterator, Sequence, Callable
 
-from typing import Optional
-
 import itertools
 from collections import defaultdict
 from itertools import product

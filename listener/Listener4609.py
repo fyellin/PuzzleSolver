@@ -1,5 +1,6 @@
 import itertools
-from typing import Sequence, Any
+from typing import Any
+from collections.abc import Sequence
 
 from solver import Clue, EquationSolver, Clues, Location
 

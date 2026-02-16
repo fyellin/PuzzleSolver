@@ -3,7 +3,7 @@ import itertools
 import math
 import pickle
 from enum import Enum
-from typing import NamedTuple, Optional, cast
+from typing import NamedTuple, cast
 from collections.abc import Iterable, Sequence
 
 import numpy as np
@@ -214,7 +214,7 @@ def get_dumped_map() -> ClueMap:
         return cast(ClueMap, pickle.load(file))
 
 
-def run(clue_map: Optional[ClueMap] = None) -> None:
+def run(clue_map: ClueMap | None = None) -> None:
     clue_map = clue_map or get_dumped_map()
     clue_list = make_clue_list(clue_map)
     solver = MySolver(clue_list, clue_map)

@@ -1,5 +1,4 @@
 import itertools
-from typing import Optional
 from collections.abc import Iterator, Sequence, Iterable, Callable
 
 from solver import Clue, Clues, ClueValueGenerator
@@ -63,7 +62,7 @@ pp, ff, rr, ss = set_up_tables()
 
 
 # noinspection PyPep8Naming
-def show_items(*, P: Optional[int] = None, F: Optional[int] = None, R: Optional[int] = None, S: Optional[int] = None) \
+def show_items(*, P: int | None = None, F: int | None = None, R: int | None = None, S: int | None = None) \
         -> Callable[[Clue], Iterable[int]]:
     def generator(clue: Clue) -> Iterable[int]:
         items: Iterable[int] = range(10 ** (clue.length - 1), 10 ** clue.length)
