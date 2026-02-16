@@ -3,7 +3,7 @@ import re
 from collections.abc import Iterable, Sequence
 from typing import Any
 
-from solver import ClueValue, EquationSolver, Evaluator, Clue
+from solver import ClueValue, EquationSolver, Evaluator, Clue, KnownLetterDict
 
 EQUATIONS = """
 1 A – B + BOT                , ((ANY – O)(N + E))**2

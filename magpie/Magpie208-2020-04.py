@@ -2,7 +2,7 @@ import itertools
 from typing import Any
 from collections.abc import Sequence
 
-from solver import Clue, ConstraintSolver, Location
+from solver import Clue, ConstraintSolver, KnownClueDict, Location
 from solver import generators
 
 CLUES = """

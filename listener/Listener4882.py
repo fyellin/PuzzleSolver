@@ -85,7 +85,7 @@ class Listener4882(EquationSolver):
         super().show_solution(known_clues, known_letters)
 
     def plot_board(self, known_clues: KnownClueDict | None = None,
-                   known_letters: KnownLetterDict = None, **more_args: Any) -> None:
+                   known_letters: KnownLetterDict | None = None, **more_args: Any) -> None:
         if not known_clues or True:
             super().plot_board(known_clues, **more_args)
 
