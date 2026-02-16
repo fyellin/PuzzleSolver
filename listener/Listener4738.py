@@ -1,6 +1,6 @@
 import itertools
-from collections.abc import Iterable
-from typing import Any, Sequence
+from collections.abc import Iterable, Sequence
+from typing import Any
 
 from solver import ClueValue, Clues, EquationSolver, Evaluator, Letter, Location, \
     MultiEquationSolver, KnownClueDict, KnownLetterDict

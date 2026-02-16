@@ -1,7 +1,7 @@
 import itertools
 import math
 from collections.abc import Callable, Iterator, Sequence
-from typing import Any, Optional
+from typing import Any
 from solver import Clue, ClueValue, ClueValueGenerator, ConstraintSolver, \
     KnownClueDict, Location, generators
 
@@ -60,7 +60,7 @@ def generate_r(clue: Clue) -> Iterator[str]:
         yield ''.join(digits)
 
 
-def make(name: str, length: int, base_location: Location, *, generator: Optional[ClueValueGenerator] = None) -> 'Clue':
+def make(name: str, length: int, base_location: Location, *, generator: ClueValueGenerator | None = None) -> 'Clue':
     return Clue(name, name.isupper(), base_location, length, generator=generator or generators.allvalues)
 
 

@@ -3,7 +3,7 @@ import math
 import re
 from collections import Counter, defaultdict
 from fractions import Fraction
-from typing import Callable, Pattern, Sequence, Union
+from collections.abc import Callable, Sequence
 
 from solver.fill_in_crossword_grid import FillInCrosswordGrid
 from solver import Clue, ClueValue, EquationSolver, Evaluator, Intersection, KnownClueDict
@@ -267,7 +267,7 @@ class Listener4725(EquationSolver):
                 filler.display(result)
 
     @staticmethod
-    def factorial(x: Union[int, Fraction]):
+    def factorial(x: int | Fraction):
         if x >= 0 and x.denominator == 1:
             return math.factorial(x.numerator)
         else:

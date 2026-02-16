@@ -1,6 +1,6 @@
 import re
 from os.path import commonprefix
-from typing import Dict, Set, Any, Sequence, Pattern, Callable, List
+from collections.abc import Callable, Sequence
 
 from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
 from solver import EquationSolver, KnownClueDict, KnownLetterDict
@@ -77,7 +77,7 @@ class OuterSolver(EquationSolver):
     # We override that pattern so that the only thing it checks is whether the answer is the right length.  We are
     # not concerned with intersections.  The actual clue answer must be either one or two less than the clue length.
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
-            Callable[[Dict[Clue, ClueValue]], Pattern[str]]:
+            Callable[[dict[Clue, ClueValue]], re.Pattern[str]]:
         length = clue.length
         regexp = f'.{{{length - 2},{length - 1}}}'
         pattern = re.compile(regexp)
@@ -138,12 +138,12 @@ class InnerSolver(ConstraintSolver):
         Once we've solved the puzzle, we've overridden this function so that we print the graph with the shading
         that we want.
         """
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
 
         shading = {}
-        across_inserted_locations: Set[Location] = set()
-        down_inserted_locations: Set[Location] = set()
-        inserted_number: List[int] = []
+        across_inserted_locations: set[Location] = set()
+        down_inserted_locations: set[Location] = set()
+        inserted_number: list[int] = []
         for clue in self._clue_list:
             original_clue_value = self.clue_values[clue]
             # Sigh, we don't currently pass the

@@ -4,7 +4,7 @@ Painful, but relatively straightforward.
 
 import functools
 import itertools
-from typing import Callable, Iterable, Optional, Dict, List, Union, Sequence
+from collections.abc import Callable, Iterable, Sequence
 
 from solver import Clue, ClueValue, ClueValueGenerator
 from solver import ConstraintSolver, Location
@@ -78,7 +78,7 @@ prime_string_set = set(str(x) for x in primes if 2 < x < 1662)
 
 
 @functools.lru_cache(maxsize=None)
-def break_row_into_primes(line: str) -> List[List[str]]:
+def break_row_into_primes(line: str) -> list[list[str]]:
     result = []
     length = len(line)
     for i in range(1, 5):
@@ -131,11 +131,11 @@ def generate_6d(_clue: Clue) -> Iterable[int]:
     return range(1_000_026, 10_000_000, 90)
 
 
-def with_prime_pattern(function: Callable[[Clue], Iterable[Union[int, str]]]) -> Callable[[Clue], Iterable[str]]:
+def with_prime_pattern(function: Callable[[Clue], Iterable[int | str]]) -> Callable[[Clue], Iterable[str]]:
     return lambda clue: (x for x in map(str, function(clue)) if break_row_into_primes(x))
 
 
-def make(name: str, base_location: Location, length: int, generator: Optional[ClueValueGenerator]) -> Clue:
+def make(name: str, base_location: Location, length: int, generator: ClueValueGenerator | None) -> Clue:
     return Clue(name, name[0] == 'A', base_location, length, generator=generator)
 
 
@@ -180,7 +180,7 @@ class MySolver(ConstraintSolver):
         else:
             return super().get_allowed_regexp(location)
 
-    def check_solution(self, known_clues: Dict[Clue, ClueValue]) -> bool:
+    def check_solution(self, known_clues: dict[Clue, ClueValue]) -> bool:
         # A map from locations to the value in that location.
         board = {location: value for clue, clue_value in known_clues.items()
                  for location, value in zip(clue.locations, clue_value)}

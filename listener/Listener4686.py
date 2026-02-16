@@ -1,6 +1,7 @@
 import itertools
 import math
-from typing import Any, Iterator, Sequence, Union
+from typing import Any, Union
+from collections.abc import Sequence, Iterator
 
 from misc.factors import prime_factors
 from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, generators

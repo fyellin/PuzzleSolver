@@ -1,6 +1,6 @@
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Sequence, Callable
 
-from typing import Callable, Optional
+from typing import Optional
 
 import itertools
 from collections import defaultdict
@@ -138,7 +138,7 @@ class Listener4803(ConstraintSolver):
                                         lambda x, y, xi=i1, yi=i2: x[xi] == y[yi],
                                         name=f"{location1}={location2}")
 
-    def get_equivalences(self, clues: Optional[Sequence[Clue]] = None):
+    def get_equivalences(self, clues: Sequence[Clue] | None = None):
         clues = clues or self._clue_list
         uf = UnionFind[tuple[int, int]]()
         for (across, down) in itertools.batched(clues, 2):

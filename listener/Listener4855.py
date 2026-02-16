@@ -1,6 +1,5 @@
 from collections import defaultdict
-from collections import defaultdict
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 from solver import Clues, EquationSolver, Letter
 from solver import KnownClueDict, KnownLetterDict

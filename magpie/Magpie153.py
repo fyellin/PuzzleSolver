@@ -1,5 +1,6 @@
 import itertools
-from typing import Iterator, Sequence, Tuple, Optional, List, Iterable, Callable
+from typing import Optional
+from collections.abc import Iterator, Sequence, Iterable, Callable
 
 from solver import Clue, Clues, ClueValueGenerator
 from solver import ConstraintSolver
@@ -22,7 +23,7 @@ Pull out all factors of 2.  Number of factors of that.  Subtract 1 to remove sin
 """
 
 
-def set_up_tables() -> Tuple[Sequence[int], Sequence[int], Sequence[int], Sequence[int]]:
+def set_up_tables() -> tuple[Sequence[int], Sequence[int], Sequence[int], Sequence[int]]:
     max_value = 100_000
     primes = tuple(itertools.takewhile(lambda x: x < max_value, generators.prime_generator()))
     primes_set = set(primes)
@@ -80,8 +81,8 @@ def show_items(*, P: Optional[int] = None, F: Optional[int] = None, R: Optional[
 
 
 def make_clue_list(lines: str,
-                   acrosses: Sequence[Tuple[int, int, ClueValueGenerator]],
-                   downs: Sequence[Tuple[int, int, ClueValueGenerator]]) -> List[Clue]:
+                   acrosses: Sequence[tuple[int, int, ClueValueGenerator]],
+                   downs: Sequence[tuple[int, int, ClueValueGenerator]]) -> list[Clue]:
     locations = Clues.get_locations_from_grid(lines)
     clues = [Clue(f'{location}{suffix}', is_across, locations[location - 1], length, generator=generator)
              for is_across, suffix, clue_set in ((True, 'a', acrosses), (False, 'd', downs))

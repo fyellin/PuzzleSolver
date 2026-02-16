@@ -1,5 +1,5 @@
 import itertools
-from typing import Sequence, Set, Dict, Any
+from typing import Sequence, Any
 
 from solver import Clue, EquationSolver, Clues, Location
 
@@ -89,7 +89,7 @@ class Listener4609(EquationSolver):
         return Clues.create_from_text(ACROSS, DOWN, locations)
 
     def draw_grid(self, **args: Any) -> None:
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
         for letter, (row, column) in zip(self.array, itertools.product(range(1, 13), repeat=2)):
             location_to_entry[row, column] = letter
         args['circles'] = {(8, 1)}
