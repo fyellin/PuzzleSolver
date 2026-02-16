@@ -6,7 +6,7 @@ from fractions import Fraction
 from collections.abc import Callable, Sequence
 
 from solver.fill_in_crossword_grid import FillInCrosswordGrid
-from solver import Clue, ClueValue, EquationSolver, Evaluator, Intersection, KnownClueDict
+from solver import Clue, EquationSolver, Evaluator, Intersection, KnownClueDict
 from solver import KnownLetterDict
 
 A_NUMBERS = """
@@ -227,7 +227,7 @@ class Listener4725(EquationSolver):
     PATTERN2 = re.compile(r".{4,8}")
 
     def make_pattern_generator(self, clue: Clue, _: Sequence[Intersection]) -> \
-            Callable[[dict[Clue, ClueValue]], re.Pattern[str]]:
+            Callable[[KnownClueDict], re.Pattern[str]]:
         if clue in self.a_numbers or clue in self.d_numbers:
             return lambda _: self.PATTERN1
         else:

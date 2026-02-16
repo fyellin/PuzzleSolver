@@ -190,7 +190,7 @@ class Magpie276(MultiEquationSolver):
             case _: yield from super().get_letter_values(known_letters, letters)
         return
 
-    def clue_e_wrapper(self, _wrapper, letters: dict[Letter, int]) -> Iterable[ClueValue]:
+    def clue_e_wrapper(self, _wrapper, letters: KnownLetterDict) -> Iterable[ClueValue]:
         if not any(isinstance(x, Clue) for x in letters.values()):
             temp = {clue: str(clue.evaluators[0].raw_call(letters))
                     for clue in self._clue_list if clue.name != 'e'}

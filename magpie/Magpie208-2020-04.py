@@ -2,7 +2,7 @@ import itertools
 from typing import Any
 from collections.abc import Sequence
 
-from solver import Clue, ConstraintSolver, Location, ClueValue
+from solver import Clue, ConstraintSolver, KnownClueDict, Location
 from solver import generators
 
 CLUES = """
@@ -43,7 +43,7 @@ class Solver208(ConstraintSolver):
         super(Solver208, self).__init__(clue_list)
 
     def draw_grid(self, **args: Any) -> None:
-        clue_values: dict[Clue, ClueValue] = args['clue_values']
+        clue_values: KnownClueDict = args['clue_values']
 
         specials = self.__get_specials()
         shaded: set[Location] = set()

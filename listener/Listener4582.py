@@ -3,7 +3,7 @@ from os.path import commonprefix
 from typing import Any
 from collections.abc import Sequence, Callable
 
-from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
+from solver import Clue, Location, Clues, ConstraintSolver, Intersection, Letter
 from solver import EquationSolver, KnownClueDict, KnownLetterDict
 
 # An X marks were the numbered squares are
@@ -82,7 +82,7 @@ class OuterSolver(EquationSolver):
     # We don't care about any of that.  We just want to make sure the potential value for "clue" has a length
     # that is either 1 or 2 less than clue.length.  The values of already known clues and intersections is irrelevant
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
-            Callable[[dict[Clue, ClueValue]], re.Pattern[str]]:
+            Callable[[KnownClueDict], re.Pattern[str]]:
         pattern_string = f'.{{{clue.length - 2},{clue.length - 1}}}'   # e.g.  r'.{3,4}' if clue.length == 5.
         pattern = re.compile(pattern_string)
         return lambda _: pattern
@@ -146,7 +146,7 @@ class InnerSolver(ConstraintSolver):
         that we want.
         """
         location_to_entry: dict[Location, str] = args['location_to_entry']
-        clue_values: dict[Clue, ClueValue] = args['clue_values']
+        clue_values: KnownClueDict = args['clue_values']
 
         shading = {}
         across_inserted_locations: set[Location] = set()

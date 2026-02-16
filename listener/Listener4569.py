@@ -2,7 +2,7 @@ import re
 from collections.abc import Sequence
 from typing import Any
 
-from solver import Clue, ClueValue, Letter, Location
+from solver import Clue, KnownClueDict, KnownLetterDict, Location
 from solver import EquationSolver
 
 ACROSS = """
@@ -65,7 +65,8 @@ class MySolver (EquationSolver):
         super().__init__(clue_list, items=MySolver.get_clue_values())
 
 
-    def show_solution(self,  known_clues: dict[Clue, ClueValue], known_letters: dict[Letter, int]) -> None:
+    def show_solution(self,  known_clues: KnownClueDict, known_letters: KnownLetterDict
+                      ) -> None:
         super().show_solution(known_clues, known_letters)
         for clue in self._clue_list:
             print(clue.name, known_clues[clue])

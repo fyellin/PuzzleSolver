@@ -183,8 +183,6 @@ class Solver2(ConstraintSolver):
             if a == '1' and '0' <= b <= '6':
                 yield value[0:i] + chr(ord(b) - ord('0') + ord('a')) + value[i+2:]
 
-
-
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         location_to_digit = {location : digit for clue, value in known_clues.items()
                              for location, digit in zip(clue.locations, value)}

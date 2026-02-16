@@ -8,7 +8,7 @@ from typing import Any
 from sortedcontainers import SortedDict, SortedSet
 
 from misc.primes import PRIMES
-from solver import Clue, Clues, ConstraintSolver, ClueValue, ClueValueGenerator
+from solver import Clue, Clues, ConstraintSolver, ClueValueGenerator, KnownClueDict
 
 
 class MyString(str):
@@ -56,7 +56,8 @@ PRODUCT_LIST = build_sequence_list(operator.mul)
 SUM_LIST = build_sequence_list(operator.add)
 
 
-def get_down_generator(brackets: int | None = None, item: int | None = None) -> ClueValueGenerator:
+def get_down_generator(brackets: int | None = None, item: int | None = None
+                       ) -> ClueValueGenerator:
     def generator(clue: Clue) -> Iterator[str]:
         length = clue.length
         for value in SUM_LIST.irange(10 ** (length - 1), 10 ** length - 1):
@@ -91,6 +92,7 @@ def across_generator_7a(_clue: Clue) -> Iterator[MyString]:
     return (MyString(value, start, end)
             for value in SortedSet(inner(0, 1, 5))
             for start, end in PRODUCT_LIST[value])
+
 
 GRID = """
 XXXX.
@@ -138,7 +140,8 @@ class Magpie223 (ConstraintSolver):
         for information, is_across in ((ACROSSES, True), (DOWNS, False)):
             letter = 'a' if is_across else 'd'
             for number, length, generator in information:
-                clue = Clue(f'{number}{letter}', is_across, grid[number - 1], length, generator=generator)
+                clue = Clue(f'{number}{letter}', is_across,
+                            grid[number - 1], length, generator=generator)
                 clues.append(clue)
         return clues
 
@@ -150,13 +153,15 @@ class Magpie223 (ConstraintSolver):
             if clue1.is_across and clue2.is_across:
                 self.add_constraint((clue1, clue2), different_length)
 
-    def plot_board(self, clue_values: dict[Clue, ClueValue] | None = None, **more_args: Any) -> None:
-        special = int(clue_values[self.clue_named('3d')])
-        sequences = len(SUM_LIST[special])
-        subtext = f'[{sequences}]'
-        super().plot_board(clue_values, subtext=subtext, **more_args)
+    def plot_board(self, clue_values: KnownClueDict | None = None, **more_args: Any
+                   ) -> None:
+        if clue_values is not None:
+            special = int(clue_values[self.clue_named('3d')])
+            sequences = len(SUM_LIST[special])
+            subtext = f'[{sequences}]'
+            more_args['subtext'] = subtext
+        super().plot_board(clue_values, **more_args)
 
 
 if __name__ == '__main__':
     Magpie223.run()
-

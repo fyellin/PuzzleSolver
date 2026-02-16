@@ -5,14 +5,14 @@ is_zero_allowed:    This puzzle doesn't allow 0 in any intersection
 
 from collections.abc import Sequence, Iterable
 
-from solver import Clue, Clues, Location, Letter, EquationSolver
+from solver import Clue, Clues, KnownLetterDict, Location, EquationSolver
 
 
 class MySolver(EquationSolver):
     def __init__(self, clue_list: Sequence[Clue]):
         super().__init__(clue_list, items=list(range(1, 10)))
 
-    def get_letter_values(self, known_letters: dict[Letter, int], letters: Sequence[str]) -> Iterable[Sequence[int]]:
+    def get_letter_values(self, known_letters: KnownLetterDict, letters: Sequence[str]) -> Iterable[Sequence[int]]:
         return self.get_letter_values_with_duplicates(known_letters, len(letters), 2)
 
     def get_allowed_regexp(self, location: Location) -> str:

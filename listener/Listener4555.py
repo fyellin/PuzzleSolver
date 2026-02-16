@@ -6,7 +6,7 @@ import functools
 import itertools
 from collections.abc import Callable, Iterable, Sequence
 
-from solver import Clue, ClueValue, ClueValueGenerator
+from solver import Clue, ClueValueGenerator, KnownClueDict
 from solver import ConstraintSolver, Location
 from solver import generators
 
@@ -180,7 +180,7 @@ class MySolver(ConstraintSolver):
         else:
             return super().get_allowed_regexp(location)
 
-    def check_solution(self, known_clues: dict[Clue, ClueValue]) -> bool:
+    def check_solution(self, known_clues: KnownClueDict) -> bool:
         # A map from locations to the value in that location.
         board = {location: value for clue, clue_value in known_clues.items()
                  for location, value in zip(clue.locations, clue_value)}

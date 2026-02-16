@@ -3,7 +3,7 @@ import re
 from typing import cast, Any
 from collections.abc import Iterable, Sequence
 
-from solver import Clue, ClueValueGenerator, ClueValue, ConstraintSolver
+from solver import Clue, ClueValueGenerator, ClueValue, ConstraintSolver, KnownClueDict
 from solver import generators
 
 ACROSS = """
@@ -123,7 +123,7 @@ class MySolver(ConstraintSolver):
             return False
         return True
 
-    def show_solution(self, known_clues: dict[Clue, ClueValue]) -> None:
+    def show_solution(self, known_clues: KnownClueDict) -> None:
         super().show_solution(known_clues)
         for clue in self._clue_list:
             value = cast(MyString, known_clues[clue])

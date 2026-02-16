@@ -2,7 +2,7 @@ import re
 from os.path import commonprefix
 from collections.abc import Callable, Sequence
 
-from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
+from solver import Clue, Location, Clues, ConstraintSolver, Intersection, Letter
 from solver import EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
@@ -77,7 +77,7 @@ class OuterSolver(EquationSolver):
     # We override that pattern so that the only thing it checks is whether the answer is the right length.  We are
     # not concerned with intersections.  The actual clue answer must be either one or two less than the clue length.
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
-            Callable[[dict[Clue, ClueValue]], re.Pattern[str]]:
+            Callable[[KnownClueDict], re.Pattern[str]]:
         length = clue.length
         regexp = f'.{{{length - 2},{length - 1}}}'
         pattern = re.compile(regexp)
