@@ -1,8 +1,9 @@
+from typing import Any
+
 import math
-from collections import defaultdict, deque
-from collections.abc import Sequence
+from collections import defaultdict
+from collections.abc import Sequence, Iterable
 from functools import cache
-from typing import Any, Deque, Iterable
 
 from misc.Tester import FastDijkstra, State
 from solver import Clue, Clues, ConstraintSolver, generators, Constraint

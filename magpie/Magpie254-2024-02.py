@@ -1,7 +1,7 @@
 from time import time
 from itertools import combinations, groupby, product
 from math import comb
-from typing import Callable
+from collections.abc import Callable
 
 from matplotlib import pyplot as plt
 

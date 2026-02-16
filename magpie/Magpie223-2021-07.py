@@ -1,7 +1,9 @@
 import itertools
 import operator
 from collections import defaultdict
-from typing import Sequence, Any, Iterator, Dict, Optional, Callable, Iterable
+from collections.abc import Sequence, Iterator, Iterable, Callable
+
+from typing import Any
 
 from sortedcontainers import SortedDict, SortedSet
 
@@ -54,7 +56,7 @@ PRODUCT_LIST = build_sequence_list(operator.mul)
 SUM_LIST = build_sequence_list(operator.add)
 
 
-def get_down_generator(brackets: Optional[int] = None, item: Optional[int] = None) -> ClueValueGenerator:
+def get_down_generator(brackets: int | None = None, item: int | None = None) -> ClueValueGenerator:
     def generator(clue: Clue) -> Iterator[str]:
         length = clue.length
         for value in SUM_LIST.irange(10 ** (length - 1), 10 ** length - 1):
@@ -148,11 +150,11 @@ class Magpie223 (ConstraintSolver):
             if clue1.is_across and clue2.is_across:
                 self.add_constraint((clue1, clue2), different_length)
 
-    def plot_board(self, clue_values: Optional[Dict[Clue, ClueValue]] = None, **more_args: Any) -> None:
+    def plot_board(self, clue_values: dict[Clue, ClueValue] | None = None, **more_args: Any) -> None:
         special = int(clue_values[self.clue_named('3d')])
         sequences = len(SUM_LIST[special])
         subtext = f'[{sequences}]'
-        super().plot_board(clue_values, subtext=subtext)
+        super().plot_board(clue_values, subtext=subtext, **more_args)
 
 
 if __name__ == '__main__':

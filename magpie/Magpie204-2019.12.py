@@ -1,6 +1,6 @@
 import functools
 import itertools
-from typing import Sequence, List, Tuple, Set, Iterable, Optional
+from collections.abc import Sequence, Iterable
 
 from matplotlib import pyplot as plt
 
@@ -61,11 +61,11 @@ def create_all_grids() -> Sequence["Solver204"]:
 
 class Solver204(ConstraintSolver):
     grid: str
-    _answers: List[Tuple[Tuple[str, ...], str, str]]
+    _answers: list[tuple[tuple[str, ...], str, str]]
 
     @staticmethod
     def create(length_1a: int, length_4a: int, length_5a: int, length_2d: int, length_3d: int,
-               location_5a: Location, grid: Optional[str] = None) -> "Solver204":
+               location_5a: Location, grid: str | None = None) -> "Solver204":
         clues = [
             Clue('1a', True, (1, 1), length_1a, generator=GENERATOR_1a),
             Clue('4a', True, (2, 1), length_4a, generator=GENERATOR_4a),
@@ -115,7 +115,7 @@ class Solver204(ConstraintSolver):
         count = values.count(values[0])
         return count == 2
 
-    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int:
+    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: int | None = None) -> int:
         self._answers = []
         return super().solve(show_time=False, debug=debug, max_debug_depth=max_debug_depth)
 
@@ -135,10 +135,10 @@ class Solver204(ConstraintSolver):
         missing = next(x for x in "0123456789" if x not in grid_fill)
         self._answers.append((values, grid_fill, missing))
 
-    def values_to_known_clue_dict(self, values: Tuple[str, ...]) -> KnownClueDict:
+    def values_to_known_clue_dict(self, values: tuple[str, ...]) -> KnownClueDict:
         return {clue: ClueValue(value) for clue, value in zip(self._clue_list, values)}
 
-    def get_answers(self) -> List[Tuple[Tuple[str, ...], str, str]]:
+    def get_answers(self) -> list[tuple[tuple[str, ...], str, str]]:
         return self._answers
 
     def __repr__(self) -> str:
@@ -147,7 +147,7 @@ class Solver204(ConstraintSolver):
 
 def run() -> None:
     all_constraints = {}
-    all_values: Set[str] = set()
+    all_values: set[str] = set()
     for grid in range(1, 10):
         solver = Solver204.create_for_grid(grid)
         solver.solve(debug=False)
@@ -171,7 +171,7 @@ def run() -> None:
     dancing_links.solve(recursive=True)
 
 
-def my_row_printer(constraint_names: Sequence[Tuple[Solver204, Tuple[str, ...]]]) -> None:
+def my_row_printer(constraint_names: Sequence[tuple[Solver204, tuple[str, ...]]]) -> None:
     print(constraint_names)
     figure, axes = plt.subplots(4, 3, figsize=(8, 11), dpi=100, gridspec_kw={'wspace': .05, 'hspace': .05})
 

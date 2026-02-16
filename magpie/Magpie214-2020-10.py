@@ -1,5 +1,5 @@
 import math
-from typing import Sequence
+from collections.abc import Sequence
 
 from misc.factors import factor_sum, factor_count, shared_factor_count, odd_factor_count, even_factor_count
 from solver import generators, ConstraintSolver, Clues, Clue

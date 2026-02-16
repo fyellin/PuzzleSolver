@@ -1,6 +1,6 @@
 import itertools
 from collections import defaultdict, Counter
-from typing import Dict, Tuple, List, Sequence, Iterator, Callable, FrozenSet
+from collections.abc import Sequence, Iterator, Callable
 
 from solver import Clues, ConstraintSolver, Clue, generators, ClueValue, KnownClueDict
 
@@ -10,8 +10,8 @@ def is_harshad(value: int) -> bool:
     return value % sum(digits) == 0
 
 
-def create_harshard_table() -> Dict[Tuple[str, str], List[int]]:
-    table: Dict[Tuple[str, str], List[int]] = defaultdict(list)
+def create_harshard_table() -> dict[tuple[str, str], list[int]]:
+    table: dict[tuple[str, str], list[int]] = defaultdict(list)
     for value in (x for x in range(100, 1000) if is_harshad(x)):
         temp = str(value)
         key = (temp[0], temp[2])
@@ -19,7 +19,7 @@ def create_harshard_table() -> Dict[Tuple[str, str], List[int]]:
     return table
 
 
-def create_solving_table() -> Iterator[Tuple[int, int, List[List[int]]]]:
+def create_solving_table() -> Iterator[tuple[int, int, list[list[int]]]]:
     count = 0
     table = create_harshard_table()
     for start in range(100, 500):
@@ -48,8 +48,8 @@ X..X..
 
 
 class Solver207(ConstraintSolver):
-    start_to_harshards: Dict[Tuple[int, int], List[List[int]]]
-    start_to_harshard_set: Dict[Tuple[int, int], FrozenSet[int]]
+    start_to_harshards: dict[tuple[int, int], list[list[int]]]
+    start_to_harshard_set: dict[tuple[int, int], frozenset[int]]
 
     @staticmethod
     def run() -> None:

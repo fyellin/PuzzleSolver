@@ -1,11 +1,10 @@
 import functools
 import math
 import operator
-from typing import Sequence, Tuple, Iterator
-
+from collections.abc import Iterable, Sequence
 
 @functools.cache
-def prime_factors(value: int) -> Sequence[Tuple[int, int]]:
+def prime_factors(value: int) -> Sequence[tuple[int, int]]:
     from misc.primes import PRIMES
     result = []
     for prime in PRIMES:
@@ -86,7 +85,7 @@ def even_factor_count(value: int) -> int:
     return 0 if count == 0 else count * factor_count(value)
 
 
-def product(values: Iterator[int]) -> int:
+def product(values: Iterable[int]) -> int:
     return functools.reduce(operator.mul, values, 1)
 
 superscript_mapping = str.maketrans({

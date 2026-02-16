@@ -1,5 +1,4 @@
 from collections.abc import Sequence, Mapping
-from typing import Optional
 
 from solver.playfair_constraints import ConstraintsGenerator, ConstraintRow
 
@@ -29,7 +28,7 @@ class PlayfairSolver(object):
 
     def solve(self, *, debug: bool = False) -> Sequence[ConstraintRow]:
 
-        def fill_in_tail(row: ConstraintRow) -> Optional[ConstraintRow]:
+        def fill_in_tail(row: ConstraintRow) -> ConstraintRow | None:
             return row.fill_in_tail(self.tail_length)
 
         constraints = self.constraints_generator.generate_all_constraints()

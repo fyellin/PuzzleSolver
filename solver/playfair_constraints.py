@@ -1,6 +1,6 @@
 import itertools
 from collections.abc import Sequence
-from typing import Optional, Any
+from typing import Any
 
 
 class ConstraintsGenerator:
@@ -34,7 +34,8 @@ class ConstraintsGenerator:
         return result
 
     @staticmethod
-    def generate_one_encryption_constraint(p0: str, p1: str, c0: str, c1: str) -> Optional[Sequence['ConstraintRow']]:
+    def generate_one_encryption_constraint(p0: str, p1: str, c0: str, c1: str
+                                           ) -> Sequence['ConstraintRow'] | None:
         if p0 == '.' and p1 == '.':
             return None
         if c0 == '.' and c1 == '.':
@@ -132,7 +133,7 @@ class ConstraintRow (object):
     def missing_letters(self) -> set[str]:
         return set(self.ALL_LETTERS).difference(list(self._letter_to_location.keys()))
 
-    def fill_in_tail(self, sorted_tail_length: int) -> Optional['ConstraintRow']:
+    def fill_in_tail(self, sorted_tail_length: int) -> 'ConstraintRow | None':
         string = list(self._flat)
         unused_letters = self.missing_letters()
 

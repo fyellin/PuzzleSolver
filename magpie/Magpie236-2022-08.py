@@ -1,6 +1,7 @@
 import math
 import re
-from typing import Any, Dict, Sequence, Tuple, Union
+from typing import Any
+from collections.abc import Sequence
 
 from matplotlib import pyplot as plt
 
@@ -111,8 +112,8 @@ class Solver236(EquationSolver):
         return clues
 
     def draw_grid(self, *,
-                  location_to_entry: Dict[Location, str],
-                  location_to_clue_numbers: Dict[Location, Sequence[str]],
+                  location_to_entry: dict[Location, str],
+                  location_to_clue_numbers: dict[Location, Sequence[str]],
                   shading: dict[Location, str] = None,
                   **args: Any) -> None:
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
@@ -122,7 +123,8 @@ class Solver236(EquationSolver):
         axes.set_aspect(aspect_ratio)
         axes.axis('off')
 
-        def draw_heavy(row, column, where: Union[str, Tuple[str, str]], color: str = 'black'):
+        def draw_heavy(row, column, where: str | tuple[str, str], color: str = 'black'
+                       ) -> None:
             is_point_up = column % 2 == 0
             point_row, flat_row = (row, row + 1) if is_point_up else (row + 1, row)
             center_x = (1 + row + column) / 2.0

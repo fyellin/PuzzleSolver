@@ -1,7 +1,8 @@
 import itertools
 import re
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
+from collections.abc import Iterable
 
 import math
 

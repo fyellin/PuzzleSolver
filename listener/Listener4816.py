@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Optional
+from typing import Any
 
 from solver import Clue, ClueValue, Clues, EquationSolver
 
@@ -70,7 +70,7 @@ class Listener4816(EquationSolver):
         clues = Clues.create_from_text(ACROSS, DOWN, grid)
         return clues
 
-    def plot_board(self, clue_values: Optional[dict[Clue, ClueValue]] = None,
+    def plot_board(self, clue_values: dict[Clue, ClueValue] | None = None,
                    **more_args: Any) -> None:
         table = str.maketrans("123456789", "ottffssen".upper())
         if clue_values is not None:

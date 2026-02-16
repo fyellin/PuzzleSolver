@@ -4,7 +4,8 @@ import math
 import operator
 from collections import Counter
 from fractions import Fraction
-from typing import Any, Iterable, Sequence, Tuple
+from typing import Any
+from collections.abc import Sequence, Iterable
 
 from misc.primes import PRIMES, PRIMES_LIMIT
 
@@ -40,7 +41,7 @@ def number_to_word(x):
 CARD_VALUES = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10,
                 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
 
-def get_poker_value(cards: Sequence[str]) -> Tuple[int, Sequence[Tuple[int, int]]]:
+def get_poker_value(cards: Sequence[str]) -> tuple[int, Sequence[tuple[int, int]]]:
     is_flush = len({card[1] for card in cards}) == 1
     values = Counter(CARD_VALUES[card[0]] for card in cards)
     sorted_cards = sorted(((count, value) for value, count in values.items()), reverse=True)
@@ -57,7 +58,7 @@ def get_poker_value(cards: Sequence[str]) -> Tuple[int, Sequence[Tuple[int, int]
     else:
         return (25 - len(sorted_cards), sorted_cards)
 
-def prime_factors(value: int) -> Sequence[Tuple[int, int]]:
+def prime_factors(value: int) -> Sequence[tuple[int, int]]:
     # 21033 is incorrect
     from misc.primes import PRIMES
     result = []
@@ -114,7 +115,7 @@ def continued_fraction_sqrt(n: int) -> Iterable[int]:
             cache[old_a, old_b] = digit, a, b
         yield digit
 
-def convergents(fraction) -> Iterable[Tuple[int, int]]:
+def convergents(fraction) -> Iterable[tuple[int, int]]:
     n, d = next(fraction), 1
     yield n, d
 

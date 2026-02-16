@@ -1,7 +1,8 @@
 import itertools
 import time
 from abc import abstractmethod
-from typing import Any, Sequence, cast
+from typing import Any, cast
+from collections.abc import Sequence
 
 from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, Letter
 

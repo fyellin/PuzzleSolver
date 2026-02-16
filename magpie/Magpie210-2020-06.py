@@ -1,5 +1,6 @@
 import itertools
-from typing import Sequence, List, Set, Iterator, Callable, Union, Dict, Any
+from typing import Any
+from collections.abc import Iterator, Sequence, Callable
 
 from solver import Clue, ConstraintSolver, ClueValue, Location, ClueValueGenerator
 from solver import generators, KnownClueDict
@@ -8,7 +9,7 @@ squares = set(itertools.takewhile(lambda x: x < 1000, (x**2 for x in itertools.c
 triangles = set(itertools.takewhile(lambda x: x < 1000, (x * (x + 1) // 2 for x in itertools.count())))
 
 
-def digit_sum(value: Union[int, str]) -> int:
+def digit_sum(value: int | str) -> int:
     return sum(int(x) for x in str(value))
 
 
@@ -27,11 +28,11 @@ def is_fibonacci(x: int) -> bool:
 
 
 class Solver210(ConstraintSolver):
-    solutions: List[KnownClueDict]
+    solutions: list[KnownClueDict]
 
     @staticmethod
     def run() -> None:
-        exclusions: Set[int] = set()
+        exclusions: set[int] = set()
         solver1 = Solver210('a', exclusions)
         solver1.solve()
         exclusions.update(int(x) for x in solver1.solutions[0].values())
@@ -68,7 +69,7 @@ class Solver210(ConstraintSolver):
         known_clues = {solver.clue_named(name): ClueValue(value) for (name, value) in answers}
         solver.plot_board(known_clues)
 
-    def __init__(self, which: str, exclusions: Set[int]) -> None:
+    def __init__(self, which: str, exclusions: set[int]) -> None:
         clue_list = self.make_clue_list(which, exclusions)
         super(Solver210, self).__init__(clue_list)
         self.add_constraints(which)
@@ -106,7 +107,7 @@ class Solver210(ConstraintSolver):
             vars_for_d = [first + "D"] + [var + "C" for var in rest]
             self.add_constraint(vars_for_d, predicate)
 
-    def make_clue_list(self, which: str, exclusions: Set[int]) -> List[Clue]:
+    def make_clue_list(self, which: str, exclusions: set[int]) -> list[Clue]:
         temp = (
             (1,  True, (1, 1), 3, tuple(range(7, 1000, 7))),
             (4,  True, (1, 4), 2, None),
@@ -135,7 +136,7 @@ class Solver210(ConstraintSolver):
             generator = generators.known(*values) if values else generators.allvalues
 
             def parity_generator(generator:ClueValueGenerator, parity: int) -> ClueValueGenerator:
-                def new_generator(clue: Clue) -> Iterator[Union[int, str]]:
+                def new_generator(clue: Clue) -> Iterator[int | str]:
                     for x in generator(clue):
                         if int(x) % 2 == parity and int(x) not in exclusions:
                             yield x
@@ -161,7 +162,7 @@ class Solver210(ConstraintSolver):
         super().show_solution(known_clues)
 
     def draw_grid(self, **args: Any) -> None:
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
         location_to_entry[3,3] = 'A'
         location_to_entry[3,9] = 'B'
         location_to_entry[9,3] = 'C'

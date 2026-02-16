@@ -1,7 +1,7 @@
 import random
 import re
 from datetime import datetime
-from typing import Sequence, Dict, Set, Optional, Pattern
+from collections.abc import Sequence
 
 from solver import BaseSolver
 from solver import Clue, Clues, ClueValue, Letter
@@ -97,7 +97,7 @@ def make_expressions() -> Sequence[Clue]:
 
 class Magpie017Solver(BaseSolver):
     expressions: Sequence[Clue]
-    missing_variables: Dict[Clue, Set[Letter]]
+    missing_variables: dict[Clue, set[Letter]]
     step_count: int
     solution_count: int
     debug: bool
@@ -112,7 +112,7 @@ class Magpie017Solver(BaseSolver):
             for clue in self.expressions for (_, evaluator_vars) in clue.evaluators
         }
 
-    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: Optional[int] = None) -> int:
+    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: int | None = None) -> int:
         self.step_count = 0
         self.solution_count = 0
         self.debug = debug
@@ -123,7 +123,7 @@ class Magpie017Solver(BaseSolver):
             print(f'Solutions { self.solution_count}; Steps: {self.step_count};  {time2 - time1}')
         return self.solution_count
 
-    def __solve(self, known_clues: Dict[Clue, ClueValue], known_letters: Dict[Letter, int]) -> None:
+    def __solve(self, known_clues: dict[Clue, ClueValue], known_letters: dict[Letter, int]) -> None:
         depth = len(known_letters)
         if len(known_letters) == 25:
             self.show_solution(known_clues, known_letters)
@@ -138,7 +138,7 @@ class Magpie017Solver(BaseSolver):
         clue_to_pattern = {clue: self.make_runtime_pattern(clue, known_clues)
                            for clue in clues_to_try}
 
-        def get_value_if_fits(expression: Clue, clue: Clue) -> Optional[ClueValue]:
+        def get_value_if_fits(expression: Clue, clue: Clue) -> ClueValue | None:
             known_letters[Letter(expression.name)] = int(clue.name)
             evaluator = expression.evaluators[0]
             value = evaluator(known_letters)
@@ -168,10 +168,10 @@ class Magpie017Solver(BaseSolver):
             del known_letters[Letter(expression.name)]
             del known_clues[clue]
 
-    def show_solution(self, known_clues: Dict[Clue, ClueValue], known_letters: Dict[Letter, int]) -> None:
+    def show_solution(self, known_clues: dict[Clue, ClueValue], known_letters: dict[Letter, int]) -> None:
         EquationSolver(self._clue_list).show_solution(known_clues, known_letters)
 
-    def make_runtime_pattern(self, clue: Clue, known_clues: Dict[Clue, ClueValue]) -> Pattern[str]:
+    def make_runtime_pattern(self, clue: Clue, known_clues: dict[Clue, ClueValue]) -> re.Pattern[str]:
         pattern_list = [self.get_allowed_regexp(location) for location in clue.locations]
         pattern_list.append('$')
         for other_clue, other_clue_value in known_clues.items():

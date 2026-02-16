@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Sequence
 from re import Pattern
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 from .base_solver import BaseSolver
 from .clue import Clue
@@ -64,7 +64,7 @@ class Intersection(NamedTuple):
 
         # {0}, {1}, etc represent the order the items appear in the  "intersections" argument, not necessarily
         # the order that they appear in the pattern.  format can handle that.
-        seen_list: list[Optional[Intersection]] = [None] * clue.length
+        seen_list: list[Intersection | None] = [None] * clue.length
         for i, intersection in enumerate(intersections):
             square_seen_already = seen_list[intersection.this_index]
             if not square_seen_already:

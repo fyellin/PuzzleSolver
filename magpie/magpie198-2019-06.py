@@ -1,7 +1,6 @@
 import collections
 import itertools
 from enum import Enum
-from typing import Optional
 from collections.abc import Iterable, Sequence
 
 from solver import Clue, ClueValueGenerator, Location, ClueValue, ConstraintSolver
@@ -38,7 +37,7 @@ def create_to_type_dict() -> dict[str, AnswerType]:
 TO_TYPE_DICT = create_to_type_dict()
 
 
-def make(name: str, base_location: Location, length: int, generator: Optional[ClueValueGenerator]) -> Clue:
+def make(name: str, base_location: Location, length: int, generator: ClueValueGenerator | None) -> Clue:
     return Clue(name, name[0] == 'A', base_location, length, generator=generator)
 
 

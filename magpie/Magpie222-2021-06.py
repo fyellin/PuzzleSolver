@@ -1,5 +1,6 @@
 import itertools
-from typing import Sequence, Iterator, Callable, Any
+from typing import Any
+from collections.abc import Sequence, Iterator, Callable
 
 from solver import Clue, generators, Clues, ConstraintSolver, KnownClueDict
 
@@ -123,7 +124,7 @@ class Magpie221 (ConstraintSolver):
             super().show_solution(known_clues)
 
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid_old(self, **args: Any) -> None:
         color_map = plt.rcParams['axes.prop_cycle'].by_key()['color']
         color_map = [x + '60' for x in color_map]
         colors = COLORS.strip().splitlines()

@@ -3,7 +3,8 @@ from __future__ import annotations
 import string
 from functools import cache
 from itertools import combinations, count
-from typing import Protocol, Sequence
+from typing import Protocol
+from collections.abc import Sequence
 
 import math
 
