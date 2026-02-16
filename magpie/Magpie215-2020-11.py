@@ -3,14 +3,14 @@ import functools
 import itertools
 import math
 import operator
-from typing import Sequence, Tuple, Iterator
+from collections.abc import Sequence, Iterator
 
 from solver import generators, ConstraintSolver, Clues, Clue, KnownClueDict
 from solver.generators import allvalues
 
 
 @functools.lru_cache(None)
-def prime_factors(value: int) -> Sequence[Tuple[int, int]]:
+def prime_factors(value: int) -> Sequence[tuple[int, int]]:
     # 21033 is incorrect
     from misc.primes import PRIMES
     result = []

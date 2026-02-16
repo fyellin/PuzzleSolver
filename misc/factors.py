@@ -1,11 +1,10 @@
 import functools
 import math
 import operator
-from typing import Sequence, Tuple, Iterator
-
+from collections.abc import Sequence, Iterator
 
 @functools.cache
-def prime_factors(value: int) -> Sequence[Tuple[int, int]]:
+def prime_factors(value: int) -> Sequence[tuple[int, int]]:
     from misc.primes import PRIMES
     result = []
     for prime in PRIMES:

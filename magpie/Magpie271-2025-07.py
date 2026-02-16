@@ -2,7 +2,7 @@ import itertools
 import math
 import time
 from collections import defaultdict
-from typing import Sequence
+from collections.abc import Sequence
 
 from solver import ClueValue, Clues, EquationSolver, Evaluator, Letter
 

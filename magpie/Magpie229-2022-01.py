@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Iterator, Sequence
-from typing import Any, Union
+from typing import Any
 
 from misc.primes import PRIMES
 from solver import Clue, ClueValue, Clues, ConstraintSolver, generators, Constraint
@@ -27,10 +27,10 @@ class TaggedString(str):
     def __str__(self) -> str:
         return f'{self.tag}.{self.value}'
 
-    def __new__(cls, value: Union[int, str], tag: int) -> Any:
+    def __new__(cls, value: int | str, tag: int) -> Any:
         return super().__new__(cls, value)  # type: ignore
 
-    def __init__(self, value: Union[int, str], tag: int) -> None:
+    def __init__(self, value: int | str, tag: int) -> None:
         super().__init__()
         self.value = str(value)
         self.tag = tag

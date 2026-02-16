@@ -1,6 +1,7 @@
 import itertools
 import math
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 from solver import Clue, Clues, ConstraintSolver, generators
 

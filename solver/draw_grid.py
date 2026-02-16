@@ -1,5 +1,5 @@
 from collections.abc import Sequence, Callable
-from typing import Any, cast, Optional
+from typing import Any, cast
 from itertools import product
 
 from matplotlib import pyplot as plt, patches
@@ -9,7 +9,7 @@ from .clue_types import Location
 
 
 def draw_grid(*, max_row: int, max_column: int,
-              clued_locations: Optional[set[Location]] = None,
+              clued_locations: set[Location] | None = None,
               location_to_entry: dict[Location, str] = None,
               location_to_clue_numbers: dict[Location, Sequence[str]] = None,
               top_bars: set[Location] = frozenset(),
@@ -18,10 +18,10 @@ def draw_grid(*, max_row: int, max_column: int,
               coloring: dict[Location, str] = None,
               rotation: dict[Location, str] = None,
               circles: set[Location] = frozenset(),
-              subtext: Optional[str] = None,
+              subtext: str | None = None,
               font_multiplier: float = 1.0,
               blacken_unused: bool = True,
-              file: Optional[str] = None,
+              file: str | None = None,
               grid_drawer: Callable[[plt, Axes], None] = None,
               extra: Callable[[plt, Axes], None] = None,
               **args: Any) -> None:

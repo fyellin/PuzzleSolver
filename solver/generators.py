@@ -3,7 +3,6 @@ from __future__ import annotations
 import itertools
 import math
 from collections.abc import Callable, Generator, Iterator, Iterable, Sequence
-from typing import Union
 
 from .clue import Clue
 
@@ -90,7 +89,7 @@ def _prime_not_prime(clue: Clue) -> Iterator[tuple[int, bool]]:
         yield p, all(p % factor != 0 for factor in factors)
 
 
-def known(*values: Union[int, str]) -> Callable[[Clue], Iterable[Union[int, str]]]:
+def known(*values: [int | str]) -> Callable[[Clue], Iterable[int | str]]:
     """Returns a fixed set of already known values"""
     return lambda _: values
 

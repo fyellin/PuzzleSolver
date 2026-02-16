@@ -1,4 +1,5 @@
-from typing import Dict, Set, Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 from solver import Clue, Clues, Location, EquationSolver
 
@@ -63,7 +64,7 @@ X...X..X...
 
 class MySolver(EquationSolver):
     def draw_grid(self, **args: Any) -> None:
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
         args['shading'] = {
             location: 'lightblue' for (location, value) in location_to_entry.items() if value in '378'
         }

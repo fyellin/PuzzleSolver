@@ -1,12 +1,12 @@
 import itertools
-from typing import Sequence, List, Dict, Tuple, Optional, Iterable, Iterator, Union
+from collections.abc import Sequence, Iterable, Iterator
 
 from solver import Clue, ConstraintSolver, ClueValueGenerator, KnownClueDict
 from solver import generators
 
 
 class Solver212(ConstraintSolver):
-    solutions: List[KnownClueDict]
+    solutions: list[KnownClueDict]
 
     def __init__(self, clue_list: Sequence[Clue]) -> None:
         super().__init__(clue_list)
@@ -31,8 +31,8 @@ class Solver212(ConstraintSolver):
         possibilities = ((3, 3), (2, 2, 2), (1, 2, 3), (1, 3, 2), (3, 1, 2), (3, 2, 1), (2, 1, 3), (2, 3, 1),
                          (1, 2, 1, 2), (2, 1, 2, 1), (1, 2, 2, 1))
         for rows in itertools.product(possibilities, repeat=3):
-            acrosses: Dict[Tuple[int, int], int] = {}
-            downs: Dict[Tuple[int, int], int] = {}
+            acrosses: dict[tuple[int, int], int] = {}
+            downs: dict[tuple[int, int], int] = {}
             for row, lengths in enumerate(rows, start=1):
                 column = 1
                 for length in lengths:
@@ -55,8 +55,8 @@ class Solver212(ConstraintSolver):
         return ()
 
     @staticmethod
-    def verify_is_legal_grid(acrosses: Dict[Tuple[int, int], int], downs: Dict[Tuple[int, int], int]) \
-            -> Optional[Dict[int, Tuple[int, int]]]:
+    def verify_is_legal_grid(acrosses: dict[tuple[int, int], int], downs: dict[tuple[int, int], int]) \
+            -> dict[int, tuple[int, int]] | None:
         clue_starts = set(acrosses.keys()).union(downs.keys())
         number_to_clue_start = {number: clue_start for number, clue_start in enumerate(sorted(clue_starts), start=1)}
         for number, clue_start in number_to_clue_start.items():
@@ -79,7 +79,7 @@ class Solver212(ConstraintSolver):
         else:
             base_generator = generators.allvalues
 
-        def result(clue: Clue) -> Iterable[Union[str, int]]:
+        def result(clue: Clue) -> Iterable[str | int]:
             for value in base_generator(clue):
                 split = list(str(value))
                 if clue.is_across:

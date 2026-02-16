@@ -3,10 +3,9 @@ import io
 import itertools
 import multiprocessing
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import datetime
 from fractions import Fraction
-from typing import Sequence
 
 import math
 

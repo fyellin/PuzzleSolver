@@ -1,6 +1,7 @@
 import itertools
 from collections import defaultdict
-from typing import Iterable, Sequence, Dict, Any, Set, Iterator, Callable, Optional, Tuple, List
+from collections.abc import Iterable, Iterator, Sequence, Callable
+from typing import Any
 
 from solver import Clue, Clues, ClueValueGenerator, ClueValue, ConstraintSolver, Location, generators
 
@@ -66,11 +67,11 @@ def max_prime_factor(value: int) -> int:
 
 # 4a: Sum of first four digits is a square; sum of last four digits is a square; digit sum is a palindrome
 def handle_4a(_: Clue) -> Iterable[str]:
-    sum_of_four: Dict[int, List[str]] = defaultdict(list)
+    sum_of_four: dict[int, list[str]] = defaultdict(list)
     for i, j, k, l in itertools.product(range(16), repeat=4):
         if i + j + k + l in SQUARES:
             sum_of_four[i + j + k + l].append(ix(i) + ix(j) + ix(k) + ix(l))
-    result: List[str] = []
+    result: list[str] = []
     for a in sorted(sum_of_four.keys()):
         for b in sorted(sum_of_four.keys()):
             if (a + b) % 17 == 0:
@@ -123,7 +124,7 @@ def reverse_delta(delta: int) -> Callable[[ClueValue, ClueValue], bool]:
     return lambda x, y: x == ix(xi(y) + delta)[::-1]
 
 
-ACROSS: Sequence[Tuple[str, int, Optional[ClueValueGenerator]]] = (
+ACROSS: Sequence[tuple[str, int, ClueValueGenerator | None]] = (
     ('4', 8, handle_4a),
     ('A', 4, None),
     # Ca: Twice a cube.
@@ -135,7 +136,7 @@ ACROSS: Sequence[Tuple[str, int, Optional[ClueValueGenerator]]] = (
     ('17', 5, None),
 )
 
-DOWN: Sequence[Tuple[str, int, Optional[ClueValueGenerator]]] = (
+DOWN: Sequence[tuple[str, int, ClueValueGenerator | None]] = (
     # 1d: Has two cubed as a factor; ....
     ('1', 2, fixed(range(0x10, 0xFF, 8))),
     # 2d: Digit sum is a cube; largest prime factor is the difference between two cubes.
@@ -225,7 +226,7 @@ class MySolver(ConstraintSolver):
         args['location_to_clue_numbers'] = {clue.base_location: [clue.name[0:-1]] for clue in self._clue_list}
         super().draw_grid(**args)
 
-        location_to_entry: Dict[Location, str] = args['location_to_entry']
+        location_to_entry: dict[Location, str] = args['location_to_entry']
         location_to_entry = {location: 'BYGADMORPHICNETS'[int(value, 16)]
                              for location, value in location_to_entry.items()}
         args['location_to_entry'] = location_to_entry

@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Hashable, Sequence
 from datetime import datetime
 from functools import cache
-from typing import Any, Callable, Final, Optional
+from typing import Any, Callable, Final
 
 import math
 
@@ -23,10 +23,10 @@ type DLConstraint = str | tuple[str, str]
 class DancingLinks[Row: Hashable]:
     constraints: dict[Row, list[DLConstraint]]
     optional_constraints: set[str]
-    row_printer: Optional[Callable[[Sequence[Row]], None]]
+    row_printer: Callable[[Sequence[Row]], None] | None
     names: dict[int, str]
     spacer_indices: list[int]
-    memory: list[list[Optional[int]]]
+    memory: list[list[int | None]]
     colors: dict[int, str | _Purified]
     debug: bool
     max_debugging_depth: int
@@ -35,10 +35,10 @@ class DancingLinks[Row: Hashable]:
         self,
         constraints: dict[Row, list[DLConstraint]],
         *,
-        row_printer: Optional[Callable[[Sequence[Row]], None]] = None,
-        optional_constraints: Optional[set[str]] = None,
+        row_printer: Callable[[Sequence[Row]], None] | None = None,
+        optional_constraints: set[str] | None = None,
     ):
-        """The entry to the Dancing Links code.  constraints should be a dictionary.
+        """The entry to the Dancing Links code.  Constraints should be a dictionary.
         Each key is the name of the row (something meaningful to the user).
         The value should be a list/tuple of the row_to_constraints satisfied by this row.
 
@@ -51,7 +51,7 @@ class DancingLinks[Row: Hashable]:
         self.optional_constraints = optional_constraints or set()
         self.row_printer = row_printer or self._default_row_printer
 
-    def solve(self, debug: Optional[int] = 0) -> None:
+    def solve(self, debug: int | None = 0) -> None:
         time1 = datetime.now()
         self.debug = debug is not None
         self.max_debugging_depth = debug if debug is not None else -1
@@ -176,7 +176,7 @@ class DancingLinks[Row: Hashable]:
             while j != row:
                 tt, uu, dd = top[j], up[j], down[j]
                 if tt <= 0:
-                    j = uu  # goto previous spacer
+                    j = uu  # go to previous spacer
                 elif colors.get(j) is not PURIFIED:
                     up[dd], down[uu] = uu, dd
                     lengths[tt] -= 1
@@ -318,7 +318,7 @@ class DancingLinks[Row: Hashable]:
                 if isinstance(item, tuple):
                     item, color = item
                 if (my_top := names_map.get(item)) is None:
-                    # A secondary constraint that only appeared once.  We can ignore.
+                    # A secondary constraint that only appeared once.  We can delete it.
                     continue
                 new_node(my_top)
                 if color:

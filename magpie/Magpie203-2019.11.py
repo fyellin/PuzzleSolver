@@ -1,5 +1,6 @@
 import re
-from typing import Dict, Sequence, List, Iterable, cast
+from typing import cast
+from collections.abc import Sequence, Iterable
 
 from solver import Clue, Clues, EquationSolver, Letter, ClueValue
 from solver import KnownClueDict, KnownLetterDict
@@ -84,7 +85,7 @@ DOWN = """
 
 
 class MySolver(EquationSolver):
-    def get_letter_values(self, known_letters: Dict[Letter, int], letters: Sequence[str]) -> Iterable[Sequence[int]]:
+    def get_letter_values(self, known_letters: dict[Letter, int], letters: Sequence[str]) -> Iterable[Sequence[int]]:
         """
         Returns the values that can be assigned to the next "count" variables.  We know that we have already assigned
         values to the variables indicated in known_letters.
@@ -105,7 +106,7 @@ class MySolver(EquationSolver):
 
 def create_clue_list(alt: bool = False) -> Sequence[Clue]:
     locations = Clues.get_locations_from_grid(GRID)
-    result: List[Clue] = []
+    result: list[Clue] = []
     for lines, is_across, letter in ((ACROSS, True, 'a'), (DOWN, False, 'd')):
         for line in lines.splitlines():
             line = line.strip()

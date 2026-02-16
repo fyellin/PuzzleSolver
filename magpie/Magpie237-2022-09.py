@@ -3,7 +3,8 @@ import itertools
 import re
 from collections import Counter
 from enum import Enum, auto
-from typing import Any, Iterable, Iterator, Optional, Sequence
+from typing import Any
+from collections.abc import Iterator, Iterable, Sequence
 
 from matplotlib.patches import Arc
 
@@ -64,7 +65,7 @@ generators.BASE = 8
 
 @dataclasses.dataclass
 class MyIterator:
-    base: Optional[Iterator[int]] = None
+    base: Iterator[int] | None = None
     multiplier: int = 1
     offset: int = 0
 

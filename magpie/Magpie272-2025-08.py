@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Optional
+from typing import Any
 
 from solver import Clue, ClueValue, Clues, ConstraintSolver, generators
 from solver import AbstractLetterCountHandler
@@ -50,7 +50,7 @@ class Magpie272(ConstraintSolver):
         self.clue_named("4d").generator = generators.triangular
         self.clue_named("11d").generator = generators.triangular
 
-    def plot_board(self, clue_values: Optional[dict[Clue, ClueValue]] = None,
+    def plot_board(self, clue_values: dict[Clue, ClueValue] | None = None,
                    **more_args: Any) -> None:
         shading = {}
         for row, col in itertools.product(range(1, 7), repeat=2):

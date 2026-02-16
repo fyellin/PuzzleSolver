@@ -1,5 +1,6 @@
 import itertools
-from typing import Sequence, Iterator, Callable, Any
+from typing import Any
+from collections.abc import Sequence, Iterator, Callable
 
 from solver import Clue, generators, Clues, ConstraintSolver, KnownClueDict
 

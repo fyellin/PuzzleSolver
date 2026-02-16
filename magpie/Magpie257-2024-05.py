@@ -3,7 +3,8 @@ from collections import defaultdict
 import itertools
 import time
 from operator import itemgetter
-from typing import Any, Callable, Sequence
+from typing import Any
+from collections.abc import Sequence, Callable
 
 from solver import Clue, Clues, ConstraintSolver
 

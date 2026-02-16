@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Iterable
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from solver import ClueValue, Clues, EquationSolver, Evaluator
 
 
 class MultiValue:
     values: set[int]
-    __name: Optional[str]
+    __name: str | None
 
     @staticmethod
     def make(a, b):

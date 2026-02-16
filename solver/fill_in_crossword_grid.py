@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum, IntEnum, auto
 from functools import cache
 from itertools import combinations, pairwise
-from typing import Any, Optional
+from typing import Any
 
 from solver import Clue, DLConstraint, DancingLinks, EquationSolver, Orderer
 
@@ -63,9 +63,9 @@ class FillInCrosswordGridAbstract(ABC):
     def __init__(
         self,
         *,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
-        size: Optional[int] = None,
+        width: int | None = None,
+        height: int | None = None,
+        size: int | None = None,
     ):
         if size is not None:
             self.width = self.height = size
@@ -368,9 +368,9 @@ class FillInCrosswordGrid(FillInCrosswordGridAbstract):
         acrosses: Sequence[tuple[int, Entry]],
         downs: Sequence[tuple[int, Entry]],
         *,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
-        size: Optional[int] = None,
+        width: int | None = None,
+        height: int | None = None,
+        size: int | None = None,
     ):
         self.acrosses = acrosses
         self.downs = downs
@@ -553,9 +553,9 @@ class FillInCrosswordGridMushed(FillInCrosswordGridAbstract):
         self,
         clues: Sequence[tuple[int, str]],
         *,
-        width: Optional[int] = None,
-        height: Optional[int] = None,
-        size: Optional[int] = None,
+        width: int | None = None,
+        height: int | None = None,
+        size: int | None = None,
     ):
         self.clues = clues
         super().__init__(width=width, height=height, size=size)
