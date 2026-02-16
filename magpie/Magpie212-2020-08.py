@@ -1,5 +1,5 @@
 import itertools
-from collections.abc import Sequence, Iterable, Iterator
+from collections.abc import Sequence, Iterable
 
 from solver import Clue, ConstraintSolver, ClueValueGenerator, KnownClueDict
 from solver import generators

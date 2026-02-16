@@ -81,7 +81,7 @@ def draw_grid():
     for ring, letters in enumerate(ROWS, start=1):
         for square, letter in enumerate(letters):
             cos, sin, angle = cossin(square)
-            t = plt.text((8.5 - ring) * cos, (8.5 - ring) * sin, letter.upper(),
+            plt.text((8.5 - ring) * cos, (8.5 - ring) * sin, letter.upper(),
                      verticalalignment='center', horizontalalignment='center',
                      rotation=angle,
                      fontweight='bold', fontsize=15)

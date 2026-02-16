@@ -15,8 +15,6 @@ def get_bcef_g_list():
                 g = f'{temp}'
                 result[bcef].append((g, True))
                 result[g].append((bcef, False))
-    count = sum(len(x) for x in result.values())
-
     return result
 
 CLUES = """
@@ -98,7 +96,6 @@ class Listener4764(ConstraintSolver):
         EquationSolver(self._clue_list).show_letter_values(self.get_letter_values())
 
     def get_clues(self):
-        eq = EquationParser()
         locations = dict(a=(1,2), b=(1,3), c=(1,3), d=(1,4), e=(1,5), f=(1,6), g=(1,7),
                          h=(2,1), i=(3,1), j=(3,1), k=(3,5), m=(3,8), n=(4,1), o=(4,5),
                          p=(5,1), q=(5,3), r=(5,4), s=(5,5), t=(5,5), u=(5,6), v=(6,1),

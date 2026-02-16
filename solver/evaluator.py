@@ -44,7 +44,7 @@ class Evaluator:
         evaluators = []
         for parse in parses:
             variables = cast(Sequence[Letter], sorted(parse.vars()))
-            expression = parse.to_string(mapping_vars, True)
+            expression = parse.to_string(mapping_vars, False)
             code = f"lambda {', '.join(variables)}: {expression}"
             compiled_code = eval(code, my_globals, {})
             evaluators.append(Evaluator(wrapper, compiled_code, expression, variables))

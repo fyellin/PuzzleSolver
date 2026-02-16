@@ -133,7 +133,7 @@ class Magpie246 (ConstraintSolver):
         solver.solve()
         return solutions
 
-    def dancing_links(self):
+    def dancing_links_alt(self):
         chains = self.get_all_chains()
         chains_by_digit = {i: chains.copy() for i in range(1, 7)}
         placed = {}

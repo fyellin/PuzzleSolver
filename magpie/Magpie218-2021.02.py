@@ -1,13 +1,15 @@
 import itertools
 import os
 import pickle
-from functools import lru_cache
-from typing import Dict, Sequence, Iterable, Tuple, Set, ClassVar
+from collections.abc import Sequence, Iterable
+from typing import ClassVar
 
 from cell import House
 from features import PossibilitiesFeature, SimplePossibilitiesFeature
 from human_sudoku import Sudoku
 from misc.factors import divisor_count, prime_factors, factor_count
+
+# This doesn't run, because it requires sudoku.  Don't even try
 
 
 class PrimeFactorFeature(SimplePossibilitiesFeature):
@@ -15,7 +17,7 @@ class PrimeFactorFeature(SimplePossibilitiesFeature):
     row_column: int
     count: int
 
-    TABLE: ClassVar[Dict[int, Sequence[Tuple[int, ...]]]] = None
+    TABLE: ClassVar[dict[int, Sequence[tuple[int, ...]]]] = None
 
     @staticmethod
     def all(htype: House.Type, counts: Sequence[int]) -> Sequence['PrimeFactorFeature']:
@@ -32,14 +34,14 @@ class PrimeFactorFeature(SimplePossibilitiesFeature):
 
         super().__init__(squares, name=name)
 
-    def get_possibilities(self) -> Iterable[Tuple[int, ...]]:
+    def get_possibilities(self) -> Iterable[tuple[int, ...]]:
         return self.TABLE[self.count]
 
     def draw(self, context: dict) -> None:
         self.draw_outside(context, self.count, self.htype, self.row_column, is_right=True, fontsize=15)
 
     @staticmethod
-    def generate_table() -> Dict[int, Sequence[Tuple[int, ...]]]:
+    def generate_table() -> dict[int, Sequence[tuple[int, ...]]]:
         if os.path.exists("/tmp/primes.pcl"):
             with open("/tmp/primes.pcl", "rb") as file:
                 return pickle.load(file)
@@ -94,7 +96,7 @@ class Magpie218Solver:
             print(f"{number} {factor_count(number):>3} {cls.pretty_print(factors)}")
 
     @staticmethod
-    def pretty_print(factors: Sequence[Tuple[int, int]]) -> str:
+    def pretty_print(factors: Sequence[tuple[int, int]]) -> str:
         digits = '\u2070\u20b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079'
         result = []
         for (prime, power) in factors:

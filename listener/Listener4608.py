@@ -200,7 +200,7 @@ class Listener4608(ConstraintSolver):
        """
         clue_g = self.clue_named("g")
         g_minus_1 = str(int(known_clues[clue_g])- 1)
-        if not g_minus_1 in known_clues.values():
+        if g_minus_1 not in known_clues.values():
             return False
 
         clue_H = self.clue_named("H")

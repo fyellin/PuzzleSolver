@@ -10,7 +10,7 @@ from typing import Any, NamedTuple
 
 from .base_solver import BaseSolver, KnownClueDict
 from .clue import Clue
-from .clue_types import ClueValue, Letter, Location
+from .clue_types import Letter, Location
 from .evaluator import Evaluator
 from .intersection import Intersection
 

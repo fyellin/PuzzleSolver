@@ -80,7 +80,7 @@ class MagpieSolver235Values(EquationSolver):
                 for n, value in enumerate(values, start=1)]
 
     def make_pattern_generator(self, clue: Clue, intersections: Any):
-        regexp = f'.+'
+        regexp = r'.+'
         pattern = re.compile(regexp)
         return lambda _: pattern
 

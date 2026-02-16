@@ -1,8 +1,8 @@
 import math
 import re
-from itertools import combinations, count, pairwise
+from itertools import combinations, pairwise
 
-from misc.factors import factor_list, prime_factors
+from misc.factors import prime_factors
 from solver import Clue, ConstraintSolver, EquationSolver, Evaluator, Location, generators
 from solver import KnownClueDict, KnownLetterDict
 

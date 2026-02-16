@@ -83,7 +83,7 @@ def parse_clues(*, use_10d: bool = False):
         clue.evaluators = Evaluator.create_evaluators(equation, mapping={'div': my_div, 'pow': my_pow})
         clues.append(clue)
     if use_10d:
-        clues.append(Clue(f'10d', False, base_location=grid[10 - 1], length=3))
+        clues.append(Clue('10d', False, base_location=grid[10 - 1], length=3))
     return clues
 
 
