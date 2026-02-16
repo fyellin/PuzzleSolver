@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 
-from solver import Clue, ClueValueGenerator, ClueValue, ConstraintSolver, KnownClueDict
+from solver import Clue, ClueValueGenerator, ConstraintSolver, KnownClueDict
 
 PDF_FILE_NAME = '/tmp/magpie199.pdf'
 
@@ -197,7 +197,7 @@ class MySolver(ConstraintSolver):
                 plt.close()
             print(f"Finished writing to {PDF_FILE_NAME}")
 
-    def draw_clue_pentagon(self, clue: Clue, known_clues: dict[Clue, ClueValue], axes: Axes) -> None:
+    def draw_clue_pentagon(self, clue: Clue, known_clues: KnownClueDict, axes: Axes) -> None:
         triangles = cast(int, clue.context)
         answer = known_clues[clue]
         canonical_answer = min(answer[i:] + answer[:i] for i in range(5))

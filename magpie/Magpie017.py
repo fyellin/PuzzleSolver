@@ -123,7 +123,7 @@ class Magpie017Solver(BaseSolver):
             print(f'Solutions { self.solution_count}; Steps: {self.step_count};  {time2 - time1}')
         return self.solution_count
 
-    def __solve(self, known_clues: dict[Clue, ClueValue], known_letters: dict[Letter, int]) -> None:
+    def __solve(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
         depth = len(known_letters)
         if len(known_letters) == 25:
             self.show_solution(known_clues, known_letters)
@@ -171,7 +171,7 @@ class Magpie017Solver(BaseSolver):
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
         EquationSolver(self._clue_list).show_solution(known_clues, known_letters)
 
-    def make_runtime_pattern(self, clue: Clue, known_clues: dict[Clue, ClueValue]) -> re.Pattern[str]:
+    def make_runtime_pattern(self, clue: Clue, known_clues: KnownClueDict) -> re.Pattern[str]:
         pattern_list = [self.get_allowed_regexp(location) for location in clue.locations]
         pattern_list.append('$')
         for other_clue, other_clue_value in known_clues.items():

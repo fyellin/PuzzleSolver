@@ -8,7 +8,7 @@ from typing import Any
 from sortedcontainers import SortedDict, SortedSet
 
 from misc.primes import PRIMES
-from solver import Clue, Clues, ConstraintSolver, ClueValue, ClueValueGenerator
+from solver import Clue, Clues, ConstraintSolver, ClueValueGenerator
 
 
 class MyString(str):
@@ -150,7 +150,7 @@ class Magpie223 (ConstraintSolver):
             if clue1.is_across and clue2.is_across:
                 self.add_constraint((clue1, clue2), different_length)
 
-    def plot_board(self, clue_values: dict[Clue, ClueValue] | None = None, **more_args: Any) -> None:
+    def plot_board(self, clue_values: KnownClueDict | None = None, **more_args: Any) -> None:
         special = int(clue_values[self.clue_named('3d')])
         sequences = len(SUM_LIST[special])
         subtext = f'[{sequences}]'

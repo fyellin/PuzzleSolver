@@ -5,7 +5,7 @@ from collections.abc import Callable, Sequence
 from re import Pattern
 from typing import NamedTuple
 
-from .base_solver import BaseSolver
+from .base_solver import BaseSolver, KnownClueDict
 from .clue import Clue
 from .clue_types import Location, ClueValue
 
@@ -39,7 +39,7 @@ class Intersection(NamedTuple):
 
     @staticmethod
     def make_pattern_generator(clue: Clue, intersections: Sequence[Intersection], solver: BaseSolver) -> \
-            Callable[[dict[Clue, ClueValue]], Pattern[str]]:
+            Callable[[KnownClueDict], KnownLetterDict]:
         """
         This method takes a clue and the intersections of this clue with other clues whose values are already
         known when we assign a value to this clue.  It returns a function.
@@ -73,7 +73,7 @@ class Intersection(NamedTuple):
 
         pattern_format = ''.join(pattern_list)
 
-        def getter(known_clues: dict[Clue, ClueValue]) -> Pattern[str]:
+        def getter(known_clues: KnownClueDict) -> Pattern[str]:
             args = (known_clues[x.other_clue][x.other_index] for x in intersections)
             regexp = pattern_format.format(*args)
             return re.compile(regexp)

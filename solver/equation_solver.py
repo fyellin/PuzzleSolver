@@ -35,9 +35,9 @@ class SolvingStep(NamedTuple):
 
 class EquationSolver(BaseSolver):
     _step_count: int
-    _solutions: list[tuple[dict[Clue, ClueValue], KnownLetterDict]]
+    _solutions: list[tuple[KnownClueDict, KnownLetterDict]]
     _known_letters: KnownLetterDict
-    _known_clues: dict[Clue, ClueValue]
+    _known_clues: KnownClueDict
     _solving_order: Sequence[SolvingStep]
     _items: Sequence[int]
     _all_constraints: list[tuple[tuple[Clue, ...], Callable[[], bool]]]
@@ -284,7 +284,7 @@ class EquationSolver(BaseSolver):
 
 
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
-            Callable[[dict[Clue, ClueValue]], re.Pattern[str]]:
+            Callable[[KnownClueDict], re.Pattern[str]]:
         """
         This method takes a clue and the intersections of this clue with other clues whose values are already
         known when we assign a value to this clue.  It returns a function.

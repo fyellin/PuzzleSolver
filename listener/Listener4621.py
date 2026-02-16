@@ -3,7 +3,7 @@ import re
 from typing import Any
 from collections.abc import Sequence, Callable
 
-from solver import Clue, ClueValue, Location, Clues, ConstraintSolver, Intersection, Letter
+from solver import Clue, Location, Clues, ConstraintSolver, Intersection, Letter
 from solver import EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
@@ -97,7 +97,7 @@ class OuterSolver(EquationSolver):
         super().__init__(clues, items=range(1, 20))
 
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
-            Callable[[dict[Clue, ClueValue]], re.Pattern[str]]:
+            Callable[[KnownClueDict], re.Pattern[str]]:
 
         assert(all(intersection.this_clue == clue for intersection in intersections))
 
@@ -108,7 +108,7 @@ class OuterSolver(EquationSolver):
             default_item = '(1?[1-9]|10)'
             lookahead = f'(?=[0-9]{{{clue.context}}}$)'
 
-        def getter(known_clues: dict[Clue, ClueValue]) -> re.Pattern[str]:
+        def getter(known_clues: KnownClueDict) -> re.Pattern[str]:
             pattern_list = [default_item] * clue.length
             for intersection in intersections:
                 other_clue = intersection.other_clue

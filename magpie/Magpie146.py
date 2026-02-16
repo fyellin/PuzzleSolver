@@ -109,7 +109,7 @@ class OuterSolver(EquationSolver):
                 self.add_constraint((clue1, clue2), lambda x, y: int(x) < int(y))
 
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
-            Callable[[dict[Clue, ClueValue]], re.Pattern[str]]:
+            Callable[[KnownClueDict], re.Pattern[str]]:
         pattern_string = f'.{{{clue.length}}}'   # e.g.  r'.{5}' if clue.length == 5.
         pattern = re.compile(pattern_string)
         return lambda _: pattern

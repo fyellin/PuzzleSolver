@@ -147,7 +147,7 @@ class Magpie149Solver(BaseSolver):
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
         EquationSolver(self._clue_list).show_solution(known_clues, known_letters)
 
-    def make_runtime_pattern(self, clue: Clue, known_clues: dict[Clue, ClueValue]) -> re.Pattern[str]:
+    def make_runtime_pattern(self, clue: Clue, known_clues: KnownClueDict) -> re.Pattern[str]:
         pattern_list = [self.get_allowed_regexp(location) for location in clue.locations]
         pattern_list.append('$')
         for other_clue, other_clue_value in known_clues.items():

@@ -1,7 +1,7 @@
 import itertools
 from typing import Any
 
-from solver import Clue, ClueValue, Clues, EquationSolver
+from solver import Clue, ClueValue, Clues, EquationSolver, KnownClueDict
 
 GRID = """
 XXXXXXXX
@@ -70,7 +70,7 @@ class Listener4816(EquationSolver):
         clues = Clues.create_from_text(ACROSS, DOWN, grid)
         return clues
 
-    def plot_board(self, clue_values: dict[Clue, ClueValue] | None = None,
+    def plot_board(self, clue_values: KnownClueDict | None = None,
                    **more_args: Any) -> None:
         table = str.maketrans("123456789", "ottffssen".upper())
         if clue_values is not None:

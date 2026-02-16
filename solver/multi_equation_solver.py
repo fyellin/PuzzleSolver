@@ -227,7 +227,7 @@ class Worker(multiprocessing.Process):
                       f'+{write_count} {self.task_queue}')
 
     def convert_state(self, current_index, states) -> Sequence[
-            tuple[dict[Clue, ClueValue], dict[Letter, int]]]:
+            tuple[KnownClueDict, KnownLetterDict]]:
         if current_index == 0:
             states = [({}, {})]
         else:

@@ -1,6 +1,6 @@
 from collections import defaultdict
 from itertools import combinations
-from typing import Any, Optional
+from typing import Any
 
 import math
 
@@ -134,7 +134,7 @@ class Listener4895(ConstraintSolver):
                 return True
         return False
 
-    def plot_board(self, clue_values: Optional[dict[Clue, ClueValue]] = None,
+    def plot_board(self, clue_values: KnownClueDict | None = None,
                    **more_args: Any) -> None:
         coloring = {number_to_grid(i): 'red' for i in MOVES}
 
