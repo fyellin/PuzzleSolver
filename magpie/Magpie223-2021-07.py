@@ -154,7 +154,7 @@ class Magpie223 (ConstraintSolver):
         special = int(clue_values[self.clue_named('3d')])
         sequences = len(SUM_LIST[special])
         subtext = f'[{sequences}]'
-        super().plot_board(clue_values, subtext=subtext)
+        super().plot_board(clue_values, subtext=subtext, **more_args)
 
 
 if __name__ == '__main__':

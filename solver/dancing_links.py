@@ -3,10 +3,10 @@ from __future__ import annotations
 import bisect
 from itertools import chain, count
 from collections import Counter
-from collections.abc import Hashable, Sequence
+from collections.abc import Hashable, Sequence, Callable
 from datetime import datetime
 from functools import cache
-from typing import Any, Callable, Final
+from typing import Any, Final
 
 import math
 

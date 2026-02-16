@@ -1,5 +1,5 @@
 import itertools
-from typing import Union, Any
+from typing import Any
 from collections.abc import Iterator, Sequence, Callable
 
 from solver import Clue, ConstraintSolver, ClueValue, Location, ClueValueGenerator

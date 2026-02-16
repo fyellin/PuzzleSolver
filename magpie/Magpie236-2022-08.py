@@ -123,7 +123,8 @@ class Solver236(EquationSolver):
         axes.set_aspect(aspect_ratio)
         axes.axis('off')
 
-        def draw_heavy(row, column, where: str | tuple[str, str], color: str = 'black'):
+        def draw_heavy(row, column, where: str | tuple[str, str], color: str = 'black'
+                       ) -> None:
             is_point_up = column % 2 == 0
             point_row, flat_row = (row, row + 1) if is_point_up else (row + 1, row)
             center_x = (1 + row + column) / 2.0

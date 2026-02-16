@@ -1,7 +1,6 @@
 import collections
 import itertools
 from enum import Enum
-from typing import Optional
 from collections.abc import Iterable, Sequence
 
 from solver import Clue, ClueValueGenerator, Location, ClueValue, ConstraintSolver
