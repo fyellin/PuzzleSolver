@@ -130,7 +130,7 @@ class Solver236(EquationSolver):
             center_x = (1 + row + column) / 2.0
             if isinstance(where, tuple):
                 where = where[0] if is_point_up else where[1]
-            args = dict(color=color, linewidth=5)
+            args = {'color': color, 'linewidth': 5}
             if where == 'left':
                 if column != 1:
                     axes.plot([center_x, center_x - .5], [point_row, flat_row], **args)

@@ -195,7 +195,7 @@ class Magpie256 (Magpie256Base):
 
     def get_evaluation_order(self) -> list[tuple[tuple[Letter, bool], Evaluator]]:
         result = []
-        expressions = {key: value for key, value in self.expressions}
+        expressions = dict(self.expressions)
         seen = set()
 
         def cost(item):

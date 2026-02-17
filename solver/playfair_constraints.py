@@ -66,12 +66,12 @@ class ConstraintsGenerator:
             # Remove everything we've added that's actually just a blank
             letter_positions = {(letter, location) for (letter, location) in letter_positions if letter != "."}
             # No letter should be in two positions, and no position should have two different letters
-            if len(set(letter for letter, _ in letter_positions)) != len(letter_positions):
+            if len({letter for letter, _ in letter_positions}) != len(letter_positions):
                 continue
-            if len(set(location for _, location in letter_positions)) != len(letter_positions):
+            if len({location for _, location in letter_positions}) != len(letter_positions):
                 continue
             # We've got a nice, consistent result.  Turn it into a constraint.
-            constraint_row = ConstraintRow({letter: position for letter, position in letter_positions})
+            constraint_row = ConstraintRow(dict(letter_positions))
             # We may have duplicates if more than one of p0, p1, c0, c1 is blank.  We keep track of seen results to
             # avoid adding duplicates.
             if constraint_row not in seen:

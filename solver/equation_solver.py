@@ -174,7 +174,7 @@ class EquationSolver(BaseSolver):
                      pickle.dumps(known_clues | {clue: clue_value}),
                      known_letters | dict(zip(clue_letters, letter_values)))
                     for id, (clue_value, *letter_values) in enumerate(items)]
-            seen = set(id for id, *_ in args)
+            seen = {id for id, *_ in args}
             print(f'There are {len(args)} processes')
             max_id = 0
             with multiprocessing.Pool() as pool:

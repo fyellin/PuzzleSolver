@@ -78,7 +78,7 @@ class Magpie240(EquationSolver):
                 clue = Clue(f'{number}{letter}', is_across, location, length)
                 expression = f'@square2({expr1}, {expr2})'
                 clue.evaluators = Evaluator.create_evaluators(
-                    expression, mapping=dict(square2=self.squares2))
+                    expression, mapping={'square2': self.squares2})
                 results.append(clue)
         # self.across_clues = [clue for clue in results if clue.is_across]
         # self.down_clues = [clue for clue in results if not clue.is_across]

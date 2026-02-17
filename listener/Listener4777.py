@@ -175,7 +175,7 @@ class Solver2(ConstraintSolver):
                 if not values:
                     raise ArithmeticError(f'Cannot reduce {value} to length {length}')
                 result.extend(values)
-                self.encoding_to_plain |= {v : value for v in values}
+                self.encoding_to_plain |= dict.fromkeys(values, value)
         return result
 
     def shorten(self, value):

@@ -168,7 +168,7 @@ def double_square(clue):
     min_value, max_value = get_min_max(clue)
     lower = int(math.ceil(math.sqrt(min_value / 2)))
     upper = int(math.ceil(math.sqrt(max_value / 2)))
-    return map(lambda x: 2 * x * x, range(lower, upper))
+    return (2 * x * x for x in range(lower, upper))
 
 if __name__ == '__main__':
     Listener4895.run()

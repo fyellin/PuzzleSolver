@@ -132,7 +132,7 @@ class Magpie244(ConstraintSolver):
             print(f'Wrote {len(entries_list)} entry lists')
 
         print(len(entries_list))
-        square_roots = set(str(x * x) for x in range(10, 32)) - {'729'}
+        square_roots = {str(x * x) for x in range(10, 32)} - {'729'}
         entries_list = [entries for entries in entries_list
                         if len(entries) == len(set(entries))
                         if all(entry[0] != '0' for entry in entries)
@@ -144,7 +144,7 @@ class Magpie244(ConstraintSolver):
         for entries in entries_list:
             clue_values = dict(zip(self._clue_list, entries))
             self.plot_board(clue_values)
-            print(list(int(x) for x in entries))
+            print([int(x) for x in entries])
 
     def find_answers(self, items=None):
         items = items or [101, 7771, 5101, 21, 110, 1910, 82999, 1811, 910, 81,
@@ -188,7 +188,7 @@ class Magpie244(ConstraintSolver):
         #     location_to_entry[location] = ch
         # for ch, location in zip('HERO', self.clue_named('20a').locations):
         #     location_to_entry[location] = ch
-        args |= dict(shading=shading, location_to_clue_numbers={})
+        args |= {"shading": shading, "location_to_clue_numbers": {}}
         super().draw_grid(location_to_entry=location_to_entry, **args)
 
     def get_solutions(self, debug=None):
@@ -200,7 +200,7 @@ class Magpie244(ConstraintSolver):
                 return solutions
         square_set = set(itertools.product(range(1, 8), repeat=2))
         constraints = {}
-        optional_constraints = set(f'r{r}c{c}' for r, c in square_set)
+        optional_constraints = {f'r{r}c{c}' for r, c in square_set}
 
         def get_shadow(key) -> set[tuple[int, int]]:
             items = {(r + dr, c + dc)

@@ -192,7 +192,7 @@ class MyDijkstra (FastDijkstra):
             yield *state[0:index], (*path, self.ends[index]), *state[index + 1:]
             return
 
-        used = set(x for path in state for x in path)
+        used = {x for path in state for x in path}
         used.update(self.ends)
         used.update(x for pt in path[:-1] for x in self.nearby(pt))
 

@@ -70,7 +70,7 @@ class Permutation:
 
 
 CODES = Permutation.get_all_permutations()
-SQUARES = set(x * x for x in range(1, 1000))
+SQUARES = {x * x for x in range(1, 1000)}
 
 PRIMES2 = [x for x in range(10, 100) if x % 2 and x % 3 and x % 5 and x % 7]
 TRIANGLES3 = [y for x in range(1, 100) for y in [x * (x + 1) // 2] if 100 <= y <= 999]

@@ -41,7 +41,7 @@ class Solver:
 
     def solve(self):
         constraints = {}
-        optionals = set(f'r{r}c{c}' for r in range(1, 13) for c in range(1, 13))
+        optionals = {f'r{r}c{c}' for r in range(1, 13) for c in range(1, 13)}
         for word_list in (ACROSS, DOWNS):
             is_across = word_list is ACROSS
             for word_index, word in enumerate(word_list, start=1):

@@ -1,7 +1,7 @@
 import itertools
 
-TRIANGLES = set(i * (i + 1) // 2 for i in range(1, 50))
-SQUARES = set(i * i for i in range(1, 50))
+TRIANGLES = {i * (i + 1) // 2 for i in range(1, 50)}
+SQUARES = {i * i for i in range(1, 50)}
 
 def check2():
     for low in range(10, 100):

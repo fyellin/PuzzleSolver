@@ -52,7 +52,7 @@ class Magpie268 (EquationSolver):
             else:
                 tag, pairs = 'd', down_pairs
             for pair in pairs:
-                clues = tuple([self.clue_named(f'{num}{tag}') for num in pair])
+                clues = tuple(self.clue_named(f'{num}{tag}') for num in pair)
                 clue1, clue2 = clues
                 assert clue1.length == clue2.length
                 triples = possibilities(clues[0].length, is_across)

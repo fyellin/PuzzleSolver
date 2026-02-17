@@ -14,7 +14,7 @@ eng = inflect.engine()
 
 def create_length_to_integer_dict() -> tuple[dict[tuple[int, int], list[int]], dict[ClueValue, ClueValue]]:
     result: dict[tuple[int, int], list[int]] = collections.defaultdict(list)
-    word_sums = dict()
+    word_sums = {}
     for i in range(1, 1000):
         clue_value = ClueValue(str(i))
         word = ''.join(i for i in eng.number_to_words(i) if i.islower())

@@ -131,7 +131,7 @@ class Magpie239(EquationSolver):
 
         shaded_squares = {(2, 1), (3, 1), (4, 1), (5, 1), (1, 10), (2, 10), (3, 10), (7, 10)}
         subtext = '3² + 4² = 5²'
-        shading = {x: '.8' for x in shaded_squares}
+        shading = dict.fromkeys(shaded_squares, '.8')
 
         value_to_letter = {value: letter for letter, value in args['known_letters'].items()}
         for row in range(1, 11):

@@ -129,7 +129,7 @@ class Dijkstra[State]:
         ...
 
     def run(self, verbose: int = 0) -> tuple[int, State | None]:
-        minimum_map = dict([(self.start, 0)])
+        minimum_map = {self.start: 0}
         queue: list[tuple[int, int, State]] = [(0, 0, self.start)]
         seen = added = ignored = 0
         previous_distance = -1
@@ -183,7 +183,7 @@ class FastDijkstra[State]:
         ...
 
     def run(self, verbose: int = 0) -> tuple[int, State | None]:
-        minimum_map = dict([(self.start, 0)])
+        minimum_map = {self.start: 0}
         queue: deque[tuple[int, int, State]] = deque([(0, 0, self.start)])
         seen = added = ignored = 0
         previous_distance = -1
@@ -237,7 +237,7 @@ class DijkstraExtended[State]:
         ...
 
     def run(self, verbose: int = 0) -> tuple[State | None, Sequence[Sequence[State]]]:
-        minimum_map = dict([(self.start, 0)])
+        minimum_map = {self.start: 0}
         queue: list[tuple[int, int, State]] = [(0, 0, self.start)]
         seen = added = ignored = 0
         previous_distance = -1
