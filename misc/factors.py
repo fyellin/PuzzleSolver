@@ -27,7 +27,7 @@ def divisor_count(value: int) -> int:
     factorization = prime_factors(value)
     return math.prod(count + 1 for _prime, count in factorization)
 
-
+@functools.cache
 def phi(value: int) -> int:
     # number of values that mutually prime
     current = value

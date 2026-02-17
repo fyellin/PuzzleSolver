@@ -1,15 +1,11 @@
 import collections
-from operator import itemgetter
 from collections.abc import Sequence
+from operator import itemgetter
 
-import inflect  # type: ignore
+from solver import Clue, ClueValue, ClueValueGenerator, ConstraintSolver, Evaluator, \
+    KnownClueDict, Location
+from misc import number_to_words
 
-from solver import Clue, ClueValue, ClueValueGenerator, KnownClueDict
-from solver import ConstraintSolver
-from solver import Evaluator
-from solver import Location
-
-eng = inflect.engine()
 
 
 def create_length_to_integer_dict() -> tuple[dict[tuple[int, int], list[int]], dict[ClueValue, ClueValue]]:
@@ -17,7 +13,7 @@ def create_length_to_integer_dict() -> tuple[dict[tuple[int, int], list[int]], d
     word_sums = {}
     for i in range(1, 1000):
         clue_value = ClueValue(str(i))
-        word = ''.join(i for i in eng.number_to_words(i) if i.islower())
+        word = ''.join(i for i in number_to_words(i) if i.islower())
         clue_length = len(clue_value)
         num_letters = len(word)
         word_sums[ClueValue(str(i))] = ClueValue(str(sum(ord(c) - ord('a') + 1 for c in set(word))))
@@ -108,4 +104,5 @@ def run() -> None:
 
 
 if __name__ == '__main__':
+    # TODO: This doesn't work.  Not sure why.
     run()

@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from typing import Any
 import numpy as np
 
-from misc.primes import PRIMES
+from misc import PRIMES
 from solver import Clue, Clues, EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
@@ -100,8 +100,8 @@ class Listener4712(EquationSolver):
             x_points = np.linspace(1, 9, 7)
             for x in (x_points[2], x_points[4]):
                 axes.plot([x, x], [8, 9], 'black')
-            font_info = dict(fontsize=30, fontweight='bold', fontfamily="sans-serif",
-                             va='center', ha='center')
+            font_info = {'fontsize': 30, 'fontweight': 'bold', 'fontfamily': "sans-serif",
+                         'va': 'center', 'ha': 'center'}
             for v, x in zip((371, 8208, 54748), x_points[1::2]):
                 axes.text(x, 8.5, str(v), **font_info)
 

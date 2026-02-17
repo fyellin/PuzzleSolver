@@ -1,8 +1,8 @@
 import functools
 import math
+import re
 from collections import defaultdict
 from itertools import count, product
-import re
 
 
 def make_dice():
@@ -18,6 +18,7 @@ def make_dice():
                 result[bb].append((cc, aa))
                 result[cc].append((aa, bb))
     return result
+
 
 """
 if x shows on the top of a die, then DICE[x] is the set of tuples (y, z) of all the
@@ -167,3 +168,6 @@ def f1():
             result = [table.get(x) for x in pairs]
             if all(result):
                 print(x, y, result, [7 - x for x in result])
+
+if __name__ == '__main__':
+    run_me()

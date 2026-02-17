@@ -250,6 +250,7 @@ class Solver6220 (ConstraintSolver):
 
 
 if __name__ == '__main__':
+    # I don't remember what .rev is or does.
     Solver6220.run()
     # temp = Solver6220()
     # clue = temp.clue_named("15a")

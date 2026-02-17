@@ -170,4 +170,5 @@ def run2() -> None:
 
 
 if __name__ == '__main__':
+    # This takes a long time.
     run()

@@ -217,5 +217,4 @@ class Magpie246 (ConstraintSolver):
         return get_chains()
 
 if __name__ == '__main__':
-    # pass
     Magpie246.run()
