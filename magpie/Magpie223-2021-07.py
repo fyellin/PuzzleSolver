@@ -7,7 +7,7 @@ from typing import Any
 
 from sortedcontainers import SortedDict, SortedSet
 
-from misc.primes import PRIMES
+from misc import PRIMES
 from solver import Clue, Clues, ConstraintSolver, ClueValueGenerator, KnownClueDict
 
 

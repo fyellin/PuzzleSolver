@@ -3,6 +3,8 @@ from collections import defaultdict
 from collections.abc import Iterable, Iterator, Sequence, Callable
 from typing import Any
 
+from more_itertools import sieve
+
 from solver import Clue, Clues, ClueValueGenerator, ClueValue, ConstraintSolver, Location, generators
 
 GRID = """
@@ -46,7 +48,7 @@ TWO_CUBES_SUM = {
     value for i in range(1, 0x100) for j in range(1, i) for value in [i*i*i + j*j*j] if value <= 0xFFFF
 }
 
-PRIMES = tuple(itertools.takewhile(lambda x: x < 0xFFF, generators.prime_generator()))
+PRIMES = tuple(sieve(0xFFF))
 
 
 def ix(n: int) -> ClueValue:

@@ -1,9 +1,10 @@
 import itertools
-from typing import Any
 from collections.abc import Sequence
+from typing import Any
 
-from solver import Clue, ConstraintSolver, KnownClueDict, Location
-from solver import generators
+from more_itertools import sieve
+
+from solver import Clue, ConstraintSolver, KnownClueDict, Location, generators
 
 CLUES = """
 1 13?60 
@@ -26,7 +27,7 @@ CLUES = """
 18 491??
 """
 
-primes = list(itertools.takewhile(lambda x: x < 1000, generators.prime_generator()))
+primes = list(sieve(1000))
 
 
 class Solver208(ConstraintSolver):

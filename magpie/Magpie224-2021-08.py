@@ -168,7 +168,6 @@ class Magpie224 (ConstraintSolver):
     def add_all_constraints(self) -> None:
         pass
 
-
     def get_allowed_regexp(self, location: Location) -> str:
         loc = location[0]
         if loc > 35:

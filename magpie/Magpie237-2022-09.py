@@ -2,14 +2,24 @@ import dataclasses
 import itertools
 import re
 from collections import Counter
+from collections.abc import Iterable, Iterator, Sequence
 from enum import Enum, auto
 from typing import Any
-from collections.abc import Iterator, Iterable, Sequence
 
 from matplotlib.patches import Arc
+from more_itertools import is_prime
 
-from solver import Clue, ClueValue, Clues, ConstraintSolver, EquationSolver, Evaluator, \
-    generators, KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    ConstraintSolver,
+    EquationSolver,
+    Evaluator,
+    KnownClueDict,
+    KnownLetterDict,
+    generators,
+)
 
 GRID = """
 x.xxxxxx
@@ -43,7 +53,7 @@ z 5  A + U!(EU)
 
 DOWNS = """
 a 4 Cube - U**2
-b 3 EU(S + U) – O 
+b 3 EU(S + U) – O
 c 3 Square
 d 5 S! S/C + T**4
 e 4 S**2(A + T**2)
@@ -110,7 +120,7 @@ def perfect():
 
 
 def prime():
-    return MyIterator(generators.prime_generator())
+    return MyIterator(x for x in itertools.count(2) if is_prime(x))
 
 
 def triangular():

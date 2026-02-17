@@ -2,24 +2,13 @@ import functools
 import math
 from collections.abc import Sequence
 
+from more_itertools import factor, run_length
+
+
 @functools.cache
 def prime_factors(value: int) -> list[tuple[int, int]]:
-    from misc.primes import PRIMES
-    result = []
-    for prime in PRIMES:
-        if value % prime == 0:
-            value = value // prime
-            count = 1
-            while value % prime == 0:
-                count += 1
-                value = value // prime
-            result.append((prime, count))
-        if value == 1:
-            return result
-        if value < prime * prime:
-            result.append((value, 1))
-            return result
-    raise ArithmeticError(f"{value} is too large to factor")
+    items = factor(value)
+    return list(run_length.encode(items))
 
 
 @functools.cache
@@ -28,6 +17,7 @@ def divisor_count(value: int) -> int:
     return math.prod(count + 1 for _prime, count in factorization)
 
 
+@functools.cache
 def phi(value: int) -> int:
     # number of values that mutually prime
     current = value
@@ -60,7 +50,6 @@ def factor_list(value: int) -> Sequence[int]:
         return [factor * power for factor in sub_factors for power in powers]
 
     result = sorted(recurse(prime_factors(value)))
-    assert sum(result) == factor_sum(value)
     return result
 
 
@@ -110,6 +99,7 @@ subscript_mapping = str.maketrans({
     "8": "₈",
     "9": "₉"
 })
+
 
 def prime_factors_as_string(value: int, show_one=False, separator='·') -> str:
     results = []

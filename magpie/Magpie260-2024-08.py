@@ -2,7 +2,7 @@ import itertools
 import time
 from collections.abc import Sequence
 
-from misc.primes import PRIMES
+from misc import PRIMES
 from solver import Clues, EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """

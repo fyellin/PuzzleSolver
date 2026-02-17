@@ -2,9 +2,18 @@ import ast
 import itertools
 from collections import defaultdict
 
-from solver import Clue, Clues, Constraint, ConstraintSolver, DancingLinks, \
-    EquationParser, KnownClueDict
-from solver.generators import known, prime_generator
+from more_itertools import sieve
+
+from solver import (
+    Clue,
+    Clues,
+    Constraint,
+    ConstraintSolver,
+    DancingLinks,
+    EquationParser,
+    KnownClueDict,
+)
+from solver.generators import known
 
 LINES = """
 A triangular
@@ -43,7 +52,7 @@ def upto(iterator):
     return itertools.takewhile(lambda x: x < 100_000, iterator)
 
 
-PRIMES = {str(x) for x in upto(prime_generator())}
+PRIMES = {str(x) for x in sieve(100_000)}
 TRIANGLES = {str(x) for x in upto(i * (i + 1) // 2 for i in itertools.count(1))}
 VALUES = list(upto(x for i in itertools.count(1) for j in [i * i] for x in (j - 1, j + 1)))
 

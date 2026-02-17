@@ -222,11 +222,7 @@ class Solver2(ConstraintSolver):
         factors = prime_factors(x)
         evens = [count for _prime, count in factors if count % 2 == 0]
         odds = [count for _prime, count in factors if count % 2 == 1]
-        if len(evens) == 0:
-            result = odds == [3]
-        else:
-            result = odds == [1]
-        return result
+        return odds == [3] if len(evens) == 0 else odds == [1]
 
 
 RUN = 1

@@ -3,7 +3,7 @@ import math
 from collections import Counter, defaultdict
 from functools import cache
 
-from misc.primes import PRIMES
+from misc import PRIMES
 from solver import ClueValue, Clues, DancingLinks, EquationSolver
 
 

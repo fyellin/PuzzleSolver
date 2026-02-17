@@ -3,7 +3,9 @@ import itertools
 import math
 import operator
 from collections import deque
-from collections.abc import Iterable, Mapping, Sequence, Callable
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from functools import total_ordering
+
 
 class FakeArray[S](Sequence):
     def __init__(self, length: int, getter: Callable[[int], S]):
@@ -16,7 +18,9 @@ class FakeArray[S](Sequence):
     def __len__(self):
         return self.length
 
-class MaxHeapObj:
+
+@total_ordering
+class ReverserWrapper:
     def __init__(self, val): self.val = val
     def __lt__(self, other): return self.val > other.val
     def __eq__(self, other): return self.val == other.val
@@ -32,7 +36,7 @@ class MinHeap:
 
 
 class MaxHeap(MinHeap):
-    def heappush(self, x): heapq.heappush(self.h, MaxHeapObj(x))
+    def heappush(self, x): heapq.heappush(self.h, ReverserWrapper(x))
     def heappop(self): return heapq.heappop(self.h).val
     def __getitem__(self, i): return self.h[i].val
 
@@ -414,3 +418,48 @@ class Trie:
             if trie is None:
                 return word
         return word
+
+
+def number_to_words(n: int) -> str:
+    """Convert a number (0 to 999,999) to words."""
+    if not 0 <= n < 1_000_000:
+        raise ValueError("Number must be between 0 and 999,999")
+
+    if n == 0:
+        return "zero"
+
+    # Basic number words
+    ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+    teens = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+             "sixteen", "seventeen", "eighteen", "nineteen"]
+    tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty",
+            "ninety"]
+
+    def convert_below_thousand(num):
+        """Convert a number less than 1000 to words."""
+        if num == 0:
+            return ""
+        elif num < 10:
+            return ones[num]
+        elif num < 20:
+            return teens[num - 10]
+        elif num < 100:
+            return tens[num // 10] + ("-" + ones[num % 10] if num % 10 != 0 else "")
+        else:  # num < 1000
+            hundred_part = ones[num // 100] + " hundred"
+            remainder = num % 100
+            if remainder == 0:
+                return hundred_part
+            return hundred_part + " " + convert_below_thousand(remainder)
+
+    # Handle thousands
+    thousands = n // 1000
+    remainder = n % 1000
+
+    result = []
+    if thousands > 0:
+        result.append(convert_below_thousand(thousands) + " thousand")
+    if remainder > 0:
+        result.append(convert_below_thousand(remainder))
+
+    return " ".join(result)

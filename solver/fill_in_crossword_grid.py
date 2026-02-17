@@ -179,20 +179,17 @@ class FillInCrosswordGridAbstract(ABC):
         for clues in clue_lists:
             for clue1, clue2 in pairwise(clues):
                 (number1, direction1), (number2, direction2) = clue1, clue2
-                locations = sorted(finder[clue1].keys() | finder[clue2].keys())
-                locations_map = {
-                    location: index for index, location in enumerate(locations)
-                }
+                locations = finder[clue1].keys() | finder[clue2].keys()
                 assert number1 <= number2
                 orderer_type, ch = (
                     (Orderer.LT, "<") if number1 < number2 else (Orderer.EQ, "=")
                 )
                 prefix = f"{number1}{direction1.letter}{ch}{number2}{direction2.letter}"
-                orderer = orderer_type(prefix, len(locations_map))
+                orderer = orderer_type(prefix, locations)
                 self.optional_constraints.update(orderer.all_codes())
                 for clue, ordering in ((clue1, orderer.left), (clue2, orderer.right)):
                     for location, values in finder[clue].items():
-                        ordering_constraints = ordering(locations_map[location])
+                        ordering_constraints = ordering(location)
                         for value in values:
                             value.extend(ordering_constraints)
 
@@ -236,7 +233,7 @@ class FillInCrosswordGridAbstract(ABC):
                 break
             for column1 in range(1, width + 1):
                 column2 = width + 1 - column1
-                if (row1, column1) < (row2, column2):
+                if (row1, column1) < (row2, column2):  # noqa: SIM102
                     if column1 != column2 or row2 >= row1 + size:
                         result.append(((row1, column1), (row2, column2)))
         return result
@@ -620,7 +617,7 @@ class FillInCrosswordGridMushed(FillInCrosswordGridAbstract):
 
         if len(odd_counts) == 0:
             if (self.width & 1 == 1) and (self.height & 1 == 1):
-                for size in clues_by_size.keys():
+                for size in clues_by_size:
                     if size & 1 == 1:
                         a, d = f"Middle-{size}-A", f"Middle-{size}-D"
                         create_centered_entries(size, Direction.ACROSS, [a])
@@ -760,4 +757,3 @@ if __name__ == "__main__":
     import pytest
 
     pytest.main([__file__, "-v"])
-    print("hello")

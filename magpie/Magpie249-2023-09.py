@@ -1,11 +1,12 @@
-import math
 from collections import defaultdict
 from collections.abc import Sequence
 from itertools import combinations, pairwise
 from math import isqrt
 
-from misc.primes import PRIMES
-from solver import Clue, Clues, ConstraintSolver, EquationSolver, generators, KnownClueDict
+from more_itertools import is_prime
+
+from solver import Clue, Clues, ConstraintSolver, EquationSolver, KnownClueDict, generators
+from solver.helpers import is_square
 
 GRID = """
 X.XXX.X
@@ -45,9 +46,9 @@ class Magpie249 (ConstraintSolver):
     def get_clues(self) -> Sequence[Clue]:
         all_values = generate_map().keys()
         """
-         A=18 B=61 C=63 D=94 
-         E=196, F=234, G=265, H=414, I=448, J=?, K=829, L=844  // 
-         M=1098, P=2916, S=5239 // 
+         A=18 B=61 C=63 D=94
+         E=196, F=234, G=265, H=414, I=448, J=?, K=829, L=844  //
+         M=1098, P=2916, S=5239 //
          W=17442 X=84636
         """
         my_generators = {
@@ -74,6 +75,7 @@ class Magpie249 (ConstraintSolver):
             int(x) for x in known_clues.values() if len(x) == 4)
         return p == 2916 and s == 5239
 
+
 CLUES = [
     "A",
     "B",   # prime
@@ -89,6 +91,8 @@ CLUES = [
     "W = A(4F + D – B)",
     "X = DL + S + B",
 ]
+
+
 class Magpie239b(EquationSolver):
     @classmethod
     def run(cls):
@@ -100,20 +104,18 @@ class Magpie239b(EquationSolver):
         clues = self.get_clues()
         super().__init__(clues, items=(int(x) for x in self.mapper))
         self.add_constraint(["B"], lambda x: is_prime(int(x)))
-        self.add_constraint(["E"], lambda x: math.isqrt(int(x)) ** 2 == int(x))
+        self.add_constraint(["E"], lambda x: is_square(int(x)))
         self.add_constraint(["F", "A"], lambda x, y: int(x) % int(y) == 0)
 
     def get_clues(self):
         clues = []
         for index, expression in enumerate(CLUES, start=1):
             name = CLUES[0]
-            length = 2 if name <= "D" else 3 if name <= "L" else 4 if name <="V" else 5
+            length = 2 if name <= "D" else 3 if name <= "L" else 4 if name <= "V" else 5
             clue = Clue(name, True, (index, 1), length, expression=expression)
             clues.append(clue)
         return clues
 
-def is_prime(x: int) -> bool:
-    return x in PRIMES
 
 def generate_map():
     result = defaultdict(list)
@@ -125,6 +127,7 @@ def generate_map():
                     reversal = square[:j] + c2 + c1 + square[j + 2:]
                     result[reversal].append(square)
     return result
+
 
 def print_values():
     mapper = generate_map()
@@ -139,7 +142,7 @@ def print_values():
 
 def find_m():
     mapper = generate_map()
-    for value1, value2 in combinations((x for x in mapper.keys() if len(x) <= 3), 2):
+    for value1, value2 in combinations((x for x in mapper if len(x) <= 3), 2):
         value3 = str(int(value1) * int(value2))
         if len(value3) == 4 and value3 in mapper:
             print(value1, value2, value3)
@@ -149,7 +152,7 @@ def find_w():
     a, b, _c, d = 18, 61, 63, 94
     mapper = generate_map()
     for e in (169, 196):
-        for f in (int(x) for x in mapper.keys() if len(x) == 3):
+        for f in (int(x) for x in mapper if len(x) == 3):
             i = a + e + f
             w = a * (4 * f + d - b)
             if 10000 <= w <= 99999 and str(w) in mapper:
@@ -160,7 +163,7 @@ def find_w():
 def find_x():
     b, d, l = 61, 94, 844
     mapper = generate_map()
-    for s in (int(x) for x in mapper.keys() if len(x) == 4):
+    for s in (int(x) for x in mapper if len(x) == 4):
         x = d * l + s + b
         if 10000 <= x <= 99999 and str(x) in mapper:
             print(s, x)

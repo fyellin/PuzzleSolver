@@ -1,7 +1,7 @@
 from collections import Counter
 from typing import Any
 
-from misc.primes import PRIMES
+from misc import PRIMES
 from solver import ClueValue, Clues, ConstraintSolver, Location
 from solver import Constraint, KnownClueDict, LetterCountHandler
 from solver.generators import allvalues, prime, square, triangular

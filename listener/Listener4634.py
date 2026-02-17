@@ -3,6 +3,8 @@ from collections import defaultdict, Counter
 from collections.abc import Sequence
 from typing import Any, cast
 
+from more_itertools import sieve
+
 from solver import Clue, generators
 from solver import ConstraintSolver
 from solver import Location, KnownClueDict
@@ -35,9 +37,7 @@ class RomanString(str):
 def build_table() -> tuple[dict[int, Sequence[str]], dict[str, int]]:
     result = defaultdict(list)
     result2: [str, int] = {}
-    for prime in generators.prime_generator():
-        if prime > 3999:
-            break
+    for prime in sieve(4000):  # all primes <= 4000
         romans = roman_numeral_for(prime)
         for roman in romans:
             result[len(roman)].append(roman)
@@ -185,7 +185,7 @@ class Listener4634(ConstraintSolver):
             if d == d2 and a == a2 == a3 and m == m2 and s == s2 == s3:
                 e, f, g, h, k = sorted(set(answers[4]) - {d})
                 my_dict = dict(zip("abcdefghkmnpqrst",
-                                                                  (a, b, c, d, e, f, g, h, k, m, n, p, q, r, s, t)))
+                                   (a, b, c, d, e, f, g, h, k, m, n, p, q, r, s, t)))
                 return my_dict
 
         return None

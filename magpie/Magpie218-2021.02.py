@@ -109,4 +109,5 @@ class Magpie218Solver:
 
 
 if __name__ == '__main__':
+    # TODO.  We need to include the sudoku library somehow.
     Magpie218Solver().run()

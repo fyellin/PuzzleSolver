@@ -1,11 +1,11 @@
+import math
 from collections import defaultdict
 from itertools import combinations
 from typing import Any
 
-import math
+from more_itertools.recipes import is_prime
 
-from misc.factors import prime_factors
-from misc.primes import PRIMES
+from misc import prime_factors
 from solver import Clue, ConstraintSolver, KnownClueDict
 from solver.generators import allvalues, filterer, get_min_max, nth_power, square
 
@@ -146,13 +146,12 @@ class Listener4895(ConstraintSolver):
 def prime_power_prime(delta):
     def internal(clue):
         assert clue.length == 10
-        primes = PRIMES
-        two_digit_primes = [x for x in PRIMES if 10 <= x <= 99]
+        two_digit_primes = [x for x in range(10, 100) if is_prime(x)]
         for p in two_digit_primes:
             power = int(math.log(1e10) / math.log(p))
             assert p ** power + delta < 10_000_000_000
             assert p ** (power + 1) + delta >= 10_000_000_000
-            if len(str(p ** power + delta)) == 10 and power in primes:
+            if len(str(p ** power + delta)) == 10 and is_prime(power):
                 yield p ** power + delta
     return internal
 

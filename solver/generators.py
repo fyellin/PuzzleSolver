@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import itertools
 import math
-from collections.abc import Callable, Generator, Iterator, Iterable, Sequence
+from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
+
+from more_itertools import is_prime
 
 from .clue import Clue
 
@@ -12,7 +14,7 @@ BASE = 10
 ClueValueGenerator = Callable[[Clue], Iterable[str | int]]
 
 
-def allvalues(clue: Clue) -> Iterable[int]:
+def allvalues(clue: Clue) -> Iterable[int]:  # noqa
     """All possible values that fit in the clue length"""
     min_value, max_value = get_min_max(clue)
     return iter(range(min_value, max_value))
@@ -49,8 +51,8 @@ def sum_of_2_cubes(clue: Clue) -> Sequence[int]:
     upper = int(math.ceil(max_value ** (1 / 3)))
     cubes = [x * x * x for x in range(1, upper)]
     sums = {sum(pair) for pair in itertools.combinations_with_replacement(cubes, 2)}
-    result = sorted(x for x in sums if min_value <= x < max_value)
-    return result
+    return sorted(x for x in sums if min_value <= x < max_value)
+
 
 def filterer(predicate: Callable[[int], bool]) -> Callable[[Clue], Iterable[int]]:
     def result(clue: Clue) -> Iterator[int]:
@@ -70,23 +72,14 @@ def nth_power(n: int) -> Callable[[Clue], Iterable[int]]:
 
 def prime(clue: Clue) -> Iterator[int]:
     """Returns primes"""
-    return (p for p, is_prime in _prime_not_prime(clue) if is_prime)
+    min_value, max_value = get_min_max(clue)
+    return filter(is_prime, range(min_value, max_value))
 
 
 def not_prime(clue: Clue) -> Iterator[int]:
     """Returns not primes"""
-    return (p for p, is_prime in _prime_not_prime(clue) if not is_prime)
-
-
-def _prime_not_prime(clue: Clue) -> Iterator[tuple[int, bool]]:
-    """Returns (int, isPrime) for all integers of the right length"""
     min_value, max_value = get_min_max(clue)
-    # Get list of the prime factors that could possibly divide our numbers
-    max_factor = int(math.sqrt(max_value))
-    factors = list(itertools.takewhile(lambda x: x <= max_factor, prime_generator()))
-
-    for p in range(min_value, max_value):
-        yield p, all(p % factor != 0 for factor in factors)
+    return (x for x in range(min_value, max_value) if not is_prime(x))
 
 
 def known(*values: int | str) -> Callable[[Clue], Iterable[int | str]]:
@@ -144,7 +137,9 @@ def convert_to_base(num: int, base: int) -> str:
         return '0'
     while num:
         num, mod = divmod(num, base)
-        result.append('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz<>'[mod])
+        result.append('0123456789'
+                      'ABCDEFGHIJKLMNOPQRSTUVWXYZ'  # noqa
+                      'abcdefghijklmnopqrstuvwxyz<>'[mod])    # noqa
     result.reverse()
     return ''.join(result)
 
@@ -228,20 +223,3 @@ def __fibonacci_like(start_i: int, start_j: int) -> Iterator[int]:
     while True:
         yield i
         i, j = j, i + j
-
-
-def phi(value: int) -> int:
-    result = 1
-    for prime in prime_generator():
-        if value % prime == 0:
-            value = value // prime
-            count = 1
-            while value % prime == 0:
-                count += 1
-                value = value // prime
-            result *= count + 1
-        if value == 1:
-            return result
-        if value < prime * prime:
-            return result * 2
-    assert False, "Should never reach here"

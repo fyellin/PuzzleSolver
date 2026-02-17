@@ -2,15 +2,15 @@ import itertools
 import re
 from abc import ABC, abstractmethod
 from collections import Counter, OrderedDict, defaultdict
-from collections.abc import Sequence, Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
-from .clue import Clue
-from .clue import Location
+from .clue import Clue, Location
 from .clue_types import ClueValue
 from .draw_grid import draw_grid
 
 type KnownClueDict = dict[Clue, ClueValue]
+
 
 class BaseSolver(ABC):
     _clue_list: Sequence[Clue]
@@ -23,11 +23,13 @@ class BaseSolver(ABC):
     # The set of all locations at which two clues intersect
     __intersections: frozenset[Location]
 
-    def __init__(self, clue_list: Sequence[Clue], *, allow_duplicates: bool = False) -> None:
+    def __init__(self, clue_list: Sequence[Clue], *, allow_duplicates: bool = False
+                 ) -> None:
         self._clue_list = clue_list
         self._allow_duplicates = allow_duplicates
 
-        all_locations: Counter[Location] = Counter(location for clue in clue_list for location in clue.locations)
+        all_locations: Counter[Location] = Counter(
+            location for clue in clue_list for location in clue.locations)
         self.__name_to_clue = OrderedDict((clue.name, clue) for clue in clue_list)
         self.__max_row = 1 + max(row for (row, _) in all_locations)
         self.__max_column = 1 + max(column for (_, column) in all_locations)
@@ -48,13 +50,14 @@ class BaseSolver(ABC):
         """Returns true if the location is the starting location of a clue."""
         return location in self.__start_locations
 
-    # Override this if there are addition restrictions on the value that can go into a field.
+    # Override this if there are addition restrictions on the value
+    # that can go into a field.
     def get_allowed_regexp(self, location: Location) -> str:
         """
         Return a regular expression indicating the possible values for this square.
 
-        By default, allows any value except 0 if this is the starting location of a clue, and any value otherwise.
-        Can be overridden if necessary.
+        By default, allows any value except 0 if this is the starting location of a clue,
+        and any value otherwise. Can be overridden if necessary.
         """
         return '[^0]' if self.is_start_location(location) else '.'
 
@@ -85,7 +88,7 @@ class BaseSolver(ABC):
         assert self.__max_row == self.__max_column
         clue_start_set = self.__make_clue_start_set()
         for clue in self._clue_list:
-            # The location in this clue that matches the start of its 90° clockwise rotation
+            # The location in this clue that matches the start of its 90° rotation
             row, column = clue.location(0 if clue.is_across else clue.length - 1)
             # The presumed start location of the clue located 90° clockwise.
             row2, column2 = column, self.__max_column - row
@@ -93,10 +96,15 @@ class BaseSolver(ABC):
             assert ((row2, column2), clue.length, not clue.is_across) in clue_start_set
 
     def __make_clue_start_set(self) -> set[tuple[Location, int, bool]]:
-        """Creates the set of (start-location, length, is-across) tuples for all clues in the puzzle"""
-        return {(clue.base_location, clue.length, clue.is_across) for clue in self.__name_to_clue.values()}
+        """
+        Creates the set of (start-location, length, is-across) tuples
+        for all clues in the puzzle
+        """
+        return {(clue.base_location, clue.length, clue.is_across)
+                for clue in self.__name_to_clue.values()}
 
-    def plot_board(self, clue_values: KnownClueDict | None = None, **more_args: Any) -> None:
+    def plot_board(self, clue_values: KnownClueDict | None = None, **more_args: Any
+                   ) -> None:
         """Draws a picture of the grid with the specified clues filled in."""
         max_row = self.__max_row
         max_column = self.__max_column
@@ -117,9 +125,10 @@ class BaseSolver(ABC):
         # Location of squares that have a heavy bar at their top
         top_bars = set(itertools.product(range(2, max_row), range(1, max_column)))
 
-        # The location of left heavy bars, top heavy bars, and squares that are part of an answer
-        # Note that we determine top_bars and left_bars by elimination.  We originally place all
-        # possible locations in the set, then remove those bars that are in the interior of a clue.
+        # The location of left heavy bars, top heavy bars, and squares that are part
+        # of an answer Note that we determine top_bars and left_bars by elimination.  We
+        # originally place all possible locations in the set, then remove those bars that
+        # are in the interior of a clue.
         for clue in self._clue_list:
             match = re.search(r'\d+', clue.name)
             location = clue.base_location
@@ -132,26 +141,33 @@ class BaseSolver(ABC):
             if clue in clue_values:
                 for location, value in zip(clue.locations, clue_values[clue]):
                     if location in location_to_entry:
-                        assert value == location_to_entry[location], f'Clash at {location} {value} ≠ {location_to_entry[location]}'
+                        assert value == location_to_entry[location], \
+                            f'Clash at {location} {value} ≠ {location_to_entry[location]}'
                     else:
                         location_to_entry[location] = value
             # These are internal locations of an answer, so a heavy bar isn't needed.
-            (left_bars if clue.is_across else top_bars).difference_update(clue.locations[1:])
+            (left_bars if clue.is_across else top_bars).difference_update(
+                clue.locations[1:])
 
-        args = dict(max_row=max_row, max_column=max_column,
-                   clued_locations=clued_locations,
-                   clue_values=clue_values,
-                   location_to_entry=location_to_entry,
-                   location_to_clue_numbers=location_to_clue_numbers,
-                   top_bars=top_bars,
-                   left_bars=left_bars) | more_args
+        args = dict( # noqa
+            max_row=max_row, max_column=max_column,
+            clued_locations=clued_locations,
+            clue_values=clue_values,
+            location_to_entry=location_to_entry,
+            location_to_clue_numbers=location_to_clue_numbers,
+            top_bars=top_bars,
+            left_bars=left_bars) | more_args
 
         self.draw_grid(**args)
 
     def draw_grid(self, **args: Any) -> None:
-        """Override this method if you need to intercept the call to the draw_grid() function."""
+        """
+        Override this method if you need to intercept the call
+         to the draw_grid() function.
+         """
         draw_grid(**args)
 
     @abstractmethod
-    def solve(self, *, show_time: bool = True, debug: bool = False, max_debug_depth: int | None = None) -> int:
+    def solve(self, *, show_time: bool = True, debug: bool = False,
+              max_debug_depth: int | None = None) -> int:
         ...

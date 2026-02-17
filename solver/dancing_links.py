@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import bisect
-from itertools import chain, count
+import math
 from collections import Counter
-from collections.abc import Hashable, Sequence, Callable
+from collections.abc import Callable, Hashable, Sequence
 from datetime import datetime
 from functools import cache
+from itertools import chain, count
 from typing import Any, Final
-
-import math
 
 
 class _Purified:
@@ -74,7 +73,7 @@ class DancingLinks[Row: Hashable]:
 
         def search_iterative() -> tuple[int, int]:
             steps = solutions = 0
-            stack: list[list[int]] = [[0, 0, 0, 0]]
+            stack: list[list[int]] = [[1, 0, 0, 0]]
 
             while stack:
                 depth, r, min_constraint, index = frame = stack.pop()
@@ -94,7 +93,7 @@ class DancingLinks[Row: Hashable]:
 
                     frame[1], frame[3] = r, index + 1  # reuse previous frame.
                     stack.append(frame)
-                    if self.debug <= self.max_debugging_depth:
+                    if depth <= self.max_debugging_depth:
                         self.__print_debug_info(
                             depth,
                             min_constraint,
@@ -110,7 +109,7 @@ class DancingLinks[Row: Hashable]:
 
                 steps += 1
                 if right[0] == 0:
-                    if self.debug <= self.max_debugging_depth:
+                    if depth <= self.max_debugging_depth:
                         print(f"{self.__indent(depth)}✓ SOLUTION")
                     # There can't be any frames with r == 0.
                     solution = [s[1] for s in stack if s[1] != s[2]]
@@ -121,7 +120,7 @@ class DancingLinks[Row: Hashable]:
                 min_constraint, min_count = choose_column()
 
                 if min_count == 0:
-                    if self.debug <= self.max_debugging_depth:
+                    if depth <= self.max_debugging_depth:
                         print(f"{self.__indent(depth)}✕ {self.names[min_constraint]}")
                     continue
 
@@ -256,12 +255,12 @@ class DancingLinks[Row: Hashable]:
                     colored_constraints.add(constraint)
                 this_rows_constraints[constraint] += 1
             if any(value > 1 for value in this_rows_constraints.values()):
-                dups = [
+                duplicates = [
                     constraint
                     for constraint, value in this_rows_constraints.items()
                     if value > 1
                 ]
-                raise ValueError(f"Row {name} has duplicate constraints {dups}")
+                raise ValueError(f"Row {name} has duplicate constraints {duplicates}")
             all_constraints += this_rows_constraints
         if not colored_constraints <= self.optional_constraints:
             bad_constraints = colored_constraints - self.optional_constraints
@@ -321,7 +320,7 @@ class DancingLinks[Row: Hashable]:
                     # A secondary constraint that only appeared once.  We can delete it.
                     continue
                 new_node(my_top)
-                if color:
+                if color is not None:
                     colors[current_index] = color
         new_node(0)  # Add a final spacer
         current_index += 1
@@ -364,7 +363,7 @@ class DancingLinks[Row: Hashable]:
         if index < len(left):
             if index == 0:
                 return "ROOT"
-            elif index == len(left) - 1:
+            elif index == len(left) - 1:  # noqa
                 return "SECOND_ROOT"
             else:
                 return self.names[index]
@@ -385,7 +384,7 @@ class DancingLinks[Row: Hashable]:
                         name = f"{name}/{color}"
                     items.append(name)
                 return result + ": " + ",".join(items)
-            else:
+            else: # noqa
                 color = self.colors.get(index)
                 if color:
                     return f"<{self.names[spacer]} {self.names[top[index]]}/{color}>"

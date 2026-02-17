@@ -7,6 +7,8 @@ import re
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
 
+from more_itertools import sieve
+
 from solver import Clue, ConstraintSolver
 from solver import generators
 
@@ -17,8 +19,7 @@ def fibonacci_generator() -> Iterator[int]:
         yield i
         i, j = j, i + j
 
-
-primes = frozenset(itertools.takewhile(lambda x: x < 10000, generators.prime_generator()))
+primes = frozenset(sieve(10000))
 squares = frozenset(itertools.takewhile(lambda x: x < 10000, (i*i for i in itertools.count(1))))
 cubes = frozenset(itertools.takewhile(lambda x: x < 10000, (i*i*i for i in itertools.count(1))))
 fibonaccis = frozenset(itertools.takewhile(lambda x: x < 10000, fibonacci_generator()))

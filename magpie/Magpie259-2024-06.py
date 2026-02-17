@@ -1,31 +1,30 @@
 import math
 from typing import Any
 
+from more_itertools import is_prime
+
 from misc.Pentomino import get_graph_shading, get_hard_bars
-from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, Location, LetterCountHandler
-from solver.generators import allvalues, cube, known, palindrome, prime, \
-    square, sum_of_2_cubes, triangular
-
-
-def dp(x):
-    return math.prod(int(i) for i in str(x))
-
-
-def ds(x):
-    return sum(int(i) for i in str(x))
-
-
-def is_cube(x):
-    return round(x ** (1 / 3)) ** 3 == x
-
-
-def is_square(x):
-    return math.isqrt(x) ** 2 == x
-
-
-def is_prime(x):
-    return all(x % i for i in range(2, math.isqrt(x) + 1))
-
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    ConstraintSolver,
+    DancingLinks,
+    LetterCountHandler,
+    Location,
+)
+from solver.generators import (
+    allvalues,
+    cube,
+    known,
+    palindrome,
+    prime,
+    square,
+    sum_of_2_cubes,
+    triangular,
+)
+from solver.helpers import digit_product as dp
+from solver.helpers import is_square
 
 GRID = """
 X.XXXXXX

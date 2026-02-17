@@ -1,7 +1,7 @@
 import math
 import re
-from typing import Any
 from collections.abc import Sequence
+from typing import Any
 
 from matplotlib import pyplot as plt
 

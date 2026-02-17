@@ -1,6 +1,8 @@
 import itertools
 from collections.abc import Iterator, Sequence, Iterable, Callable
 
+from more_itertools import is_prime, sieve
+
 from solver import Clue, Clues, ClueValueGenerator
 from solver import ConstraintSolver
 from solver import generators
@@ -24,7 +26,7 @@ Pull out all factors of 2.  Number of factors of that.  Subtract 1 to remove sin
 
 def set_up_tables() -> tuple[Sequence[int], Sequence[int], Sequence[int], Sequence[int]]:
     max_value = 100_000
-    primes = tuple(itertools.takewhile(lambda x: x < max_value, generators.prime_generator()))
+    primes = tuple(sieve(max_value))
     primes_set = set(primes)
 
     prime_info = [(1, 1, 0)] * max_value
@@ -105,8 +107,7 @@ def generate_17d18d(min_power: int) -> Callable[[Clue], Iterable[int]]:
     def generator(clue: Clue) -> Iterator[int]:
         min_value = 10 ** (clue.length - 1)
         max_value = 10 ** clue.length
-        primes = generators.prime_generator()
-        for prime in primes:
+        for prime in filter(is_prime, itertools.count(2)):
             for power in itertools.count(min_power):
                 result = prime ** power
                 if result >= min_value:

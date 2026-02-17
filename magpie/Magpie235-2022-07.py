@@ -5,7 +5,7 @@ from typing import Any
 
 import numpy
 
-from misc.primes import PRIMES
+from misc import PRIMES
 from solver import Clue, Clues, ConstraintSolver, EquationSolver
 from solver import DancingLinks, KnownClueDict, KnownLetterDict
 

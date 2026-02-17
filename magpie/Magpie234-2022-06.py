@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any, cast
 
-from misc.primes import PRIMES
+from misc import PRIMES
 from solver import ClueValue, Clues, EquationSolver, Evaluator, KnownClueDict, KnownLetterDict
 
 
