@@ -244,7 +244,7 @@ class Listener4608(ConstraintSolver):
 
         location_to_entry: dict[Location, str] = args['location_to_entry']
         shaded_squares = {location for location, value in location_to_entry.items() if value in "13579"}
-        shading = {location: "lightgreen" for location in shaded_squares}
+        shading = dict.fromkeys(shaded_squares, "lightgreen")
 
         super().draw_grid(shading=shading, **args)
 

@@ -3,8 +3,8 @@ from typing import Any
 
 from solver import Clue, ConstraintSolver, Evaluator, generators, Constraint, KnownClueDict
 
-TRIANGLES = list(i * (i + 1) // 2 for i in range(2000))
-SQUARES = list(i * i for i in range(1000))
+TRIANGLES = [i * (i + 1) // 2 for i in range(2000)]
+SQUARES = [i * i for i in range(1000)]
 
 TRIANGLES_SET = set(TRIANGLES)
 SQUARES_SET = set(SQUARES)
@@ -82,7 +82,7 @@ class Magpie243(ConstraintSolver):
             else:
                 print(f'{a:4} {b:4} {c:4}')
             return 0
-        mapping = dict(show=show)
+        mapping = {'show': show}
         vars = {clue.name: int(value) for clue, value in known_clues.items()}
         for i, constraint in enumerate(type1):
             evaluator = Evaluator.create_evaluator(f'@show(1, {i}, {constraint})', mapping)
@@ -122,9 +122,9 @@ class Magpie243(ConstraintSolver):
     @classmethod
     def get_constraints(cls) -> list[Constraint]:
         result = []
-        mapping = dict(test1=cls.is_type_1_triple, test2=cls.is_type_2_triple,
-                       testx=lambda x: x + 1 in TRIANGLES_SET,
-                       testnz=lambda x: int(x) == x > 0)
+        mapping = {'test1': cls.is_type_1_triple, 'test2': cls.is_type_2_triple,
+                       'testx': lambda x: x + 1 in TRIANGLES_SET,
+                       'testnz': lambda x: int(x) == x > 0}
         type1, type2 = cls.grab_constraints()
         for c_type, constraints in ((1, type1), (2, type2)):
             for constraint in constraints:

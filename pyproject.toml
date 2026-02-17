@@ -1,6 +1,19 @@
 [tool.ruff]
-line-length = 90
+line-length = 100
 target-version = "py314"
+preview = true
+exclude = [
+    ".git",
+    "venv",
+    "misc/primes.py",
+    "withgoogle/",
+    "solver/sly",
+    "solver/ply",
+    "solver/equation_parser.py",
+    "**/*_old.py"
+    # ... more exclusions
+]
+
 
 [tool.ruff.lint]
 # Enable all rules (or a specific set) and ignore certain ones
@@ -11,22 +24,4 @@ ignore = ["E501",
           "UP037",
          ]
 preview = true
-
-
-[tool.ruff.format]
-preview = true
-
-
-# Exclude specific files or directories
-exclude = [
-    ".git",
-    "venv",
-    "misc/primes.py",
-    "withgoogle/*.py",
-    "solver/sly/*.py",
-    "solver/ply/*.py",
-    "solver/equation_parser.py",
-    "**/*_old.py"
-    # ... more exclusions
-]
 

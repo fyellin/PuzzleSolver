@@ -93,7 +93,7 @@ class Listener4712(EquationSolver):
         shading = {}
         for clue, value in clue_values.items():
             if int(value) in (845, 472):
-                shading |= {location: (1, 0, 0, .8) for location in clue.locations}
+                shading |= dict.fromkeys(clue.locations, (1, 0, 0, 0.8))
 
         def extra(_plt, axes):
             axes.plot([1, 1, 9, 9], [8, 9, 9, 8], 'black', linewidth=5)

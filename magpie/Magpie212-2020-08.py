@@ -58,7 +58,7 @@ class Solver212(ConstraintSolver):
     def verify_is_legal_grid(acrosses: dict[tuple[int, int], int], downs: dict[tuple[int, int], int]) \
             -> dict[int, tuple[int, int]] | None:
         clue_starts = set(acrosses.keys()).union(downs.keys())
-        number_to_clue_start = {number: clue_start for number, clue_start in enumerate(sorted(clue_starts), start=1)}
+        number_to_clue_start = dict(enumerate(sorted(clue_starts), start=1))
         for number, clue_start in number_to_clue_start.items():
             value = (clue_start in acrosses) + (clue_start in downs)
             assert 1 <= value <= 2

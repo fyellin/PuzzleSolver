@@ -277,7 +277,7 @@ Generator: 0:00:12.039189; list: 0:00:00.363289
 
 """
 def sum_with_list():
-    return sum([i * i for i in range(1, 1_000_000)])
+    return sum(i * i for i in range(1, 1_000_000))
 
 def sum_with_generator():
     return sum(i * i for i in range(1, 1_000_000))

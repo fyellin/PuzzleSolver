@@ -127,8 +127,8 @@ class Magpie229 (ConstraintSolver):
     @staticmethod
     def dual_generator(generator1, generator2):
         def generator(clue: Clue):
-            one = set(str(x) for x in generator1(clue))
-            two = set(str(x) for x in generator2(clue))
+            one = {str(x) for x in generator1(clue)}
+            two = {str(x) for x in generator2(clue)}
             yield from (TaggedString(x, 1) for x in one - two)
             yield from (TaggedString(x, 2) for x in two - one)
             yield from (TaggedString(x, 3) for x in one & two)
@@ -185,10 +185,10 @@ class Magpie229 (ConstraintSolver):
                 locations = {location: (location in self.terminal_locations, clue_index, location_index)
                              for clue_index, clue in enumerate(clues)
                              for location_index, location in enumerate(clue.locations)}
-                terminals = tuple([(clue_index, location_index)
-                                  for (is_terminal, clue_index, location_index) in locations.values() if is_terminal])
-                others = tuple([(clue_index, location_index)
-                                for (is_terminal, clue_index, location_index) in locations.values() if not is_terminal])
+                terminals = tuple((clue_index, location_index)
+                                  for (is_terminal, clue_index, location_index) in locations.values() if is_terminal)
+                others = tuple((clue_index, location_index)
+                                for (is_terminal, clue_index, location_index) in locations.values() if not is_terminal)
                 if len(terminals) > 1:
                     self.add_constraint(clues, lambda *values, loc=terminals: check_all_different(values, loc))
                 if len(others) > 1:

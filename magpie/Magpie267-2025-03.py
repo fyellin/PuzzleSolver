@@ -39,7 +39,7 @@ class Magpie267 (EquationSolver):
 
     def solve(self):
         constraints = {}
-        optional_constraints = set(f'r{r}c{c}' for r in range(1, 6) for c in range(1, 6))
+        optional_constraints = {f'r{r}c{c}' for r in range(1, 6) for c in range(1, 6)}
         by_number_and_alt = defaultdict(list)
         by_number_and_location = defaultdict(list)
         all_numbers = [value for value in range(10, 1000) if DP(value) in self.OK_DPS]
@@ -163,7 +163,7 @@ class Magpie267 (EquationSolver):
         return True
 
     def check_three_digits(self, solution):
-        three_digits = set(x for x in solution.values() if x >= 100)
+        three_digits = {x for x in solution.values() if x >= 100}
         assert sum(x in self.SQUARES for x in three_digits) == 2
         clue1, clue2 = [self.clue_named(name) for name, value in solution.items() if
                         value in self.SQUARES]

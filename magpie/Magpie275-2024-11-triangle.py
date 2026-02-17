@@ -106,7 +106,7 @@ def dancing_links(debug=False):
     def my_row_printer(info):
         nonlocal result
         assert result is None
-        result = {index : cells for (index, cells) in info}
+        result = dict(info)
 
     solver = DancingLinks(constraints, row_printer=my_row_printer)
     solver.solve(debug=debug)

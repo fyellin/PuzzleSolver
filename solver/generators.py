@@ -33,7 +33,7 @@ def square(clue: Clue) -> Iterator[int]:
     min_value, max_value = get_min_max(clue)
     lower = int(math.ceil(math.sqrt(min_value)))
     upper = int(math.ceil(math.sqrt(max_value)))
-    return map(lambda x: x * x, range(lower, upper))
+    return (x * x for x in range(lower, upper))
 
 
 def cube(clue: Clue) -> Iterator[int]:
@@ -41,7 +41,7 @@ def cube(clue: Clue) -> Iterator[int]:
     min_value, max_value = get_min_max(clue)
     lower = int(math.ceil(min_value ** (1 / 3)))
     upper = int(math.ceil(max_value ** (1 / 3)))
-    return map(lambda x: x * x * x, range(lower, upper))
+    return (x * x * x for x in range(lower, upper))
 
 
 def sum_of_2_cubes(clue: Clue) -> Sequence[int]:
@@ -64,7 +64,7 @@ def nth_power(n: int) -> Callable[[Clue], Iterable[int]]:
         min_value, max_value = get_min_max(clue)
         lower = int(math.ceil(min_value ** (1 / n)))
         upper = int(math.ceil(max_value ** (1 / n)))
-        return map(lambda x: x ** n, range(lower, upper))
+        return (x ** n for x in range(lower, upper))
     return result
 
 
@@ -99,7 +99,7 @@ def permutation(alphabet: str = '0123456789') -> Callable[[Clue], Iterator[str]]
 
     def result(clue: Clue) -> Iterator[str]:
         permutations = itertools.permutations(alphabet, clue.length)
-        return map(lambda x: ''.join(x), permutations)
+        return (''.join(x) for x in permutations)
 
     return result
 

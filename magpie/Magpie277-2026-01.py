@@ -25,10 +25,10 @@ class Magpie276(EquationSolver):
         super().__init__(clues)
 
 
-PENTOMINOS = dict(
-    I1='X', I2='XX', I3="XXX", L3='XX/X.', I4='XXXX',
-    L4="XXX/X", O4='XX/XX', S4=".XX/XX.", T4="XXX/.X."
-)
+PENTOMINOS = {
+    "I1": 'X', "I2": 'XX', "I3": "XXX", "L3": 'XX/X.', "I4": 'XXXX',
+    "L4": "XXX/X", "O4": 'XX/XX', "S4": ".XX/XX.", "T4": "XXX/.X."
+}
 
 class MyPentominos:
     def __init__(self, solver: Magpie276 = None) -> None:
@@ -60,10 +60,10 @@ class MyPentominos:
         }
 
         my_threes = [
-            set(f'r{r}c{c}' for (r, c) in [clue.locations[0], clue.locations[-1]])
+            {f'r{r}c{c}' for (r, c) in [clue.locations[0], clue.locations[-1]]}
             for clue in self.solver._clue_list if clue.length == 3 if clue.is_across]
         my_fours = [
-            set(f'r{r}c{c}' for (r, c) in [clue.locations[0], clue.locations[-1]])
+            {f'r{r}c{c}' for (r, c) in [clue.locations[0], clue.locations[-1]]}
             for clue in self.solver._clue_list if clue.length == 4 if clue.is_across]
         for name, constraint in constraints.items():
             items = set(constraint)
@@ -227,7 +227,7 @@ def check_all_number_assignments(items) -> \
         x, _y = sorted(d4)
         if (C * D) ** A != x: continue
 
-        results.append(('.'.join(items), numbers, dict()))
+        results.append(('.'.join(items), numbers, {}))
     return results
 
 

@@ -73,7 +73,7 @@ primes = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67
 
 prime_set = set(primes)
 
-prime_string_set = set(str(x) for x in primes if 2 < x < 1662)
+prime_string_set = {str(x) for x in primes if 2 < x < 1662}
 
 
 @functools.cache

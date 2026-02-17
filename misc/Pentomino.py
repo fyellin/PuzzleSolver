@@ -135,12 +135,12 @@ def get_hard_bars(solution):
     min_column = min(y for _, y in location_to_key.keys())
     max_column = max(y for _, y in location_to_key.keys()) + 1
     # Location of squares that have a heavy bar on their left.
-    left_bars = set((r, c)
+    left_bars = {(r, c)
                     for r in range(min_row, max_row)
                     for c in range(min_column + 1, max_column)
-                    if location_to_key.get((r, c)) != location_to_key.get((r, c - 1)))
-    top_bars = set((r, c)
+                    if location_to_key.get((r, c)) != location_to_key.get((r, c - 1))}
+    top_bars = {(r, c)
                    for r in range(min_row + 1, max_row)
                    for c in range(min_column, max_column)
-                   if location_to_key.get((r, c)) != location_to_key.get((r - 1, c)))
+                   if location_to_key.get((r, c)) != location_to_key.get((r - 1, c))}
     return left_bars, top_bars

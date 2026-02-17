@@ -247,7 +247,7 @@ def long_path(disks):
     hanoi = [tower for _, tower in half_hanoi(disks)]
     longest_path = [tower for _, tower in hamilton(disks)]
     all_towers = Tower.all_towers(disks)
-    graph = {tower.id: set(x.id for _, x in tower.get_neighbors()) for tower in all_towers}
+    graph = {tower.id: {x.id for _, x in tower.get_neighbors()} for tower in all_towers}
 
     def verify_paths():
         for tower, neighbors in graph.items():

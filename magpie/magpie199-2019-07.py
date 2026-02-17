@@ -124,10 +124,10 @@ def generate_map() -> ClueMap:
     accepted = 0
     rejected = 0
     result: ClueMap = collections.defaultdict(list)
-    direction_list = [x for x in Direction]
+    direction_list = list(Direction)
     lengths = [v for v in itertools.permutations(range(1, 10), 5) if v[0] == min(v) and v[1] < v[4]]
-    right_turns = list(x for x in itertools.product([0], [1, 2], [1, 2, 4, 5], [1, 2, 4, 5], [1, 2, 4, 5])
-                       if sum(x) % 3 != 0)
+    right_turns = [x for x in itertools.product([0], [1, 2], [1, 2, 4, 5], [1, 2, 4, 5], [1, 2, 4, 5])
+                       if sum(x) % 3 != 0]
     total_turns = np.cumsum(right_turns, axis=1) % 6
     turn_vectors = np.choose(total_turns, [x.delta() for x in Direction])
     length_direction_total_path_vector = np.inner(lengths, turn_vectors)

@@ -184,8 +184,8 @@ class Listener4634(ConstraintSolver):
                 in itertools.product(dtcn, dsm, msa, npa, qr, sbta):
             if d == d2 and a == a2 == a3 and m == m2 and s == s2 == s3:
                 e, f, g, h, k = sorted(set(answers[4]) - {d})
-                my_dict = {letter: value for letter, value in zip("abcdefghkmnpqrst",
-                                                                  (a, b, c, d, e, f, g, h, k, m, n, p, q, r, s, t))}
+                my_dict = dict(zip("abcdefghkmnpqrst",
+                                                                  (a, b, c, d, e, f, g, h, k, m, n, p, q, r, s, t)))
                 return my_dict
 
         return None

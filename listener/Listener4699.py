@@ -107,7 +107,7 @@ def get_main_tiling():
             print(tiling)
 
     def convert_to_tiling(solution):
-        mapping = {x: '-' for x in itertools.product((2, 6), repeat=2)}
+        mapping = dict.fromkeys(itertools.product((2, 6), repeat=2), '-')
         for name, info in solution:
             if name != 'Given':
                 mapping.update((cell, name) for cell in info)

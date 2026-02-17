@@ -260,7 +260,7 @@ class Solver251 (ConstraintSolver):
     def dancing_links(self, numbers):
         numbers = [str(x) for x in numbers]
         constraints = {}
-        optional_constraints = set(f'r{r}c{c}' for r in range(1, 10) for c in range(1, 10))
+        optional_constraints = {f'r{r}c{c}' for r in range(1, 10) for c in range(1, 10)}
         mapper = {'999': '888', '227': '223', '229': '223'}
         for clue in self._clue_list:
             for number in numbers:

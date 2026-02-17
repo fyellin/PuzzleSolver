@@ -51,7 +51,7 @@ class Solver208(ConstraintSolver):
             value = clue_values[clue]
             if int(value) in specials:
                 shaded.update(clue.locations)
-        shading = {x: 'yellow' for x in shaded}
+        shading = dict.fromkeys(shaded, 'yellow')
         super().draw_grid(shading=shading, **args)
 
     def make_clue_list(self) -> list[Clue]:

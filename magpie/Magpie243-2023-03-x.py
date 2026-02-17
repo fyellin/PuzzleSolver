@@ -218,7 +218,7 @@ class Magpie243b(ConstraintSolver):
 
     def draw_grid(self, plotter=None, **args: Any) -> None:
         if plotter:
-            args |= dict(location_to_entry=plotter)
+            args |= {'location_to_entry': plotter}
         super().draw_grid(**args, font_multiplier=.5)
 
     def get_info(self, which):
@@ -241,7 +241,7 @@ class Magpie243b(ConstraintSolver):
 
 @cache
 def get_permutations(n):
-    results = [list() for _ in range(n + 1)]
+    results = [[] for _ in range(n + 1)]
     for permutation in itertools.permutations(range(n)):
         same = sum(i == b for i, b in enumerate(permutation))
         results[same].append(permutation)

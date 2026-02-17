@@ -260,7 +260,7 @@ class Junk(EquationSolver):
         super().draw_grid(location_to_entry=location_to_entry,
                           top_bars={}, left_bars={},
                           font_multiplier=.5,
-                          coloring={x: 'blue' for x in doubles},
+                          coloring=dict.fromkeys(doubles, 'blue'),
                           subtext=subtext,
                           **args)
 

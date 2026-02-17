@@ -42,13 +42,13 @@ def handle(generator: Iterator[int]) -> solver.ClueValueGenerator:
 
 
 def square()  -> Iterator[int]:
-    return map(lambda x: x * x, itertools.count(1))
+    return (x * x for x in itertools.count(1))
 
 def cube() -> Iterator[int]:
-    return map(lambda x: x * x * x, itertools.count(1))
+    return (x * x * x for x in itertools.count(1))
 
 def triangle() -> Iterator[int]:
-    return map(lambda x: x * (x + 1) // 2, itertools.count(1))
+    return (x * (x + 1) // 2 for x in itertools.count(1))
 
 def fibonacci() -> Iterator[int]:
     x = y = 1
