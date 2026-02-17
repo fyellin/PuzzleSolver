@@ -61,10 +61,12 @@ class MyPentominos:
 
         my_threes = [
             {f'r{r}c{c}' for (r, c) in [clue.locations[0], clue.locations[-1]]}
-            for clue in self.solver._clue_list if clue.length == 3 if clue.is_across]
+            for clue in self.solver._clue_list
+            if clue.length == 3 and clue.is_across]
         my_fours = [
             {f'r{r}c{c}' for (r, c) in [clue.locations[0], clue.locations[-1]]}
-            for clue in self.solver._clue_list if clue.length == 4 if clue.is_across]
+            for clue in self.solver._clue_list
+            if clue.length == 4 and clue.is_across]
         for name, constraint in constraints.items():
             items = set(constraint)
             if any(x <= items for x in my_fours):
