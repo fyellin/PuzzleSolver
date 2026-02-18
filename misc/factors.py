@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 @functools.cache
 def prime_factors(value: int) -> list[tuple[int, int]]:
-    from misc.primes import PRIMES
+    from misc import PRIMES
     result = []
     for prime in PRIMES:
         if value % prime == 0:

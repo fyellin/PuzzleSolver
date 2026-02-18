@@ -1,16 +1,15 @@
-import datetime
 import functools
 import itertools
 import math
 import re
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
 from collections.abc import Sequence
-from typing import cast, Any
+from typing import Any, cast
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 
-from solver import generators, ConstraintSolver, Clues, Clue, Location
+from solver import Clue, Clues, ClueValue, ConstraintSolver, Location, generators
 
 
 def make_min_max_factor_table() -> Sequence[tuple[int, int]]:
@@ -33,7 +32,7 @@ def make_min_max_factor_table() -> Sequence[tuple[int, int]]:
     return min_max_factor
 
 
-@functools.lru_cache(None)
+@functools.cache
 def make_puzzle_table() -> dict[tuple[int, int], Sequence[int]]:
     result: dict[tuple[int, int], list[int]] = defaultdict(list)
     min_max_factor_table = make_min_max_factor_table()
@@ -62,16 +61,16 @@ HARVEST = """
 11 412 (4)
 17 8884 (5)
 18 2 (4)
-19 0 (4) 
-21 2716 (4) 
+19 0 (4)
+21 2716 (4)
 23 0 (4)
 27 500 (5)
 """
 
 INUNDATION = """
-1 194 (5) 
-3 3 (4) 
-5 39 (4) 
+1 194 (5)
+3 3 (4)
+5 39 (4)
 8 294 (4)
 10 116 (4)
 13 3034 (4)
@@ -81,15 +80,15 @@ INUNDATION = """
 """
 
 PLANTING = """
-2 30 (5) 
+2 30 (5)
 4 0 (4)
 6 27579 (5)
 12 4077 (4)
 14 2 (4)
-15 0 (4) 
-16 0 (4) 
-24 177 (4) 
-25 5 (4) 
+15 0 (4)
+16 0 (4)
+24 177 (4)
+25 5 (4)
 """
 
 
@@ -106,7 +105,7 @@ class Solver213(ConstraintSolver):
                    '7h': 9385, '1i': 82585, '2p': 58339, '11h': 2933, '8i': 7291, '9h': 9246, '3i': 8640, '22i': 8619,
                    '24p': 9666, '26i': 16667, '27h': 82661, '25p': 1764, '4p': 6889}
         solver = Solver213()
-        known_clues = {solver.clue_named(clue): str(value) for clue, value in answers.items()}
+        known_clues = {solver.clue_named(clue): ClueValue(str(value)) for clue, value in answers.items()}
         solver.plot_board(known_clues)
 
     def __init__(self) -> None:
@@ -154,7 +153,7 @@ class Solver213(ConstraintSolver):
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
         # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
         axes.axis([1, 9, 9, 1])
-        aspect_ratio = math.sqrt(3)/2
+        aspect_ratio = math.sqrt(3) / 2
         axes.set_aspect(aspect_ratio)
         axes.axis('off')
 
@@ -164,22 +163,22 @@ class Solver213(ConstraintSolver):
             center_x = (1 + row + column) / 2.0
             if isinstance(where, tuple):
                 where = where[0] if is_point_up else where[1]
-            args = dict(color=color, linewidth=5)
+            args = {'color': color, 'linewidth': 5}
             if where == 'left':
                 if column != 1:
                     axes.plot([center_x, center_x - .5], [point_row, flat_row], **args)
             elif where == 'right':
                 if column + 2 * row != 17:
                     axes.plot([center_x, center_x + .5], [point_row, flat_row], **args)
-            elif where in ('top', 'bottom'):
+            elif where in ('top', 'bottom'): # noqa
                 if is_point_up or row != 1:
                     axes.plot([center_x - .5, center_x + .5], [flat_row, flat_row], **args)
 
 
-        text_args = dict(verticalalignment='center', horizontalalignment='center',
-                         fontsize=20, fontfamily="sans-serif", fontweight='bold')
+        text_args = {'verticalalignment': 'center', 'horizontalalignment': 'center',
+                     'fontsize': 20, 'fontfamily': "sans-serif", 'fontweight': 'bold'}
 
-        label_args = dict(fontsize=10, fontfamily="sans-serif", fontweight='bold')
+        label_args = {'fontsize': 10, 'fontfamily': "sans-serif", 'fontweight': 'bold'}
         for (row, column), value in location_to_entry.items():
             label = location_to_clue_numbers.get((row, column))
             center_x = (1 + row + column) / 2.0
@@ -198,9 +197,9 @@ class Solver213(ConstraintSolver):
                     axes.text(center_x, row + .15, str(label[0]),
                               verticalalignment='top', horizontalalignment='center', **label_args)
         radius = 1.5
-        axes.add_patch(Ellipse((2.5, 2), radius, radius/aspect_ratio, color="#fde2c8"))
-        axes.add_patch(Ellipse((7.5, 2), radius, radius/aspect_ratio, color="#fde2c8"))
-        axes.add_patch(Ellipse((5.0, 7), radius, radius/aspect_ratio, color="#fde2c8"))
+        axes.add_patch(Ellipse((2.5, 2), radius, radius / aspect_ratio, color="#fde2c8"))
+        axes.add_patch(Ellipse((7.5, 2), radius, radius / aspect_ratio, color="#fde2c8"))
+        axes.add_patch(Ellipse((5.0, 7), radius, radius / aspect_ratio, color="#fde2c8"))
 
         for clue in self._clue_list:
             if clue.name.endswith("i"):
@@ -252,7 +251,7 @@ def hanoi() -> None:
             favorite = None
         piles[end].append(stone)
         count += 1
-        print(f'{count:3}: {stone}:{start+1}->{end+1}:    '
+        print(f'{count:3}: {stone}:{start + 1}->{end + 1}:    '
               f'{xx(piles[0]):7} {xx(piles[1]):7}  {xx(piles[2]):7} {favorite}')
 
     def internal(count: int, start: int, end: int) -> None:
@@ -271,6 +270,7 @@ def hanoi() -> None:
     internal(6, 2, 0)
     print(result)
 
+
 """
 Generator: 0:00:00.055020; list: 0:00:00.092192
 Generator: 0:00:12.039189; list: 0:00:00.363289
@@ -279,16 +279,10 @@ Generator: 0:00:12.039189; list: 0:00:00.363289
 def sum_with_list():
     return sum(i * i for i in range(1, 1_000_000))
 
+
 def sum_with_generator():
     return sum(i * i for i in range(1, 1_000_000))
 
-def test():
-    time1 = datetime.datetime.now()
-    print(sum_with_generator())
-    time2 = datetime.datetime.now()
-    print(sum_with_list())
-    time3 = datetime.datetime.now()
-    print(f'Generator: {time2 - time1}; list: {time3 - time2}')
 
 if __name__ == '__main__':
     Solver213().run()

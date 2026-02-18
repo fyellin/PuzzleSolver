@@ -9,4 +9,4 @@ from .factors import (
     prime_factors,
 )
 from .primes import PRIMES, PRIMES_LIMIT
-from .RandomFunctions import number_to_words
+from .RandomFunctions import Dijkstra, FakeArray, MaxHeap, MinHeap, number_to_words

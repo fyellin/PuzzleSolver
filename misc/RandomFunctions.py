@@ -3,7 +3,9 @@ import itertools
 import math
 import operator
 from collections import deque
-from collections.abc import Iterable, Mapping, Sequence, Callable
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from functools import total_ordering
+
 
 class FakeArray[S](Sequence):
     def __init__(self, length: int, getter: Callable[[int], S]):
@@ -16,7 +18,9 @@ class FakeArray[S](Sequence):
     def __len__(self):
         return self.length
 
-class MaxHeapObj:
+
+@total_ordering
+class ReverserWrapper:
     def __init__(self, val): self.val = val
     def __lt__(self, other): return self.val > other.val
     def __eq__(self, other): return self.val == other.val
@@ -32,7 +36,7 @@ class MinHeap:
 
 
 class MaxHeap(MinHeap):
-    def heappush(self, x): heapq.heappush(self.h, MaxHeapObj(x))
+    def heappush(self, x): heapq.heappush(self.h, ReverserWrapper(x))
     def heappop(self): return heapq.heappop(self.h).val
     def __getitem__(self, i): return self.h[i].val
 

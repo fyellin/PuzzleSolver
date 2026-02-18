@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from itertools import combinations, pairwise
 from math import isqrt
 
-from misc.primes import PRIMES
+from misc import PRIMES
 from solver import Clue, Clues, ConstraintSolver, EquationSolver, generators, KnownClueDict
 
 GRID = """

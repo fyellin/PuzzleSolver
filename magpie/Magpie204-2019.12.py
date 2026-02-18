@@ -94,20 +94,20 @@ class Solver204(ConstraintSolver):
         self.add_constraint(self._clue_list, self.constraint_3d)
 
     @staticmethod
-    @functools.lru_cache(None)
+    @functools.cache
     def mutual_constraint_intersects(clue1: ClueValue, clue2: ClueValue) -> bool:
         temp = clue1 + clue2
         return len(set(temp)) == len(temp) - 1
 
     @staticmethod
-    @functools.lru_cache(None)
+    @functools.cache
     def mutual_constraint_no_intersect(clue1: ClueValue, clue2: ClueValue) -> bool:
         temp = clue1 + clue2
         return len(set(temp)) == len(temp)
 
     @staticmethod
     def constraint_3d(a1: ClueValue, a4: ClueValue, a5: ClueValue, d2: ClueValue, d3: ClueValue, d4: ClueValue) -> bool:
-        @functools.lru_cache(None)
+        @functools.cache
         def sum_of_digits(n: ClueValue) -> int:
             return sum(map(int, n))
 
@@ -168,7 +168,7 @@ def run() -> None:
             all_constraints[(solver, values)] = constraints
 
     dancing_links = DancingLinks(all_constraints, row_printer=my_row_printer, optional_constraints=all_values)
-    dancing_links.solve(recursive=True)
+    dancing_links.solve()
 
 
 def my_row_printer(constraint_names: Sequence[tuple[Solver204, tuple[str, ...]]]) -> None:

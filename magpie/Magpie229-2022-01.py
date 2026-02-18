@@ -4,7 +4,7 @@ import itertools
 from collections.abc import Iterator, Sequence
 from typing import Any
 
-from misc.primes import PRIMES
+from misc import PRIMES
 from solver import Clue, ClueValue, Clues, ConstraintSolver, generators, Constraint
 from solver.generators import square_pyramidal_generator
 

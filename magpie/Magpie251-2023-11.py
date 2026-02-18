@@ -3,7 +3,7 @@ from functools import cache
 
 from sortedcontainers import SortedDict
 
-from misc.primes import PRIMES
+from misc import PRIMES
 from solver import Clue, ConstraintSolver, DancingLinks, generators
 
 C = [x for i in range(2, 100) for x in [i ** 3] if 2 <= x < 10_000]

@@ -5,7 +5,7 @@ from collections.abc import Iterable, Sequence
 from functools import cache
 from typing import Any
 
-from misc.primes import PRIMES
+from misc import PRIMES
 from solver import Clues, ClueValue, EquationSolver, Evaluator, KnownClueDict,  \
     KnownLetterDict
 
