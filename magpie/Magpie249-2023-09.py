@@ -112,7 +112,7 @@ class Magpie239b(EquationSolver):
             clues.append(clue)
         return clues
 
-def is_prime(x: int) -> bool:
+def  is_prime(x: int) -> bool:
     return x in PRIMES
 
 def generate_map():

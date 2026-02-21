@@ -102,7 +102,7 @@ class OuterSolver(EquationSolver):
     def __init__(self, clues: Sequence[Clue]):
         super().__init__(clues, items=range(1, 27))
         for clue in clues:
-            self.add_constraint((clue,), lambda x: is_legal_value(x))
+            self.add_constraint((clue,), is_legal_value)
         for clue1, clue2 in itertools.combinations(clues, 2):
             assert int(clue1.name) < int(clue2.name)
             if clue1.length == clue2.length:
