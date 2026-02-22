@@ -70,9 +70,11 @@ class ConstraintSolver(BaseSolver):
         for clue in actual_clues:
             self._multi_constraints[clue].append(check_relationship)
 
-    def add_extended_constraint(self, clues: Sequence[Clue | str],
+    def add_extended_constraint(self, clues: Sequence[Clue | str] | str,
                                 predicate: Callable[..., Sequence[ClueValue]],
                                 *, name: str | None = None) -> None:
+        if isinstance(clues, str):
+            clues = clues.split()
         actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue)
                              for clue in clues)
         actual_name = name or '-'.join(clue.name for clue in actual_clues)
