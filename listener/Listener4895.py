@@ -13,14 +13,15 @@ from solver.generators import allvalues, filterer, get_min_max, nth_power, squar
 def number_to_grid(n):
     q, r = divmod(n - 1, 10)
     if q % 2 == 0:
-        return (10 - q, r + 1)
+        return 10 - q, r + 1
     else:
-        return (10 - q, 10 - r)
+        return 10 - q, 10 - r
 
 
 GRID_TO_NUMBER = {number_to_grid(i): i for i in range(1, 101)}
 
 assert len(GRID_TO_NUMBER) == 100
+
 
 def grid_to_number(grid):
     return GRID_TO_NUMBER[grid]
@@ -31,11 +32,12 @@ LADDERS = [(11, 4), (15, 4), (38, 3), (45, 5)]
 
 MOVES = (5, 10, 46, 51, 56, 40, 85, 90, 95, 100)
 
+
 def play_game():
     my_map = {}
     for accessory in (SNAKES, LADDERS):
         for start, length in accessory:
-            start_row, col  = number_to_grid(start)
+            start_row, col = number_to_grid(start)
             end_row = start_row + (length - 1) if accessory is SNAKES else start_row - (length - 1)
             my_map[start] = grid_to_number((end_row, col))
 
@@ -43,10 +45,11 @@ def play_game():
         items = [die]
         while len(items) < 10:
             current = items[-1]
-            next = min(current + die, 100)
-            next = my_map.get(next, next)
-            items.append(next)
+            next_square = min(current + die, 100)
+            next_square = my_map.get(next_square, next_square)
+            items.append(next_square)
         print(items)
+
 
 class Listener4895(ConstraintSolver):
     @classmethod
@@ -64,7 +67,6 @@ class Listener4895(ConstraintSolver):
         for accessory in (SNAKES, LADDERS):
             for start, length in accessory:
                 start_row, col = number_to_grid(start)
-                locations = None
                 if accessory is LADDERS:
                     locations = [(row, col) for row in range(start_row, start_row - length, -1)]
                     name = str(start) + 'u'
@@ -80,8 +82,8 @@ class Listener4895(ConstraintSolver):
             clue_map[name] = clue
 
         # ACROSS
-        clue_map['1a'].generator = nth_power(3)  # add highest
-        clue_map['20a'].generator = nth_power(3) # add lowest
+        clue_map['1a'].generator = nth_power(3)   # add highest
+        clue_map['20a'].generator = nth_power(3)  # add lowest
         for i in (21, 60, 61, 80, 81):
             clue_map[str(i) + 'a'].generator = prime_power_prime(1 if i == 21 else 0)
         clue_map['40a'].generator = nth_power(6)
@@ -89,15 +91,15 @@ class Listener4895(ConstraintSolver):
         clue_map['100a'].generator = nth_power(9)
 
         # SNAKES
-        clue_map['42d'].generator = allvalues  # need to add conclusion
+        clue_map['42d'].generator = allvalues  # need to add in verification
         clue_map['61d'].generator = nth_power(4)
-        clue_map['68d'].generator = allvalues # five_primes
-        clue_map['94d'].generator = allvalues  # need to add conclusion
+        clue_map['68d'].generator = allvalues  # five_primes
+        clue_map['94d'].generator = allvalues  # need to add verification
 
         # LADDERS
-        clue_map['11u'].generator = filterer(lambda x: x ** 3 < 10_000_000_000) # plus 41a
+        clue_map['11u'].generator = filterer(lambda x: x ** 3 < 10_000_000_000)  # plus 41a
         clue_map['15u'].generator = double_square
-        clue_map['38u'].generator = allvalues  # need to add conclusion
+        clue_map['38u'].generator = allvalues  # need to add verification
         clue_map['45u'].generator = square
         return clue_map
 
@@ -118,13 +120,12 @@ class Listener4895(ConstraintSolver):
             for clue1, index1 in locations[move1]:
                 for clue2, index2 in locations[move2]:
                     if clue1 == clue2:
-                        self.add_constraint((clue1,), (lambda x, ix1=index1, ix2=index2: x[ix1] != x[ix2]), name = f"{move1}/{move2}")
+                        self.add_constraint((clue1,), (lambda x, ix1=index1, ix2=index2: x[ix1] != x[ix2]), name=f"{move1}/{move2}")
                     else:
-                        self.add_constraint((clue1, clue2), (lambda x, y, ix=index1, iy=index2: x[ix] != y[iy]), name = f"{move1}/{move2}")
+                        self.add_constraint((clue1, clue2), (lambda x, y, ix=index1, iy=index2: x[ix] != y[iy]), name=f"{move1}/{move2}")
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        board = {location: int(value) for clue, clue_value in known_clues.items()
-                 for location, value in zip(clue.locations, clue_value)}
+        board = {clue: int(value) for clue, value in self.get_board(known_clues).items()}
         assert len(board) == 100
         total = sum(board.values())
         evens = sum(x % 2 == 0 for x in board.values())
@@ -155,19 +156,21 @@ def prime_power_prime(delta):
                 yield p ** power + delta
     return internal
 
+
 def five_primes(clue):
     min_value, max_value = get_min_max(clue)
     for value in range(min_value, max_value):
-        temp = prime_factors(value)
-        if len(temp) == 5:
-            if all(y == 1 for _, y in temp):
-                yield value
+        factors = prime_factors(value)
+        if len(factors) == 5 and all(y == 1 for _, y in factors):
+            yield value
+
 
 def double_square(clue):
     min_value, max_value = get_min_max(clue)
     lower = int(math.ceil(math.sqrt(min_value / 2)))
     upper = int(math.ceil(math.sqrt(max_value / 2)))
     return (2 * x * x for x in range(lower, upper))
+
 
 if __name__ == '__main__':
     Listener4895.run()

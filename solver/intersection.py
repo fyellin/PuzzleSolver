@@ -1,12 +1,10 @@
-from __future__ import annotations
-
 import re
 from collections.abc import Callable, Sequence
 from typing import NamedTuple
 
 from .base_solver import BaseSolver, KnownClueDict
 from .clue import Clue
-from .clue_types import Location, ClueValue
+from .clue_types import ClueValue, Location
 
 
 class Intersection(NamedTuple):

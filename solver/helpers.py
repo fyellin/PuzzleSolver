@@ -24,11 +24,16 @@ def is_fibonacci(n):
     return is_square(5 * n * n + 4) or is_square(5 * n * n - 4)
 
 
-def digit_product(x):
+def is_harshad(value: int) -> bool:
+    digits = map(int, list(str(value)))
+    return value % sum(digits) == 0
+
+
+def digit_product(x: ClueValue | str | int) -> int:
     return math.prod(int(i) for i in str(x))
 
 
-def digit_sum(x):
+def digit_sum(x: ClueValue | str | int) -> int:
     return sum(int(i) for i in str(x))
 
 

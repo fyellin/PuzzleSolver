@@ -1,9 +1,9 @@
 import itertools
 import re
+from collections.abc import Iterator, Sequence
 from typing import Any, cast
-from collections.abc import Sequence, Iterator
 
-from solver import Clue, ConstraintSolver, Location, Clues, ClueValue, KnownClueDict
+from solver import Clue, Clues, ClueValue, ConstraintSolver, KnownClueDict, Location
 
 GRID = """
 XXXXXXX

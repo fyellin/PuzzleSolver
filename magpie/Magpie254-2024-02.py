@@ -1,10 +1,9 @@
-from time import time
+from collections.abc import Callable
 from itertools import combinations, groupby, product
 from math import comb
-from collections.abc import Callable
+from time import time
 
 from matplotlib import pyplot as plt
-
 
 C_LINE = ('DE', 'EZ', 'DZ', 'DG', 'KZ', 'AG', 'EG', ('BE', 'BK'), 'BD', 'EK',
           ('BZ', 100), 'GZ', 'DK', 'AD', 'AE', 'AZ', 'BG', 'GK', 'AK', 'AB')
@@ -134,7 +133,7 @@ def verifier():
         b.append((key1 + key2, comb(dx + dy, dx)))
 
     for values in (a, b):
-        values.sort(key = lambda x: x[1])
+        values.sort(key=lambda x: x[1])
         for value, items in groupby(values, lambda x: x[1]):
             print(value, [x for x, _ in items])
 

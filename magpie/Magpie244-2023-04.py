@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, NamedTuple
 
 from solver import Clue, Clues, ConstraintSolver, DancingLinks
+from solver.dancing_links import get_row_column_optional_constraints
 
 GRID = """
 X.XXXXX
@@ -198,9 +199,8 @@ class Magpie244(ConstraintSolver):
                 solutions = pickle.load(file)
                 print(f'Read file with {len(solutions)} solutions')
                 return solutions
-        square_set = set(itertools.product(range(1, 8), repeat=2))
         constraints = {}
-        optional_constraints = {f'r{r}c{c}' for r, c in square_set}
+        optional_constraints = get_row_column_optional_constraints(8, 8)
 
         def get_shadow(key) -> set[tuple[int, int]]:
             items = {(r + dr, c + dc)

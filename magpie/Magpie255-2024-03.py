@@ -1,10 +1,10 @@
-import math
-from typing import Any
 from collections.abc import Sequence
+from typing import Any
 
 import solver.generators as gen
 from misc.Pentomino import Pentomino, PentominoSolver, get_graph_shading
 from solver import Clue, Clues, Constraint, ConstraintSolver, KnownClueDict
+from solver.helpers import digit_product, is_fibonacci, is_square
 
 GRID = """
 X.XXXX
@@ -14,23 +14,6 @@ X.XX.X
 .XX.X.
 X..X..
 """
-
-
-def digit_product(x):
-    return math.prod(int(ch) for ch in str(x))
-
-
-def fibonacci():
-    a, b = 0, 1
-    while a < 1000:  # only generate numbers less than 1000000
-        yield a
-        a, b = b, a + b
-
-
-FIBONACCI_SET = set(fibonacci())
-
-
-SQUARE_SET = {x * x for x in range(0, 100)}
 
 
 ACROSSES = [
@@ -51,9 +34,9 @@ ACROSSES = [
 DOWNS = [
     (1, 3, gen.triangular),
     (2, 3, gen.triangular),
-    (4, 2, Constraint("4d", lambda x: int(x[::-1]) in SQUARE_SET)),
+    (4, 2, Constraint("4d", lambda x: is_square(int(x[::-1])))),
     (5, 3, gen.square),
-    (8, 2, Constraint("8d 7a", lambda x, y: int(x) + int(y) in FIBONACCI_SET)),
+    (8, 2, Constraint("8d 7a", lambda x, y: is_fibonacci(int(x) + int(y)))),
     (9, 2, gen.triangular),
     (11, 2, Constraint("11d 7a 13d", lambda x, y, z: int(x) == int(y) + int(z))),
     (12, 3, gen.square),
@@ -103,17 +86,15 @@ class Magpie255 (ConstraintSolver):
         return clues, constraints
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        location_to_value = {location: int(value)
-                             for clue, entry in known_clues.items()
-                             for location, value in zip(clue.locations, entry)}
-        total = sum(location_to_value.values())
+        location_to_value = self.get_board(known_clues)
+        total = sum(map(int, location_to_value.values()))
         quotient, remainder = divmod(total, 10)
         if remainder != 0:
             return False
 
         def predicate(pixels):
             return all(pixel in location_to_value for pixel in pixels) and \
-                   sum(location_to_value[pixel] for pixel in pixels) == quotient
+                   sum(int(location_to_value[pixel]) for pixel in pixels) == quotient
 
         temp = ''.join(str(location_to_value[i, j]) for i in range(1, 7) for j in range(1, 7))
         print(temp)
@@ -132,7 +113,6 @@ class Magpie255 (ConstraintSolver):
                           # left_bars=left_bars,
                           # location_to_clue_numbers=location_to_clue_numbers,
                           **args)
-
 
 
 if __name__ == '__main__':

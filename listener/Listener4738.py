@@ -2,8 +2,15 @@ import itertools
 from collections.abc import Iterable, Sequence
 from typing import Any
 
-from solver import ClueValue, Clues, Evaluator, Location, \
-    MultiEquationSolver, KnownClueDict, KnownLetterDict
+from solver import (
+    Clues,
+    ClueValue,
+    Evaluator,
+    KnownClueDict,
+    KnownLetterDict,
+    Location,
+    MultiEquationSolver,
+)
 
 GRID = """
 X.XXXXXXXX
@@ -126,14 +133,14 @@ class Listener4738(MultiEquationSolver):
             result = evaluator.compiled_code(*(value_dict[x] ^ 1 for x in evaluator.vars))
             int_result = int(result)
             if result == int_result > 0:
-                return ClueValue(str(int_result)),
+                return str(int_result),
             return ()
         except ArithmeticError:
             return ()
 
     @staticmethod
     def fixed_wrapper(_evaluator: Evaluator, _value_dict: KnownLetterDict) -> Iterable[ClueValue]:
-        yield from [ClueValue(str(120)), ClueValue(str(720))]
+        yield from [str(120), str(720)]
 
     def get_letter_values(self, known_letters: KnownLetterDict, letters: Sequence[str]) -> Iterable[Sequence[int]]:
         count = len(letters)

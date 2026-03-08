@@ -1,10 +1,16 @@
 import collections
 import itertools
-from enum import Enum
 from collections.abc import Iterable, Sequence
+from enum import Enum
 
-from solver import Clue, ClueValueGenerator, KnownClueDict, Location,  ConstraintSolver
-from solver import generators
+from solver import (
+    Clue,
+    ClueValueGenerator,
+    ConstraintSolver,
+    KnownClueDict,
+    Location,
+    generators,
+)
 
 
 class AnswerType(Enum):

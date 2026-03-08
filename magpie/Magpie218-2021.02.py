@@ -1,113 +1,92 @@
 import itertools
-import os
+import pathlib
 import pickle
-from collections.abc import Sequence, Iterable
-from typing import ClassVar
+from collections.abc import Hashable, Sequence
+from math import sumprod
+from typing import cast
 
-from cell import House
-from features import PossibilitiesFeature, SimplePossibilitiesFeature
-from human_sudoku import Sudoku
-from misc.factors import divisor_count, prime_factors, factor_count
+from misc import divisor_count
+from solver import DancingLinks, DLConstraint
+from solver.dancing_links import get_row_column_optional_constraints
+from solver.draw_grid import draw_grid
 
-# This doesn't run, because it requires sudoku.  Don't even try
-
-
-class PrimeFactorFeature(SimplePossibilitiesFeature):
-    htype: House.Type
-    row_column: int
-    count: int
-
-    TABLE: ClassVar[dict[int, Sequence[tuple[int, ...]]]] = None
-
-    @staticmethod
-    def all(htype: House.Type, counts: Sequence[int]) -> Sequence[PrimeFactorFeature]:
-        return [PrimeFactorFeature(htype, rc, count) for rc, count in enumerate(counts, start=1)]
-
-    def __init__(self, htype: House.Type, row_column: int, count: int):
-        name = f'Row {htype.name.title()} #{row_column}'
-        squares = self.get_row_or_column(htype, row_column)
-        self.htype = htype
-        self.row_column = row_column
-        self.count = count
-        if not PrimeFactorFeature.TABLE:
-            PrimeFactorFeature.TABLE = self.generate_table()
-
-        super().__init__(squares, name=name)
-
-    def get_possibilities(self) -> Iterable[tuple[int, ...]]:
-        return self.TABLE[self.count]
-
-    def draw(self, context: dict) -> None:
-        self.draw_outside(context, self.count, self.htype, self.row_column, is_right=True, fontsize=15)
-
-    @staticmethod
-    def generate_table() -> dict[int, Sequence[tuple[int, ...]]]:
-        if os.path.exists("/tmp/primes.pcl"):
-            with open("/tmp/primes.pcl", "rb") as file:
-                return pickle.load(file)
-
-        i = 0
-        keys = (9, 12, 24, 36, 40, 48, 96, 315, 400, 672)
-        result = {key: [] for key in keys}
-        for permutation in itertools.permutations('123456789'):
-            i += 1
-            if i % 10000 == 0:
-                print(i)
-            number = int(''.join(permutation))
-            count = divisor_count(number)
-            if count in result:
-                result[count].append(tuple(map(int, permutation)))
-
-        with open("/tmp/primes.pcl", "wb") as file:
-            pickle.dump(result, file)
-        return result
+PUZZLE = "291--X--1..X--.1.-2..4..XX-8....7".replace("X", "---").replace("-", "...")
+ROW_COUNT = [400, 96, 12, 315, 24, 12, 48, 24, 36]
+COLUMN_COUNT = [9, 24, 24, 40, 672, 12, 24, 36, 12]
 
 
 class Magpie218Solver:
-    def run(self, show=False):
-        features = [
-            *PrimeFactorFeature.all(House.Type.ROW, [400, 96, 12, 315, 24, 12, 48, 24, 36]),
-            *PrimeFactorFeature.all(House.Type.COLUMN, [9, 24, 24, 40, 672, 12, 24, 36, 12]),
-        ]
-        puzzle = "291--X--1..X--.1.-2..4..XX-8....7".replace("X", "---").replace("-", "...")
-        puzzle = "..1--X--1..X--.1.-2..4..XX-......".replace("X", "---").replace("-", "...")
-        puzzle = "..1--X--1..X--.1.-......XX-......".replace("X", "---").replace("-", "...")
-        puzzle = "XXXXXXXXX".replace("X", "---").replace("-", "...")
-        sudoku = Sudoku()
-        if sudoku.solve(puzzle, features=features, show=show):
-            grid = sudoku.grid
-            for row in range(1, 10):
-                cells = [grid.matrix[row, column] for column in range(1, 10)]
-                value = int(''.join([str(cell.known_value) for cell in cells]))
-                print(f"Row {row}: {value} = {self.pretty_print(prime_factors(value))}")
-            for column in range(1, 10):
-                cells = [grid.matrix[row, column] for row in range(1, 10)]
-                value = int(''.join([str(cell.known_value) for cell in cells]))
-                print(f"Col {column}: {value} = {self.pretty_print(prime_factors(value))}")
-
     @classmethod
-    def show(cls):
-        numbers = [
-            291637584, 436581792, 578942163, 847159236, 962374815, 315268479, 723416958, 684795321, 159823647,
-            245893761, 937461285, 168725349, 659132478, 384576192, 712948653, 571284936, 896317524, 423659817,
-        ]
-        for number in numbers:
-            factors = prime_factors(number)
-            print(f"{number} {factor_count(number):>3} {cls.pretty_print(factors)}")
+    def run(cls):
+        solver = cls()
+        solver.solve()
+
+    def __init__(self):
+        self.initial_grid = {
+            (row, column): [int(letter)]
+            for (row, column), letter in zip(
+                itertools.product(range(1, 10), repeat=2), PUZZLE, strict=True)
+            if '1' <= letter <= '9'}
+
+    def solve(self):
+        constraints: dict[Hashable, Sequence[DLConstraint]] = {
+            ('SQUARE', row, column, value): [
+                f"V{row}{column}", f"R{row}={value}",
+                f"C{column}={value}", f"B{box}={value}",
+                (f"r{row}c{column}", value)
+            ]
+            for row, column in itertools.product(range(1, 10), repeat=2)
+            for box in [row - (row - 1) % 3 + (column - 1) // 3]
+            for value in self.initial_grid.get((row, column), range(1, 10))}
+        optional_constraints = get_row_column_optional_constraints(9, 9)
+        table = self.generate_table()
+        for rc_count in (ROW_COUNT, COLUMN_COUNT):
+            is_row = rc_count is ROW_COUNT
+            name = "ROW" if is_row else "COLUMN"
+            for u, divisors in enumerate(rc_count, start=1):
+                locations = [(f"r{u}c{i}" if is_row else f"r{i}c{u}")
+                             for i in range(1, 10)]
+                print(f"{name} {u} has {divisors} divisors: {len(table[divisors])}")
+                for permutation in table[divisors]:
+                    constraints[(name, u, permutation)] = [
+                        f"Z-{name}-{u}",
+                        *(zip(locations, permutation))
+                    ]
+        solver = DancingLinks(constraints, optional_constraints=optional_constraints,
+                              row_printer=self.show_solution)
+        solver.solve(debug=100)
 
     @staticmethod
-    def pretty_print(factors: Sequence[tuple[int, int]]) -> str:
-        digits = '\u2070\u20b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079'
-        result = []
-        for (prime, power) in factors:
-            if power == 1:
-                result.append(str(prime))
-            else:
-                powerx = ''.join(digits[ord(x) - 48] for x in str(power))
-                result.append(str(prime) + powerx)
-        return ' × '.join(result)
+    def generate_table() -> dict[int, Sequence[tuple[int, ...]]]:
+        pickle_file = pathlib.Path("/tmp/primes.pcl")
+        if pickle_file.exists():
+            with pickle_file.open("rb") as file:
+                return pickle.load(file)
+
+        multiplier = [10 ** i for i in reversed(range(9))]
+        result = {key: [] for key in {*ROW_COUNT, *COLUMN_COUNT}}
+        for i, permutation in enumerate(itertools.permutations(range(1, 10))):
+            if i % 10000 == 0:
+                print(i)
+            number = cast(int, sumprod(permutation, multiplier))
+            count = divisor_count(number)
+            if count in result:
+                result[count].append(permutation)
+
+        with pickle_file.open("wb") as file:
+            pickle.dump(result, file)
+        return result
+
+    def show_solution(self, solution):
+        solution = [x for x in solution if x[0] == 'SQUARE']
+        grid = {(row, column): value for _, row, column, value in solution}
+        draw_grid(max_row=10, max_column=10,
+                  location_to_entry=grid,
+                  top_bars=set(itertools.product((4, 7), range(1, 10))),
+                  left_bars=set(itertools.product(range(1, 10), (4, 7))),
+                  coloring=(dict.fromkeys(self.initial_grid, 'red')),
+                  )
 
 
 if __name__ == '__main__':
-    # TODO.  We need to include the sudoku library somehow.
-    Magpie218Solver().run()
+    Magpie218Solver().solve()

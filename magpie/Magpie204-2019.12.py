@@ -16,6 +16,7 @@ from solver import (
     Location,
     generators,
 )
+import string
 
 LENGTHS = (
     # 1a 4a 5a 4d 2d 3d
@@ -142,11 +143,11 @@ class Solver204(ConstraintSolver):
         if (3, 3) not in location_dict:
             location_dict[3, 3] = (set("123456789") - set(location_dict.values())).pop()
         grid_fill = ''.join(location_dict[row, column] for row in range(1, 4) for column in range(1, 4))
-        missing = next(x for x in "0123456789" if x not in grid_fill)
+        missing = next(x for x in string.digits if x not in grid_fill)
         self._answers.append((values, grid_fill, missing))
 
     def values_to_known_clue_dict(self, values: tuple[str, ...]) -> KnownClueDict:
-        return {clue: ClueValue(value) for clue, value in zip(self._clue_list, values)}
+        return dict(zip(self._clue_list, values))
 
     def get_answers(self) -> list[tuple[tuple[str, ...], str, str]]:
         return self._answers

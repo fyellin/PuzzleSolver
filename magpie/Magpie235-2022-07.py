@@ -1,13 +1,21 @@
 import re
 from collections import defaultdict
-from itertools import combinations, product
+from itertools import combinations, islice, product
 from typing import Any
 
 import numpy
+from more_itertools import sieve
 
-from misc import PRIMES
-from solver import Clue, Clues, ConstraintSolver, EquationSolver
-from solver import DancingLinks, KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    ConstraintSolver,
+    DancingLinks,
+    EquationSolver,
+    KnownClueDict,
+    KnownLetterDict,
+)
+from solver.dancing_links import get_row_column_optional_constraints
 
 EQUATIONS = """
 1 EGH
@@ -45,21 +53,8 @@ def get_equations():
     return values
 
 
-GRID = """
-XX.X.XXXX
-X....X...
-X...X....
-X.X...X..
-..X......
-XX.X.X.X.
-...X.X...
-X....X...
-..X......"""
-
-ACROSSES = [(1, 7), (8, 4), (9, 4), (10, 6), (12, 4), (14, 3), (15, 5), (16, 3),
-            (19, 4), (21, 6), (23, 4), (24, 4), (25, 7)]
-DOWNS = [(2, 4), (3, 3), (4, 4), (5, 6), (6, 4), (7, 7), (10, 7), (11, 5), (13, 6),
-         (17, 4), (18, 4), (20, 4), (22, 3)]
+ACROSS_LENGTHS = "711/414/6111/4113/11511/3114/1116/414/117"
+DOWN_LENGTHS = "117/414/1116/3114/11511/4113/6111/414/711"
 
 
 class MagpieSolver235Values(EquationSolver):
@@ -70,7 +65,7 @@ class MagpieSolver235Values(EquationSolver):
 
     def __init__(self):
         clues = self.get_clues()
-        super().__init__(clues, items=PRIMES[:13])
+        super().__init__(clues, islice(sieve(100), 13))
         for a, b in combinations(clues, 2):
             self.add_constraint((a, b), lambda x, y: int(x) < int(y))
 
@@ -100,66 +95,39 @@ class SolverMagpie235Links (ConstraintSolver):
         solver.solve()
 
     def __init__(self, entries):
-        clues = self.get_clues()
+        clues = Clues.clues_from_clue_sizes(ACROSS_LENGTHS, DOWN_LENGTHS)
         super().__init__(clues)
+        self.verify_is_four_fold_symmetric()
         self.entry_table = self.build_entry_table(entries)
-        self.encoding = self.create_encoding()
-
-    def get_clues(self):
-        clues = []
-        grid = Clues.get_locations_from_grid(GRID)
-        for (info, is_across) in ((ACROSSES, True), (DOWNS, False)):
-            letter = 'a' if is_across else 'd'
-            for number, length in info:
-                clue = Clue(f'{number}{letter}', letter == 'a',
-                            base_location=grid[number - 1], length=length)
-                clues.append(clue)
-        return clues
 
     def solve(self):
-        lines = defaultdict(list)
-        for clue in self._clue_list:
-            lines[clue.locations[0][not clue.is_across], clue.is_across].append(clue)
-        location_to_clues = defaultdict(list)
-        for clue in self._clue_list:
-            for location in clue.locations:
-                location_to_clues[location].append(clue)
-        double_locations = {location for location, clues in location_to_clues.items()
-                            if len(clues) > 1}
         constraints = {}
-        optional_constraints = set()
-        for (row_column, is_across), clues in lines.items():
-            rc = "row" if is_across else "col"
-            locations = [x for clue in clues for x in clue.locations]
-            for base in range(2, 11):
-                entries = [self.entry_table[base, clue.length] for clue in clues]
-                for answers in product(*entries):
-                    base_answers, real_answers = zip(*answers)
-                    if len(set(real_answers)) != len(real_answers):
-                        # Make sure no "real answer" is duplicated on a single row
-                        continue
-                    info = [f"{rc}-{row_column}", f"{rc}-Base-{base}"]
-                    info.extend(f'Value-{x}' for x in real_answers)
-                    # info.extend(f'Entry-{x}' for x in base_answers)
-                    # optional_constraints.update(f'Entry-{x}' for x in base_answers)
-                    if any(self.is_start_location(location) and digit == '0'
-                          for location, digit in zip(locations, ''.join(base_answers))):
-                        continue
-                    for location, digit in zip(locations, ''.join(base_answers)):
-                        if location in double_locations:
-                            encoding = self.encoding[digit][is_across]
-                            info.extend(f"{location[0]}-{location[1]}-{code}"
-                                        for code in encoding)
-                    constraints[(tuple(clues), tuple(base_answers))] = info
+        optional_constraints = get_row_column_optional_constraints(9, 9)
+        optional_constraints.update(f'Base-{base}->{rc}'
+                                    for base in range(2, 11) for rc in ('row', 'column'))
+        optional_constraints.update(f'{rc}-{number}->base'
+                                    for number in range(1, 10) for rc in ('Row', 'Column'))
+        for clue in self._clue_list:
+            for value, entry, base in self.entry_table[clue.length]:
+                constraint = [f'Value-{entry}', clue.name,
+                              *clue.dancing_links_rc_constraints(value)
+                              ]
+                row, column = clue.base_location
+                # Each base gets a single row/column.  Each row/column gets a single base
+                if clue.is_across:
+                    constraint.append((f'Base-{base}->row', row))
+                    constraint.append((f'Row-{row}->base', base))
+                else:
+                    constraint.append((f'Base-{base}->column', column))
+                    constraint.append((f'Column-{column}->base', base))
+                constraints[clue, value, entry, base] = constraint
 
         solver = DancingLinks(constraints, optional_constraints=optional_constraints,
                               row_printer=self.my_printer)
         solver.solve(debug=100)
 
     def my_printer(self, output):
-        clue_answers = {clue: value
-                        for clues, base_values in output
-                        for clue, value in zip(clues, base_values)}
+        clue_answers = {clue: value for clue, value, _entry, _base in output}
         self.plot_board(clue_answers)
 
     def draw_grid(self, location_to_clue_numbers, **args: Any) -> None:
@@ -171,23 +139,8 @@ class SolverMagpie235Links (ConstraintSolver):
         for entry in entries:
             for base in range(2, 11):
                 value = numpy.base_repr(entry, base=base)
-                result[base, len(value)].append((value, entry))
+                result[len(value)].append((value, entry, base))
         return result
-
-    @staticmethod
-    def create_encoding():
-        acrosses = list(combinations(range(5), 3))
-        downs = [tuple(x for x in range(6) if x not in item) for item in acrosses]
-        return {chr(ord('0') + i): (acrosses[i], downs[i]) for i in range(10)}
-
-    @staticmethod
-    def create_encoding_x():
-        return {str(i) : (across, down)
-                for i in range(10)
-                for across in [[f"U{j}" if i == j else f"D{j}" for j in range(10)]]
-                for down in [[f"D{j}" if i == j else f"U{j}" for j in range(10)]]
-                }
-
 
 if __name__ == '__main__':
     # MagpieSolver235Values.run()

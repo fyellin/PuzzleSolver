@@ -1,4 +1,3 @@
-import math
 from typing import Any
 
 from more_itertools import is_prime

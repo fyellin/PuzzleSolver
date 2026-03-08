@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import heapq
 import itertools
-from functools import cache
 from collections.abc import Sequence
+from functools import cache
 from typing import NamedTuple, Protocol, cast
 
 
@@ -304,6 +302,7 @@ def long_path(disks):
 
 def draw_one(disks):
     import cmath
+
     import matplotlib.pyplot as plt
     import numpy as np
 

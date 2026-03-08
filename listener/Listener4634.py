@@ -1,17 +1,15 @@
 import itertools
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
 from collections.abc import Sequence
 from typing import Any, cast
 
 from more_itertools import sieve
 
-from solver import Clue, generators
-from solver import ConstraintSolver
-from solver import Location, KnownClueDict
+from solver import Clue, ConstraintSolver, KnownClueDict, Location
 
 
-def roman_numeral_for(n: int) -> [str]:
-    (a, b, c, d) = cast(tuple, f'{n:04}')
+def roman_numeral_for(n: int) -> list[str]:
+    (a, b, c, d) = f'{n:04}'
     result = ["", "M", "MM", "MMM"][int(a)] + \
              ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"][int(b)] + \
              ["", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"][int(c)] + \
@@ -36,7 +34,7 @@ class RomanString(str):
 
 def build_table() -> tuple[dict[int, Sequence[str]], dict[str, int]]:
     result = defaultdict(list)
-    result2: [str, int] = {}
+    result2: dict[str, int] = {}
     for prime in sieve(4000):  # all primes <= 4000
         romans = roman_numeral_for(prime)
         for roman in romans:
@@ -60,7 +58,7 @@ class Listener4634(ConstraintSolver):
         super().__init__(self.make_clue_list())
         self.add_my_constraints()
 
-    def make_clue_list(self) -> [Clue]:
+    def make_clue_list(self) -> Sequence[Clue]:
         counter = 0
 
         def make(name: str, length: int, base_location: Location) -> Clue:
@@ -138,9 +136,7 @@ class Listener4634(ConstraintSolver):
         special_count = sum(1 for value in known_clues.values() if cast(RomanString, value).has_special)
         if special_count != 3:
             return False
-        location_to_value = {location: char
-                             for clue, value in known_clues.items()
-                             for location, char in zip(clue.locations, value)}
+        location_to_value = self.get_board(known_clues)
         temp = Counter(location_to_value.values())
         if temp['M'] != 1 or temp['D'] != 2:
             return False
@@ -184,9 +180,8 @@ class Listener4634(ConstraintSolver):
                 in itertools.product(dtcn, dsm, msa, npa, qr, sbta):
             if d == d2 and a == a2 == a3 and m == m2 and s == s2 == s3:
                 e, f, g, h, k = sorted(set(answers[4]) - {d})
-                my_dict = dict(zip("abcdefghkmnpqrst",
-                                   (a, b, c, d, e, f, g, h, k, m, n, p, q, r, s, t)))
-                return my_dict
+                return dict(zip("abcdefghkmnpqrst",
+                                (a, b, c, d, e, f, g, h, k, m, n, p, q, r, s, t)))
 
         return None
 

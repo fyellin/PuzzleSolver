@@ -1,8 +1,9 @@
 from typing import Any
 
-from matplotlib import pyplot as plt, patches
+from matplotlib import patches
+from matplotlib import pyplot as plt
 
-from solver import Clues, Clue, ConstraintSolver
+from solver import Clue, Clues, ConstraintSolver
 
 EQUATIONS = """
 """

@@ -1,15 +1,22 @@
 import itertools
-import math
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any
-from solver import Clue, ClueValue, ClueValueGenerator, ConstraintSolver, \
-    KnownClueDict, Location, generators
+
+from solver import (
+    Clue,
+    ClueValueGenerator,
+    ConstraintSolver,
+    KnownClueDict,
+    Location,
+    generators,
+)
+from solver.helpers import digit_product, digit_sum, is_cube, is_fibonacci
 
 
 def generate_L(clue: Clue) -> Iterator[int]:
-    """Prime.  Digit sume is fibonacci.  Length 3"""
+    """Prime.  Digit sum is fibonacci.  Length 3"""
     for prime in generators.prime(clue):
-        if digit_sum(prime) in {1, 2, 3, 5, 8, 13, 21, 34, 55}:
+        if is_fibonacci(digit_sum(prime)):
             yield prime
 
 
@@ -37,15 +44,8 @@ def generate_k(clue: Clue) -> Iterator[int]:
 
 def generate_l(clue: Clue) -> Iterator[int]:
     """1000 less than a triangular number"""
-    triangulars = (i * (i + 1) // 2 for i in itertools.count(1))
-    min_value, max_value = generators.get_min_max(clue)
-    min_value += 1000
-    max_value += 1000
-    for value in triangulars:
-        if value >= min_value:
-            if value >= max_value:
-                return
-            yield value - 1000
+    triangulars = (i * (i + 1) // 2 - 1000 for i in itertools.count(1))
+    return generators.within_clue_limits(clue, triangulars)
 
 
 def generate_q(clue: Clue) -> Iterator[str]:
@@ -122,37 +122,12 @@ CLUES = (
 )
 
 
-def digit_sum(x: int) -> int:
-    return sum(int(digit) for digit in str(x))
-
-
-def digit_product(x: int) -> int:
-    return math.prod(int(digit) for digit in str(x))
-
-
 def is_factor(x: int, y: int) -> bool:
     return x < y and y % x == 0
 
 
-def is_cube(number: int) -> bool:
-    number = abs(number)  # Prevents errors due to negative numbers
-    return round(number ** (1 / 3)) ** 3 == number
-
-
 def is_anagram(x: int, y: int) -> bool:
     return sorted(str(x)) == sorted(str(y))
-
-
-def generator_fibonacci_to(limit: int) -> set[int]:
-    def generator() -> Iterator[int]:
-        i, j = 0, 1
-        while True:
-            yield i
-            i, j = j, i + j
-    return set(itertools.takewhile(lambda x: x < limit, generator()))
-
-
-FIBONACCIS = generator_fibonacci_to(10000)
 
 
 class Listener4608(ConstraintSolver):
@@ -176,7 +151,7 @@ class Listener4608(ConstraintSolver):
         self.my_constraint("cx", lambda c, x: is_factor(x, c))
         self.my_constraint("dQna", lambda d, Q, n, a: d == 2 * Q * n + a)
         self.my_constraint("fC", lambda f, C: is_factor(f, C))
-        self.my_constraint("in", lambda i, n: (i - n) in FIBONACCIS)
+        self.my_constraint("in", lambda i, n: is_fibonacci(i - n))
         self.my_constraint("jA", lambda j, A: digit_product(j) == digit_product(A))
         self.my_constraint("ma", lambda m, a: is_factor(a, m))
         self.my_constraint("nx", lambda n, x: is_factor(x, n))
@@ -191,7 +166,7 @@ class Listener4608(ConstraintSolver):
     def my_constraint(self, variables: Sequence[str], predicate: Callable[..., bool]) -> None:
         def new_predicate(*values: str) -> bool:
             return predicate(*(int(x) for x in values))
-        self.add_constraint(variables, new_predicate)
+        self.add_constraint(list(variables), new_predicate)
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         """
@@ -199,20 +174,15 @@ class Listener4608(ConstraintSolver):
         g One more than another entry (3)
        """
         clue_g = self.clue_named("g")
-        g_minus_1 = str(int(known_clues[clue_g])- 1)
+        g_minus_1 = str(int(known_clues[clue_g]) - 1)
         if g_minus_1 not in known_clues.values():
             return False
 
         clue_H = self.clue_named("H")
-        locations_to_entries = {location: int(digit)
-                                for clue, value in known_clues.items()
-                                for location, digit in zip(clue.locations, value)}
+        locations_to_entries = self.get_board(known_clues)
         assert len(locations_to_entries) == 76
         digit_sum = str(2 * sum(locations_to_entries.values()))
-        if digit_sum != known_clues[clue_H]:
-            return False
-
-        return True
+        return digit_sum == known_clues[clue_H]
 
     def show_solution(self, known_clues: KnownClueDict) -> None:
         super().show_solution(known_clues)
@@ -220,9 +190,7 @@ class Listener4608(ConstraintSolver):
         clues_and_values.sort()
         all_clues, all_values = zip(*clues_and_values)
         print(f'({", ".join(all_clues)}) = ({", ".join(all_values)})')
-        locations_to_entries = {location: digit
-                                for clue, value in known_clues.items()
-                                for location, digit in zip(clue.locations, value)}
+        locations_to_entries = self.get_board(known_clues)
         message = ''.join(locations_to_entries[location] for location in sorted(locations_to_entries.keys()))
         self.handle_message(message, int(known_clues[self.clue_named('*')]))
 
@@ -231,7 +199,7 @@ class Listener4608(ConstraintSolver):
         assert len(message) == 76
         print(f'Message = "{message}"')
         print(f'Digit sum is {sum(int(x) for x in message)}')
-        pieces = [int(message[i:i+2]) for i in range(0, len(message), 2)]
+        pieces = [int(message[i : i + 2]) for i in range(0, len(message), 2)]
         print(pieces)
         pieces = [x % divisor for x in pieces]
         print(pieces)
@@ -258,10 +226,9 @@ def run() -> None:
     values = (162, 649, 54045, 595, 495, 69, 54, 752, 359, 573, 337, 90, 73, 395, 55, 29, 61, 48, 44, 58, 51, 99, 107,
               65, 245, 80957, 645, 45, 943, 969, 743, 43, 557, 953, 535, 735, 72, 934, 345, 942, 549, 938, 68, 16, 81,
               49, 50, 80, 30, 25)
-    known_clues = { solver.clue_named(letter): ClueValue(str(value)) for (letter, value) in zip(clues, values)}
+    known_clues = {solver.clue_named(letter): str(value) for (letter, value) in zip(clues, values)}
     solver.show_solution(known_clues)
 
 
 if __name__ == '__main__':
-    # This Puzzle does not work.  Let's come back to it.
     run()

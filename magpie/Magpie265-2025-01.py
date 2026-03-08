@@ -108,7 +108,8 @@ class Magpie265 (EquationSolver):
         for name in reversed(names):
             clue = find_spot(name)
             assert clue.length == len(name)
-            assert (ch in location_to_entry[location] for ch, location in zip(name, clue.locations))
+            assert (ch in location_to_entry[location]
+                    for ch, location in zip(name, clue.locations))
             for ch, location in zip(name, clue.locations):
                 location_to_entry[location] = ch
             clue_to_value[clue] = name

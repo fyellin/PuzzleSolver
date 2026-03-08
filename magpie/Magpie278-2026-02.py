@@ -1,9 +1,17 @@
 from collections import Counter
 from typing import Any
 
-from misc import PRIMES
-from solver import ClueValue, Clues, ConstraintSolver, Location
-from solver import Constraint, KnownClueDict, LetterCountHandler
+from more_itertools import is_prime
+
+from solver import (
+    Clues,
+    ClueValue,
+    Constraint,
+    ConstraintSolver,
+    KnownClueDict,
+    LetterCountHandler,
+    Location,
+)
 from solver.generators import allvalues, prime, square, triangular
 
 ACROSS_LENGTHS = "33/231/132/33"
@@ -29,7 +37,7 @@ class Magpie278(ConstraintSolver):
         constraints = [
             Constraint('7a', lambda x: x[0] < x[1] < x[2]),
             Constraint('8d', lambda x: x[0] < x[1] < x[2]),
-            Constraint('5d', lambda x: sum(int(d) for d in x) in PRIMES),
+            Constraint('5d', lambda x: is_prime(sum(int(d) for d in x))),
             Constraint("6a 11d", lambda x, y: set(x).isdisjoint(set(y))),
             Constraint("9a 13a", lambda x, y: sorted(x) == sorted(y)),
             Constraint("10d 3d", lambda x, y: int(x) % int(y) == 0),
@@ -42,8 +50,7 @@ class Magpie278(ConstraintSolver):
         return '[1-9]'
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        grid = {location: int(char) for clue, value in known_clues.items()
-                for location, char in zip(clue.locations, value)}
+        grid = {clue: int(value) for clue, value in self.get_board(known_clues).items()}
         counter = Counter(grid.values())
         if sum(counter.keys()) != 24:
             return False

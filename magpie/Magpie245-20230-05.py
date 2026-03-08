@@ -1,13 +1,13 @@
-from typing import Any
-
 import math
 from collections import defaultdict
-from collections.abc import Sequence, Iterable
+from collections.abc import Iterable, Sequence
 from functools import cache
+from typing import Any
 
-from misc.RandomFunctions import FastDijkstra, State
-from solver import Clue, Clues, ConstraintSolver, generators, Constraint
+from misc.RandomFunctions import FastDijkstra
+from solver import Clue, Clues, Constraint, ConstraintSolver, generators
 from solver.generators import known, palindrome, prime, square
+from solver.helpers import digit_product, digit_sum, is_square
 
 GRID = """
 XX.XXXX
@@ -20,20 +20,8 @@ X.X.X..
 """
 
 
-def digit_sum(n):
-    return sum(int(i) for i in n)
-
-
-def digit_product(n):
-    return math.prod(int(i) for i in n)
-
-
 def is_permutation(a, b):
     return a != b and sorted(a) == sorted(b)
-
-
-def is_square(x):
-    return 0 <= x == math.isqrt(x) ** 2
 
 
 def is_reverse(x, y):
@@ -156,6 +144,9 @@ class Magpie245 (ConstraintSolver):
         return result
 
 
+type State = tuple[tuple[int, int], ...]
+
+
 class MyDijkstra (FastDijkstra):
     @staticmethod
     def go():
@@ -203,4 +194,3 @@ class MyDijkstra (FastDijkstra):
 
 if __name__ == '__main__':
     Magpie245.run()
-    # MyDijkstra.go()

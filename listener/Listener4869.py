@@ -3,8 +3,8 @@ from collections import defaultdict
 from collections.abc import Sequence
 from functools import cache
 
-from misc.factors import prime_factors, prime_factors_as_string
-from solver import Clue, Clues, ConstraintSolver, generators, KnownClueDict
+from misc import prime_factors, prime_factors_as_string
+from solver import Clue, Clues, ConstraintSolver, KnownClueDict, generators
 
 ACROSS_LENGTHS = "44/1111112/44/161/161/44/2111111/44"
 DOWN_LENGTHS = "44/211111/44/161/161/44/1111112/44"
@@ -39,6 +39,7 @@ DOWN = """
 21 4 : 0
 """
 
+
 def get_prime_info() -> dict[tuple[int, int], list[str]]:
     result = defaultdict(list)
     for i in range(10, 10_000):
@@ -47,6 +48,7 @@ def get_prime_info() -> dict[tuple[int, int], list[str]]:
         delta = factors[-1][0] - factors[0][0]
         result[count, delta].append(i)
     return result
+
 
 @cache
 def get_anagram_multiples() -> dict[str, list[str]]:
@@ -94,6 +96,7 @@ class Listener4869(ConstraintSolver):
         print(result)
         Listener4869b.run(result)
         super().show_solution(known_clues)
+
 
 class Listener4869b(ConstraintSolver):
     @classmethod

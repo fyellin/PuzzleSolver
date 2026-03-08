@@ -1,14 +1,13 @@
 import itertools
 import operator
 from collections import defaultdict
-from collections.abc import Sequence, Iterator, Iterable, Callable
-
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from typing import Any
 
+from more_itertools import sieve
 from sortedcontainers import SortedDict, SortedSet
 
-from misc import PRIMES
-from solver import Clue, Clues, ConstraintSolver, ClueValueGenerator, KnownClueDict
+from solver import Clue, Clues, ClueValueGenerator, ConstraintSolver, KnownClueDict
 
 
 class MyString(str):
@@ -78,13 +77,14 @@ def across_generator(clue: Clue):
 
 
 def across_generator_7a(_clue: Clue) -> Iterator[MyString]:
+    primes = list(sieve(1_000_000))
     def inner(start_index: int, product: int, count: int) -> Iterable[int]:
         if count == 0:
             if product >= 10_000 and product in PRODUCT_LIST:
                 yield product
             return
         for index in itertools.count(start_index):
-            value = product * PRIMES[index]
+            value = product * primes[index]
             if value >= 100_000:
                 break
             yield from inner(index + 1, value, count - 1)

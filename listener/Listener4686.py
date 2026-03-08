@@ -1,14 +1,10 @@
 import itertools
 import math
+from collections.abc import Iterator, Sequence
 from typing import Any
-from collections.abc import Sequence, Iterator
 
-from misc.factors import prime_factors
-from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, generators
-
-
-def digit_sum(number: int) -> int:
-    return sum(int(x) for x in str(number))
+from misc import prime_factors
+from solver import Clue, Clues, ClueValue, ConstraintSolver, DancingLinks, generators
 
 
 def generate_power(clue: Clue) -> Iterator[int]:

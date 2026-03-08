@@ -1,12 +1,17 @@
-from __future__ import annotations
-
 import itertools
 from collections.abc import Iterable, Sequence
 from functools import cache
 from typing import Any
 
-from solver import Clue, ClueValue, Evaluator, Location, \
-    MultiEquationSolver, KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    ClueValue,
+    Evaluator,
+    KnownClueDict,
+    KnownLetterDict,
+    Location,
+    MultiEquationSolver,
+)
 
 ACROSS_LENGTHS = "413/332/44/44/233/314"
 DOWN_LENGTHS = "222/33/24/33/33/42/33/222"
@@ -44,6 +49,7 @@ def wrapper(self, value_dict: KnownLetterDict) -> Iterable[ClueValue]:
         pass
     return ()
 
+
 @cache
 def wrapper_encode(value: str) -> Sequence[ClueValue]:
     value = list(value)
@@ -64,6 +70,7 @@ def wrapper_encode(value: str) -> Sequence[ClueValue]:
             result.append(letter + temp[::-1])
     return result
 
+
 class Magpie275 (MultiEquationSolver):
     @classmethod
     def run(cls) -> None:
@@ -76,7 +83,7 @@ class Magpie275 (MultiEquationSolver):
         values = [i * i for i in range(1, 10)]
         super().__init__(clues, items=values)
 
-    def get_clues(self):
+    def get_clues(self) -> Sequence[Clue]:
         equations = []
         for counter, line in enumerate(EQUATIONS.strip().splitlines(), start=1):
             number, equation = line.split(' ', 1)
@@ -111,6 +118,7 @@ class Magpie275 (MultiEquationSolver):
                           left_bars=left_bars, top_bars=top_bars,
                           **args)
 
+
 def is_okay(value):
     if (ivalue := int(value)) == value:
         square_value = ivalue * ivalue
@@ -119,6 +127,7 @@ def is_okay(value):
             if len(set(value)) == 8:
                 return True
     return False
+
 
 def test1():
     """
@@ -169,7 +178,6 @@ def test1():
     for number, evaluator in evaluators.items():
         x = sum(bool(evaluator(permutation)) for permutation in permutations)
         print(number, x, len(evaluator.vars),  x // math.factorial(9 - len(evaluator.vars)))
-
 
 
 if __name__ == '__main__':

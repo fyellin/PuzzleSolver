@@ -1,23 +1,21 @@
 import itertools
-import math
 from collections.abc import Sequence
 from functools import cache
 
-from misc.factors import divisor_count
-from solver import Clue, Clues, ConstraintSolver, generators
-from solver import Constraint, KnownClueDict
-from solver.generators import fibonacci, known, palindrome, prime, square, \
-    square_pyramidal_generator, triangular
-
-
-@cache
-def DS(number: int | str) -> int:
-    return sum(int(x) for x in str(number))
-
-
-@cache
-def DP(number: int | str) -> int:
-    return math.prod(int(x) for x in str(number))
+from misc import divisor_count
+from solver import Clue, Clues, Constraint, ConstraintSolver, KnownClueDict, generators
+from solver.generators import (
+    fibonacci,
+    known,
+    palindrome,
+    prime,
+    square,
+    square_pyramidal_generator,
+    triangular,
+)
+from solver.helpers import digit_product as DP
+from solver.helpers import digit_sum as DS
+from solver.helpers import is_cube, is_square, is_triangular
 
 
 @cache
@@ -26,15 +24,16 @@ def MP(number: int | str) -> int:
         number = DP(number)
         if number < 10:
             return count
+    raise AssertionError  # Cannot reach here
 
 
 HAPPY = {1, 7, 10, 13, 19, 23, 28, 31, 32, 44, 49, 68, 70, 79, 82, 86, 91, 94, 97, }
 LUCKY = {1, 3, 7, 9, 13, 15, 21, 25, 31, 33, 37, 43, 49,
          51, 63, 67, 69, 73, 75, 79, 87, 93, 99, }
-TRIANGULAR = {x * (x + 1) // 2 for x in range(1, 100)}
-SQUARE = {x * x for x in range(1, 100)}
-CUBE = {x * x * x for x in range(1, 100)}
-TWO_POWER = {2 ** x for x in range(0, 10)}
+
+
+def is_power_of_two(x: int) -> bool:
+    return x & (x - 1) == 0
 
 
 GRID = """
@@ -51,7 +50,7 @@ XXX..XX
 def generator14a(clue):
     for digits in itertools.combinations('13579', clue.length):
         x = ''.join(digits)
-        if DP(x) in TRIANGULAR:
+        if is_triangular(DP(x)):
             yield x
             yield x[::-1]
 
@@ -60,8 +59,8 @@ LETTERS = ['jt', 'aku', 'blv', 'cmw', 'dnx', 'eoy', 'fpz', 'gq', 'hr', 'is']
 
 
 ACROSSES = [
-    (1, 3, triangular, Constraint('1a', lambda x: DP(x) in TRIANGULAR)),
-    (3, 3, square, Constraint('3a', lambda x: DS(x) in SQUARE)),
+    (1, 3, triangular, Constraint('1a', lambda x: is_triangular(DP(x)))),
+    (3, 3, square, Constraint('3a', lambda x: is_square(DS(x)))),
     (7, 2, Constraint('7a 21d', lambda x, y: DS(x) * 2 == int(y))),
     (9, 2, Constraint('9a 18d', lambda x, y: int(x) == 26 + int(y))),
     (10, 2, palindrome),
@@ -69,15 +68,15 @@ ACROSSES = [
     (13, 2, Constraint('13a', lambda x: (ord(x[0]) + ord(x[1])) % 2 != 0),
             Constraint('13a', lambda x: DP(x) > 9)),
     (14, 3, generator14a),
-    (17, 3, Constraint('17a', lambda x: DS(x) in TRIANGULAR)),
+    (17, 3, Constraint('17a', lambda x: is_triangular(DS(x)))),
     (19, 2, Constraint('19a 21d', lambda x, y: DP(x) == int(y))),
-    (20, 4, prime, Constraint('20a', lambda x: DP(x) in SQUARE),
+    (20, 4, prime, Constraint('20a', lambda x: is_square(DP(x))),
             Constraint('20a 13d', lambda x, y: int(y) % DS(x) == 0)),
     (23, 2, prime, Constraint('23a', lambda x: x[0] == x[1])),
     (25, 2, prime),
-    (26, 2, Constraint('26a', lambda x: DP(x) in CUBE)),
+    (26, 2, Constraint('26a', lambda x: is_cube(DP(x)))),
     (28, 3, Constraint('28a', lambda x: DP(x) == 180)),
-    (29, 3, Constraint('29a', lambda x: DP(x) in CUBE),
+    (29, 3, Constraint('29a', lambda x: is_cube(DP(x))),
             Constraint('29a 21d', lambda x, y: DS(x) == int(y))),
 ]
 
@@ -99,8 +98,8 @@ DOWNS = [
     (19, 3, Constraint('19d', lambda x: DP(x) > 9)),
     (20, 3, Constraint('20d 21d', lambda x, y: (DP(x) + DS(x)) % int(y) == 0)),
     (21, 2, Constraint('21d', lambda x: int(x) % 10 == 0)),
-    (22, 3, Constraint('22d', lambda x: DP(x) in TWO_POWER)),
-    (24, 2, Constraint('24d', lambda x: DP(x) in SQUARE)),
+    (22, 3, Constraint('22d', lambda x: is_power_of_two(DP(x)))),
+    (24, 2, Constraint('24d', lambda x: is_square(DP(x)))),
     (25, 2, known(*LUCKY)),
     (27, 2, fibonacci),
 ]

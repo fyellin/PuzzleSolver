@@ -5,12 +5,20 @@ A one-of-a-kind implementation.  We have clues, but don't know where they are go
 
 import random
 import re
-from datetime import datetime
 from collections.abc import Sequence
+from datetime import datetime
 
-from solver import BaseSolver, KnownClueDict, KnownLetterDict
-from solver import Clue, Clues, ClueValue, Letter
-from solver import EquationSolver, Intersection
+from solver import (
+    BaseSolver,
+    Clue,
+    Clues,
+    ClueValue,
+    EquationSolver,
+    Intersection,
+    KnownClueDict,
+    KnownLetterDict,
+    Letter,
+)
 
 GRID = """
 XXXXX.X
@@ -115,10 +123,10 @@ class Magpie149Solver(BaseSolver):
                            for clue in clues_to_try}
 
         def get_value_if_fits(expression: Clue, clue: Clue) -> ClueValue | None:
-            known_letters[Letter(expression.name)] = int(clue.name)
+            known_letters[expression.name] = int(clue.name)
             evaluator = expression.evaluators[0]
             value = evaluator(known_letters)
-            del known_letters[Letter(expression.name)]
+            del known_letters[expression.name]
             if value and clue_to_pattern[clue].fullmatch(value):
                 return value
             return None
@@ -138,10 +146,10 @@ class Magpie149Solver(BaseSolver):
         for i, (clue, value) in enumerate(clue_value_pairs):
             if self.debug:
                 print(f'{" | " * depth}{expression.name} {i + 1}/{len(clue_value_pairs)}: {clue.name}:{value} -->')
-            known_letters[Letter(expression.name)] = int(clue.name)
+            known_letters[expression.name] = int(clue.name)
             known_clues[clue] = value
             self.__solve(known_clues, known_letters)
-            del known_letters[Letter(expression.name)]
+            del known_letters[expression.name]
             del known_clues[clue]
 
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:

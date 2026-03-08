@@ -1,6 +1,6 @@
-from collections.abc import Sequence, Mapping
+from collections.abc import Mapping, Sequence
 
-from solver.playfair_constraints import ConstraintsGenerator, ConstraintRow
+from .playfair_constraints import ConstraintRow, ConstraintsGenerator
 
 
 class PlayfairSolver:
@@ -87,7 +87,7 @@ class PlayfairSolver:
 
 if __name__ == '__main__':
     solver = PlayfairSolver(cipher_text=".P..EA" "O.IB.." "..NT.L" "IM..G." "..RI.K" "SI..E." ".T..ED" "U.TO..",
-                            plain_text ="BONERS" "MENDED" "SIRING" "RUMPLE" "AGENTS" "DENNIS" "KERMIS" "PIECER",
+                            plain_text="BONERS" "MENDED" "SIRING" "RUMPLE" "AGENTS" "DENNIS" "KERMIS" "PIECER",
                             tail=12)
 
     results = solver.solve(debug=False)

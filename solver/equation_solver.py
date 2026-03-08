@@ -3,7 +3,7 @@ import multiprocessing
 import pickle
 import re
 from collections import Counter
-from collections.abc import Iterable, Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime
 from operator import itemgetter
 from typing import Any, NamedTuple
@@ -59,7 +59,7 @@ class EquationSolver(BaseSolver):
         if not name:
             name = '_'.join(clue.name for clue in actual_clues)
 
-        def check_relationship(known_clues = None) -> bool:
+        def check_relationship(known_clues=None) -> bool:
             if known_clues is None:
                 known_clues = self._known_clues
             return predicate(*(known_clues[clue] for clue in actual_clues))

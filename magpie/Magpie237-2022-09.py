@@ -244,11 +244,11 @@ class Solver237(ConstraintSolver):
             result = evaluator.raw_call(value_dict)
             if isinstance(result, MyIterator):
                 for value in result:
-                    yield(ClueValue(octal(value)))
+                    yield(octal(value))
                 return
             int_result = int(result)
             if result == int_result > 0:
-                yield ClueValue(octal(int_result))
+                yield octal(int_result)
         except ArithmeticError:
             pass
 

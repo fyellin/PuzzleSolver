@@ -1,12 +1,11 @@
-from __future__ import annotations
-
 import itertools
 import math
 from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
 
-from more_itertools import is_prime
+from more_itertools import is_prime, sieve
 
 from .clue import Clue
+import string
 
 """A collection of generators to use in various other puzzles."""
 BASE = 10
@@ -73,7 +72,7 @@ def nth_power(n: int) -> Callable[[Clue], Iterable[int]]:
 def prime(clue: Clue) -> Iterator[int]:
     """Returns primes"""
     min_value, max_value = get_min_max(clue)
-    return filter(is_prime, range(min_value, max_value))
+    return itertools.dropwhile(lambda x: x < min_value, sieve(max_value))
 
 
 def not_prime(clue: Clue) -> Iterator[int]:
@@ -87,7 +86,7 @@ def known(*values: int | str) -> Callable[[Clue], Iterable[int | str]]:
     return lambda _: values
 
 
-def permutation(alphabet: str = '0123456789') -> Callable[[Clue], Iterator[str]]:
+def permutation(alphabet: str = string.digits) -> Callable[[Clue], Iterator[str]]:
     """Returns a non-repeating permutation of digits from the alphabet"""
 
     def result(clue: Clue) -> Iterator[str]:
@@ -131,7 +130,7 @@ def within_clue_limits(clue: Clue, stream: Iterator[int]) -> Iterator[int]:
 
 
 def convert_to_base(num: int, base: int) -> str:
-    """Converts a number to the specified base, and returns the value as a string"""
+    """Converts a number to the specified base and returns the value as a string"""
     result = []
     if not num:
         return '0'
@@ -170,9 +169,9 @@ def prime_generator() -> Generator[int]:
     factors = [next(factor_sequence)]  # i.e. [3]
     while True:
         # The last element we pulled from factor_sequence was factors[-1]
-        # We have generated all primes through factor[-1] ** 2 (which can't be a prime).
+        # We have generated all primes through factor[-1] ** 2 (which can't be prime).
         next_factor = next(factor_sequence)
-        # Let's look at all oee numbers through next_factor**2 (exclusive).
+        # Let's look at all the numbers through next_factor**2 (exclusive).
         # All composites must have at least one factor smaller than next_factor.
         for value in range((factors[-1] ** 2) + 2, next_factor ** 2, 2):
             if all(value % factor for factor in factors):
@@ -181,7 +180,7 @@ def prime_generator() -> Generator[int]:
 
 #
 # The following two aren't really used.  But they're a fun experiment that I was working
-# on.  Making sure the recursion only goes one deep, by having everyone use the same list
+# on.  Making sure the recursion only goes one deep by having everyone use the same list
 # of factors.
 
 
@@ -195,7 +194,7 @@ def __prime2() -> Iterator[int]:
         # The last element we pulled from factor_sequence was factors[-1]
         # We have generated all primes through factor[-1] ** 2 (which can't be a prime).
         next_factor = next(factor_sequence)
-        # Let's look at all oee numbers through next_factor**2 (exclusive).
+        # Let's look at all the numbers through next_factor**2 (exclusive).
         # All composites must have at least one factor smaller than next_factor.
         for value in range((factors[-1] ** 2) + 2, next_factor ** 2, 2):
             if all(value % factor for factor in factors):

@@ -1,12 +1,10 @@
-from __future__ import annotations
-
-from solver import ClueValue, Clues, EquationSolver, Intersection
-from solver import KnownClueDict, KnownLetterDict
-
-
-def digit_sum(value: ClueValue | str | int) -> int:
-    return sum(int(x) for x in str(value))
-
+from solver import (
+    Clues,
+    EquationSolver,
+    Intersection,
+    KnownClueDict,
+    KnownLetterDict,
+)
 
 GRID = """
 X.XXX
@@ -56,14 +54,14 @@ class Magpie226 (EquationSolver):
         super().__init__(clues, items=(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37))
 
     def check_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> bool:
-        possible_values = [ClueValue(str(c + int(value))) for c in [known_letters['C']] for value in known_clues.values()]
+        possible_values = [str(c + int(value)) for c in [known_letters['C']] for value in known_clues.values()]
         d11 = self.clue_named('11d')
         intersection1, = Intersection.get_intersections(d11, self.clue_named('11a'))
         intersection2, = Intersection.get_intersections(d11, self.clue_named('13a'))
         pattern = Intersection.make_pattern_generator(d11, [intersection1, intersection2], self)(known_clues)
         known_clues[d11] = next(x for x in possible_values if pattern.fullmatch(x))
-        known_clues[self.clue_named('1a')] = ClueValue('159')
-        known_clues[self.clue_named('15a')] = ClueValue('648')
+        known_clues[self.clue_named('1a')] = '159'
+        known_clues[self.clue_named('15a')] = '648'
         return True
 
 
@@ -94,4 +92,3 @@ def foobar2():
 
 if __name__ == '__main__':
     Magpie226.run()
-    # foobar2()

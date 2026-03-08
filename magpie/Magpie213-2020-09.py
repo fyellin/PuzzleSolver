@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 from more_itertools import sieve
 
-from solver import Clue, Clues, ClueValue, ConstraintSolver, Location, generators
+from solver import Clue, Clues, ConstraintSolver, Location
 
 
 def make_min_max_factor_table() -> Sequence[tuple[int, int]]:
@@ -106,7 +106,7 @@ class Solver213(ConstraintSolver):
                    '7h': 9385, '1i': 82585, '2p': 58339, '11h': 2933, '8i': 7291, '9h': 9246, '3i': 8640, '22i': 8619,
                    '24p': 9666, '26i': 16667, '27h': 82661, '25p': 1764, '4p': 6889}
         solver = Solver213()
-        known_clues = {solver.clue_named(clue): ClueValue(str(value)) for clue, value in answers.items()}
+        known_clues = {solver.clue_named(clue): str(value) for clue, value in answers.items()}
         solver.plot_board(known_clues)
 
     def __init__(self) -> None:

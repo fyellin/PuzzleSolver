@@ -1,13 +1,6 @@
-from __future__ import annotations
-
 from typing import Any
 
-from solver import ClueValue, Clues, EquationSolver
-
-
-def digit_sum(value: ClueValue | str | int) -> int:
-    return sum(int(x) for x in str(value))
-
+from solver import Clues, EquationSolver
 
 GRID = """
 XX.XX.X.

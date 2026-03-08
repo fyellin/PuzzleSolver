@@ -1,13 +1,20 @@
-from __future__ import annotations
-
 import itertools
 from collections import Counter
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
-from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, Location, \
-    generators, LetterCountHandler
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    ConstraintSolver,
+    DancingLinks,
+    LetterCountHandler,
+    Location,
+    generators,
+)
+import string
 
 GRID = """
 XX.XXXXX
@@ -170,7 +177,7 @@ class Magpie233 (ConstraintSolver):
             return result
 
     def draw_image(self, _plt, axes):
-        from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+        from matplotlib.offsetbox import AnnotationBbox, OffsetImage
         from matplotlib.patches import Rectangle
         from PIL import Image
 
@@ -236,7 +243,7 @@ class Magpie233 (ConstraintSolver):
                                    for i in range(1, 9) if (i, rc) in clued_locations))
 
         mapping = {str(ord(letter) - 64): letter
-                   for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'}
+                   for letter in string.ascii_uppercase}
 
         def find_words(word, index):
             length = len(word)

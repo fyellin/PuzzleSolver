@@ -1,8 +1,15 @@
 import itertools
 from typing import Any
 
-from solver import Clue, ClueValue, Clues, ConstraintSolver, KnownClueDict, generators
-from solver import AbstractLetterCountHandler
+from solver import (
+    AbstractLetterCountHandler,
+    Clue,
+    Clues,
+    ClueValue,
+    ConstraintSolver,
+    KnownClueDict,
+    generators,
+)
 
 ACROSS_LENGTHS = "132/321/222/222/123/231"
 DOWN_LENGTHS = "222/123/24/42/321/222"

@@ -3,9 +3,8 @@ A puzzle that works in bases other than 10.  We modify the generators to produce
 in a different base.
 """
 
-from solver import Clue, ClueValueGenerator, Location, ConstraintSolver
-from solver import generators
-from solver.generators import triangular, lucas, fibonacci, square, cube, prime, palindrome
+from solver import Clue, ClueValueGenerator, ConstraintSolver, Location, generators
+from solver.generators import cube, fibonacci, lucas, palindrome, prime, square, triangular
 
 
 def make(name: str, base_location: Location, length: int, generator: ClueValueGenerator) -> Clue:

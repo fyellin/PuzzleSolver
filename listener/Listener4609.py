@@ -1,8 +1,8 @@
 import itertools
-from typing import Any
 from collections.abc import Sequence
+from typing import Any
 
-from solver import Clue, EquationSolver, Clues, Location
+from solver import Clue, Clues, EquationSolver, Location
 
 GRID = """
 XX.X.XX.X.XX

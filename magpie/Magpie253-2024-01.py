@@ -1,34 +1,11 @@
-import math
 from typing import Any
 
 from misc.Pentomino import PentominoSolver, get_graph_shading
 from solver import Clue, Clues, ClueValue, ConstraintSolver, KnownClueDict, LetterCountHandler
 from solver.generators import allvalues, fibonacci, known, palindrome, prime, triangular
-
-
-def dp(x):
-    return math.prod(int(i) for i in str(x))
-
-
-def ds(x):
-    return sum(int(i) for i in str(x))
-
-
-def is_cube(x):
-    return round(x ** (1 / 3)) ** 3 == x
-
-
-def is_square(x):
-    return math.isqrt(x) ** 2 == x
-
-
-def is_prime(x):
-    return all(x % i for i in range(2, math.isqrt(x) + 1))
-
-
-def is_harshad(x):
-    return x % ds(x) == 0
-
+from solver.helpers import digit_product as dp
+from solver.helpers import digit_sum as ds
+from solver.helpers import is_cube, is_harshad, is_square
 
 GRID = """
 XX.XXX.X

@@ -88,8 +88,8 @@ class Listener4908(ConstraintSolver):
     def add_left_right_constraints(self, clue_map, name1, name2, generator1, generator2):
         clue1, clue2 = clue_map[name1], clue_map[name2]
         assert clue1.length == clue2.length
-        values1 = frozenset(ClueValue(str(x)) for x in generator1(clue1))
-        values2 = frozenset(ClueValue(str(x)) for x in generator2(clue2))
+        values1 = frozenset(str(x) for x in generator1(clue1))
+        values2 = frozenset(str(x) for x in generator2(clue2))
         values = values1 | values2
         clue1.generator = clue2.generator = generators.known(*values)
 

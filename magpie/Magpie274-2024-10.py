@@ -1,13 +1,11 @@
-from __future__ import annotations
-
+import collections.abc
 import itertools
-from collections.abc import Iterable, Sequence
 from functools import cache
 from typing import Any
 
-from misc import PRIMES
-from solver import Clues, ClueValue, EquationSolver, Evaluator, KnownClueDict,  \
-    KnownLetterDict
+from more_itertools import sieve
+
+from solver import Clues, ClueValue, EquationSolver, Evaluator, KnownClueDict, KnownLetterDict
 
 ACROSS_LENGTHS = "413/332/44/44/233/314"
 DOWN_LENGTHS = "222/33/24/33/33/42/33/222"
@@ -67,7 +65,7 @@ class MultiValue:
             return values[0]
         return MultiValue(values, maximum)
 
-    def __init__(self, values: Sequence[int], maximum: int = 10_000) -> None:
+    def __init__(self, values: collections.abc.Sequence[int], maximum: int = 10_000) -> None:
         self.values = values
         self.maximum = maximum
 
@@ -86,13 +84,13 @@ class MultiValue:
     __rmul__ = __mul__
 
     @staticmethod
-    def wrapper(self, value_dict: KnownLetterDict) -> Iterable[ClueValue]:
+    def wrapper(self, value_dict: KnownLetterDict) -> collections.abc.Iterable[ClueValue]:
         try:
             result = self._compiled_code(*(value_dict[x] for x in self._vars))
             if isinstance(result, int):
-                return ClueValue(str(result)),
+                return str(result),
             elif isinstance(result, MultiValue):
-                return [ClueValue(str(v)) for v in result.values]
+                return [str(v) for v in result.values]
         except ArithmeticError:
             pass
         return ()
@@ -118,7 +116,7 @@ class Magpie274 (EquationSolver):
 
     def __init__(self) -> None:
         clues = self.get_clues()
-        primes = [x for x in PRIMES if x < 2500]
+        primes = list(sieve(2500))
         super().__init__(clues, items=primes)
         self.clue_named("9a").priority = 20  # solve first
         self.clue_named("3d").priority = 10
@@ -136,9 +134,8 @@ class Magpie274 (EquationSolver):
         return clues
 
     def check_solution(self, known_clues: KnownClueDict, _known_letters: KnownLetterDict) -> bool:
-        grid = {location: int(char) for clue, value in known_clues.items()
-                for location, char in zip(clue.locations, value)}
-        self.line = doit(grid)
+        grid = self.get_board(known_clues)
+        self.line = doit({clue: int(value) for clue, value in grid.items()})
         return bool(self.line)
 
     def draw_grid(self, **args: Any) -> None:
@@ -152,7 +149,7 @@ class Magpie274 (EquationSolver):
 def doit(board):
     all_locations = set(board.keys())
 
-    def attempt(path, unseen, current_value, used=0) -> Iterable[list[tuple[int, int]]]:
+    def attempt(path, unseen, current_value, used=0) -> collections.abc.Iterable[list[tuple[int, int]]]:
         string = str(current_value)
         if used == len(string):
             if not unseen:

@@ -1,11 +1,19 @@
 import itertools
 from collections import defaultdict
-from collections.abc import Iterable, Iterator, Sequence, Callable
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from typing import Any
 
-from more_itertools import sieve
+from more_itertools import factor, last, sieve
 
-from solver import Clue, Clues, ClueValueGenerator, ClueValue, ConstraintSolver, Location, generators
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    ClueValueGenerator,
+    ConstraintSolver,
+    Location,
+    generators,
+)
 
 GRID = """
 .....XX.....
@@ -52,19 +60,19 @@ PRIMES = tuple(sieve(0xFFF))
 
 
 def ix(n: int) -> ClueValue:
-    return ClueValue(hex(n)[2:])
+    return hex(n)[2:]
 
 
 def xi(s: str) -> int:
     return int(s, 16)
 
 
-def digit_sum(value: ClueValue) -> int:
+def hex_digit_sum(value: ClueValue) -> int:
     return sum(xi(d) for d in value)
 
 
 def max_prime_factor(value: int) -> int:
-    return max(x for x in PRIMES if x <= value and value % x == 0)
+    return last(factor(value))
 
 
 # 4a: Sum of first four digits is a square; sum of last four digits is a square; digit sum is a palindrome
@@ -143,7 +151,7 @@ DOWN: Sequence[tuple[str, int, ClueValueGenerator | None]] = (
     ('1', 2, fixed(range(0x10, 0xFF, 8))),
     # 2d: Digit sum is a cube; largest prime factor is the difference between two cubes.
     ('2', 2, fixed(i for i in range(0x10, 0x100)
-                   if digit_sum(ix(i)) in CUBES and max_prime_factor(i) in TWO_CUBES_DELTA)),
+                   if hex_digit_sum(ix(i)) in CUBES and max_prime_factor(i) in TWO_CUBES_DELTA)),
     ('3', 2, None),
     ('5', 2, None),
     ('6', 2, None),
@@ -157,7 +165,7 @@ DOWN: Sequence[tuple[str, int, ClueValueGenerator | None]] = (
     # Cd: Four less than a cube
     ('C', 2, fixed(x - 4 for x in CUBES)),
     # Dd: ... digit sum is a square
-    ('D', 2, fixed(x for x in range(0x10, 0x100) if digit_sum(ix(x)) in SQUARES)),
+    ('D', 2, fixed(x for x in range(0x10, 0x100) if hex_digit_sum(ix(x)) in SQUARES)),
     ('F', 2, None),
     ('10', 3, None),
     # 12d: Two less than the sum of two cubes:
@@ -188,7 +196,7 @@ class MySolver(ConstraintSolver):
         self.add_constraint(('Aa', 'Cd', '8d'),
                             lambda x, y, z: xi(x) - (xi(y) - xi(z)) in TWO_CUBES_DELTA)  # this = TCD + (Cd - 8d)
         # 11a: Same digit sum as 13a
-        self.add_constraint(('11a', '13a'), lambda x, y: digit_sum(x) == digit_sum(y))
+        self.add_constraint(('11a', '13a'), lambda x, y: hex_digit_sum(x) == hex_digit_sum(y))
         # 13a: Sum of 11a, 8d and Bd
         self.add_constraint(('13a', '11a', '8d', 'Bd'), lambda a, x, y, z: xi(a) == xi(x) + xi(y) + xi(z))
         # 17a: Bd cubed minus(a third of 8d) cubed minus 8d

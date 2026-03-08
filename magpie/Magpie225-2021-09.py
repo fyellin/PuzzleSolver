@@ -1,13 +1,8 @@
-from __future__ import annotations
-
-from collections.abc import Sequence
 import math
-from solver import Clue, ClueValue, Clues, ConstraintSolver, Constraint
+from collections.abc import Sequence
 
-
-def digit_sum(value: ClueValue | str | int) -> int:
-    return sum(int(x) for x in str(value))
-
+from solver import Clue, Clues, ClueValue, Constraint, ConstraintSolver
+from solver.helpers import digit_sum
 
 GRID = """
 XXX.X.X
@@ -71,7 +66,8 @@ class Magpie225 (ConstraintSolver):
 
         grid = Clues.get_locations_from_grid(GRID)
         return [
-            Clue(f'{number}{"a" if is_across else "d"}', is_across, grid[number - 1], length, generator=generator)
+            Clue(f'{number}{"a" if is_across else "d"}', is_across,
+                 grid[number - 1], length, generator=generator)
             for information, is_across in ((ACROSSES, True), (DOWNS, False))
             for number, length in information
         ]

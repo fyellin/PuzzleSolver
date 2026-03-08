@@ -1,8 +1,7 @@
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 
-from solver import Clues, EquationSolver
-from solver import KnownClueDict, KnownLetterDict
+from solver import Clues, EquationSolver, KnownClueDict, KnownLetterDict
 
 ACROSS = """
 1 (BR + A)(N − DN + EW) 

@@ -1,9 +1,11 @@
 import ast
 import itertools
+import string
 from collections import defaultdict
 
-from more_itertools import sieve
+import more_itertools
 
+import solver.helpers
 from solver import (
     Clue,
     Clues,
@@ -26,13 +28,13 @@ K multiple of B
 L triangular
 N prime
 O multiple of B and C
-P triangular, multiple of E 
+P triangular, multiple of E
 Q multiple of A and G
-R multiple of A, E and G 
+R multiple of A, E and G
 S multiple of B
 U multiple of D
 V multiple of A
-Y multiple of A, B, C and O 
+Y multiple of A, B, C and O
 CC prime
 EE multiple of A and F
 T D
@@ -40,10 +42,10 @@ W M –K
 X G– D – D
 Z A+ F
 AA L –D –I
-BB N – A– L 
+BB N – A– L
 DD C+ F
 FF H –C
-GG U + F – A –T 
+GG U + F – A –T
 HH E+ F + F
 """
 
@@ -52,11 +54,9 @@ def upto(iterator):
     return itertools.takewhile(lambda x: x < 100_000, iterator)
 
 
-PRIMES = {str(x) for x in sieve(100_000)}
-TRIANGLES = {str(x) for x in upto(i * (i + 1) // 2 for i in itertools.count(1))}
 VALUES = list(upto(x for i in itertools.count(1) for j in [i * i] for x in (j - 1, j + 1)))
 
-CLUE_LETTERS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + [f'{x}{x}' for x in 'ABCDEFGH']
+CLUE_LETTERS = list(string.ascii_uppercase) + [f'{x}{x}' for x in 'ABCDEFGH']
 
 
 def parse_line_input():
@@ -115,13 +115,13 @@ class Magpie263 (ConstraintSolver):
         def match(letter, expression):
             return abs(letter - expression ** 2) == 1
 
-        def is_prime(x): return x in PRIMES
-        def is_not_prime(x): return x not in PRIMES
-        def is_triangle(x): return x in TRIANGLES
-        def is_not_triangle(x): return x not in TRIANGLES
+        def is_prime(x): return more_itertools.is_prime(int(x))  # noqa: F821
+        def is_not_prime(x): return not is_prime(x)
+        def is_triangular(x): return solver.helpers.is_triangular(int(x))
+        def is_not_triangular(x): return not is_triangular(x)
         for clue in clues:
             constraints.append(Constraint((clue,), is_prime if clue.name in primes else is_not_prime))
-            constraints.append(Constraint((clue,), is_triangle if clue.name in triangles else is_not_triangle))
+            constraints.append(Constraint((clue,), is_triangular if clue.name in triangles else is_not_triangular))
 
         def less_than(x, y): return x < y
         def is_multiple(x, y): return int(y) % int(x) == 0
@@ -138,10 +138,10 @@ class Magpie263 (ConstraintSolver):
         for letter, expression in squares:
             parsed = equation_parser.parse(f'@match(${letter}, {expression})')[0]
             parsed_vars = parsed.vars()
-            # expression here will be a lambda expression, such as lambda x, y: x + y
-            expression = ast.unparse(parsed.get_ast_expression(()))
-            # "lambda x, y: (lambda x, y: x + y)(int(x), int(y))"
-            expression = f'lambda {', '.join(parsed_vars)}: ({expression})({', '.join(f'int({x})' for x in parsed_vars)})'
+            expression = parsed.to_string()
+            args = ', '.join(parsed_vars)
+            int_args = ','.join(f'int({x})' for x in parsed_vars)
+            expression = f'lambda {args}: (lambda {args}: {expression})({int_args})'
             compiled_code = eval(expression, {'match': match}, None)
             constraints.append(Constraint(parsed_vars, compiled_code, letter))
         return constraints
@@ -198,8 +198,7 @@ class Magpie263b(ConstraintSolver):
                     if clue.length == len(value):
                         constraints[clue.name, value] = [
                             f'{clue.name}', f'{xletter}',
-                            *((f'r{r}c{c}', letter)
-                              for (r, c), letter in zip(clue.locations, value, strict=True))]
+                            *clue.dancing_links_rc_constraints(value)]
         solutions = []
         solver = DancingLinks(constraints,
                               optional_constraints=optional_constraints,

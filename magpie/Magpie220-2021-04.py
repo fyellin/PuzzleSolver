@@ -1,11 +1,11 @@
 import collections
 import itertools
 import math
+from collections.abc import Iterator, Sequence
 from typing import Any
-from collections.abc import Sequence, Iterator
 
 import solver
-from solver import generators, ConstraintSolver, Clues, Clue, ClueValue, KnownClueDict
+from solver import Clue, Clues, ClueValue, ConstraintSolver, KnownClueDict, generators
 
 GRID = """
 XXX.
@@ -115,9 +115,8 @@ class Solver220(ConstraintSolver):
             self.add_constraint(four, self.not_all_same(*four))
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        locations = {location: int(letter)
-                     for clue in self._clue_list
-                     for location, letter in zip(clue.locations, known_clues[clue])}
+        locations = self.get_board(known_clues)
+        locations = {x : int(y) for x, y in locations.items()}
         counter = collections.Counter()
         for clue, value in known_clues.items():
             if clue != self.A10:

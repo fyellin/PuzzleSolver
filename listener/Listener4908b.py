@@ -76,8 +76,8 @@ class Listener4908 (ConstraintSolver):
         constraints = self.constraints
         clue1, clue2 = self.clue_map[name1], self.clue_map[name2]
         assert clue1.length == clue2.length
-        values_a = {ClueValue(str(x)) for x in generator_a(clue1)}
-        values_b = {ClueValue(str(x)) for x in generator_b(clue1)}
+        values_a = {str(x) for x in generator_a(clue1)}
+        values_b = {str(x) for x in generator_b(clue1)}
         pattern_generator = Intersection.make_pattern_generator(clue1, (), self)
         orderer = None
         pattern = pattern_generator({})
@@ -99,7 +99,7 @@ class Listener4908 (ConstraintSolver):
                     constraint = [f'Clue-{clue.name}',
                                   f'Z{clue1.name}-{clue2.name}-{which_gen}',
                                   *unique.items(),
-                                  *self._location_to_value(clue, value).items(),]
+                                  *clue.dancing_links_rc_constraints(value)]
                     if value in duplicates:  # noqa: SIM102
                         ordering = orderer.left if side == 'L' else orderer.right
                         constraint.extend(ordering(which_gen == 'B'))
@@ -118,7 +118,7 @@ class Listener4908 (ConstraintSolver):
                     continue
                 if value4[intersection.other_index] != value3[intersection.this_index]:
                     continue
-                unique4 = self._get_uniqueness_map(clue4, ClueValue(value4), side)
+                unique4 = self._get_uniqueness_map(clue4, value4, side)
                 if unique4 is None:
                     # Never mind if this value has illegal duplicate digits
                     continue
@@ -129,9 +129,9 @@ class Listener4908 (ConstraintSolver):
                 if len(all_uniques) != 8:
                     continue
                 locations_to_values = (
-                        self._location_to_value(clue2, value2)
-                        | self._location_to_value(clue3, value3)
-                        | self._location_to_value(clue4, ClueValue(value4)))
+                        dict(clue2.dancing_links_rc_constraints(value2)) |
+                        dict(clue3.dancing_links_rc_constraints(value3)) |
+                        dict(clue4.dancing_links_rc_constraints(value4)))
                 constraint = [f'Clue-{clue4.name}',
                               *all_uniques.items(),
                               *locations_to_values.items(),]
@@ -148,10 +148,6 @@ class Listener4908 (ConstraintSolver):
                   for ch, (r, c) in zip(value, clue.locations)}
         # If len(result) != clue.length, this value has an illegal duplicated letter
         return result if len(result) == clue.length else None
-
-    @staticmethod
-    def _location_to_value(clue: Clue, value: ClueValue) -> dict[str, str]:
-        return {f'r{r}c{c}': ch for ch, (r, c) in zip(value, clue.locations)}
 
     def my_row_printer(self, rows):
         clue_values = {item[0]: item[1] for item in rows if isinstance(item, tuple)}

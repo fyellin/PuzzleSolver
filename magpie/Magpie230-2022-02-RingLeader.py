@@ -1,6 +1,6 @@
 import itertools
 from collections import Counter, defaultdict, deque
-from collections.abc import Mapping, Sequence, Iterable
+from collections.abc import Iterable, Mapping, Sequence
 from functools import cache
 from itertools import combinations, pairwise
 

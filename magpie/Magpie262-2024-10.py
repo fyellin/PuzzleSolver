@@ -1,13 +1,21 @@
 import itertools
+import math
 import re
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-from collections.abc import Iterable
 
-import math
-
-from solver import Clue, ClueValue, Clues, Evaluator, Location, \
-    MultiEquationSolver, KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    Evaluator,
+    KnownClueDict,
+    KnownLetterDict,
+    Location,
+    MultiEquationSolver,
+)
+import string
 
 GRID = """
 XXXXX.XX
@@ -149,7 +157,7 @@ class Magpie260 (MultiEquationSolver):
                           clued_locations={}, **args)
 
     def part2(self):
-        info = dict(zip("ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        info = dict(zip(string.ascii_uppercase,
                         (6, 16, 17, 5, 12, 20, 13, 10, 3, 19, 9, 25, 26, 28, 11, 2, 14, 21, 1, 15, 7, 22, 4, 8, 18, 0)))
         pairs = {clue: int(clue.evaluators[0].raw_call(info)) for clue in self._clue_list if clue.evaluators}
         lefts, rights = [], []
@@ -176,7 +184,7 @@ class Magpie260 (MultiEquationSolver):
         self.plot_board(clue_values)
 
     def draw_grid(self, location_to_entry, clued_locations, left_bars, top_bars, **args: Any) -> None:
-        reverse_info = dict(zip(LETTERS, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+        reverse_info = dict(zip(LETTERS, string.ascii_uppercase))
         clued_locations = set(itertools.product(range(1, 9), repeat=2))
         center_locations = list(itertools.product((4, 5), range(3, 7)))
         location_to_entry.update(zip(center_locations, "20011978"))
@@ -194,10 +202,10 @@ class Magpie260 (MultiEquationSolver):
         super().draw_grid(location_to_entry={},
                           extra=lambda plt, axes:
                               self.extra(plt, axes, location_to_entry),
-                          left_bars = left_bars,
-                          top_bars = top_bars,
+                          left_bars=left_bars,
+                          top_bars=top_bars,
                           shading=shading,
-                          subtext = 'KASPAROV ELO 2851',
+                          subtext='KASPAROV ELO 2851',
                           clued_locations=clued_locations, **args)
 
     def extra(self, plt, axes, location_to_entry):

@@ -2,6 +2,7 @@ import itertools
 import re
 
 from solver import DancingLinks
+from solver.dancing_links import get_row_column_optional_constraints
 from solver.draw_grid import draw_grid
 
 
@@ -53,24 +54,15 @@ def get_info():
     return result
 
 
-def create_encoding():
-    acrosses = list(itertools.combinations(range(7), 4))
-    downs = [tuple(x for x in range(8) if x not in item) for item in acrosses]
-    return {chr(ord('a') + i): (acrosses[i], downs[i]) for i in range(26)}
-
-
 def main2():
-    encoding = create_encoding()
     constraints = {}
-    optional_constraints = set()
+    optional_constraints = get_row_column_optional_constraints(13, 13)
     for row_name, rows in get_info().items():
         is_across = row_name[-1] == 'a'
         for row in rows:
-            letter_info = [f"{r}-{c}-{code}"
-                           for (r, c), letter in row.items()
-                           for code in encoding[letter][is_across]]
+            letter_info = [(f"r{r}c{c}", letter)
+                           for (r, c), letter in row.items()]
             constraints[tuple(row.items())] = [row_name, *letter_info]
-            optional_constraints.update(letter_info)
     runner = DancingLinks(constraints, optional_constraints=optional_constraints,
                           row_printer=printer)
     runner.solve()

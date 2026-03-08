@@ -1,4 +1,4 @@
-from solver import Clues, EquationSolver, KnownClueDict, KnownLetterDict
+from solver import Clues, EquationSolver
 
 GRID = """
 XXXXXXXX

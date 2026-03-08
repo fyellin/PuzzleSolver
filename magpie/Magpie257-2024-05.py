@@ -1,10 +1,9 @@
-from collections import defaultdict
-
 import itertools
 import time
+from collections import defaultdict
+from collections.abc import Callable, Sequence
 from operator import itemgetter
 from typing import Any
-from collections.abc import Sequence, Callable
 
 from solver import Clue, Clues, ConstraintSolver
 

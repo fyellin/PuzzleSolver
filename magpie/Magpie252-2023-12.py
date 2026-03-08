@@ -82,7 +82,6 @@ class Magpie252 (EquationSolver):
         grid = Clues.get_locations_from_grid(GRID)
         clues = Clues.create_from_text(ACROSSES, DOWNS, grid)
         for clue in clues:
-
             clue.evaluators[0].set_wrapper(self.my_wrapper)
         return clues
 
@@ -101,9 +100,9 @@ class Magpie252 (EquationSolver):
             for delta in set(deltas):
                 y = x + delta
                 if 10 <= x * y <= 9999:
-                    result[2 * (2 * x + y - 1)].append((x*y, x, y, delta))
+                    result[2 * (2 * x + y - 1)].append((x * y, x, y, delta))
                     if delta != 0:
-                        result[2 * (2 * y + x - 1)].append((x*y, y, x, delta))
+                        result[2 * (2 * y + x - 1)].append((x * y, y, x, delta))
         return result
 
     def step1_old(self):
@@ -185,9 +184,9 @@ class Magpie252 (EquationSolver):
                     if len(str(xy)) == clue.length:
                         for f in range(counter[delta]):
                             row: list[DLConstraint]
-                            row = [f'C-{clue.name}', f'D{delta}-{f}']
-                            row.extend((f'r{r}c{c}', digit)
-                                       for (r, c), digit in zip(clue.locations, str(xy), strict=True))
+                            row = [f'C-{clue.name}', f'D{delta}-{f}',
+                                   *clue.dancing_links_rc_constraints(xy)
+                                   ]
                             if delta in double_delta_clues:
                                 row.append(f'X-{clue.name}-{delta}-{f}')
                                 if f > 0:
@@ -197,9 +196,8 @@ class Magpie252 (EquationSolver):
                             constraints[clue.name, xy, x, y, f] = row
             else:
                 assert len(str(result)) == clue.length
-                row = [f'C-{clue.name}']
-                row.extend((f'r{r}c{c}', digit)
-                           for (r, c), digit in zip(clue.locations, str(result), strict=True))
+                row = [f'C-{clue.name}',
+                       *clue.dancing_links_rc_constraints(result)]
                 constraints[clue.name, result, 0, 0, 0] = row
 
         def my_row_printer(solution):

@@ -2,8 +2,7 @@ import re
 from collections.abc import Sequence
 from typing import Any
 
-from solver import Clue, KnownClueDict, KnownLetterDict, Location
-from solver import EquationSolver
+from solver import Clue, EquationSolver, KnownClueDict, KnownLetterDict, Location
 
 ACROSS = """
 1 GS − Gz − S (6)

@@ -1,8 +1,9 @@
-from collections.abc import Sequence, Callable
-from typing import Any, cast
+from collections.abc import Callable, Sequence
 from itertools import product
+from typing import Any, cast
 
-from matplotlib import pyplot as plt, patches
+from matplotlib import patches
+from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
 from .clue_types import Location

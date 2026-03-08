@@ -1,10 +1,10 @@
 import itertools
 import time
 from abc import abstractmethod
-from typing import Any, cast
 from collections.abc import Sequence
+from typing import Any, cast
 
-from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, Letter
+from solver import Clue, Clues, EquationSolver, Evaluator, Letter
 
 ACROSS = """
 A AW**T – G**I
@@ -101,7 +101,7 @@ class Magpie256Base(EquationSolver):
         return clues, clue_from_location
 
     def parse_expressions(self) -> Sequence[tuple[tuple[Letter, bool], Evaluator]]:
-        return [((Letter(key), is_across),  evaluator)
+        return [((key, is_across),  evaluator)
                 for expressions in (ACROSS, DOWN)
                 for is_across in [expressions is ACROSS]
                 for line in expressions.strip().splitlines()
@@ -157,7 +157,7 @@ class Magpie256 (Magpie256Base):
 
         def print_result(known_letters, _used_values, _board, _args):
             known_clues = {
-                clue: ClueValue(value)
+                clue: value
                 for (letter, is_across), expression in self.expressions
                 for clue in [self.clue_names[known_letters[letter], is_across]]
                 for value in [str(expression.raw_call(known_letters))]

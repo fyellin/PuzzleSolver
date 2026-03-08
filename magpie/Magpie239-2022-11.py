@@ -2,8 +2,15 @@ import itertools
 from collections.abc import Iterable
 from typing import Any
 
-from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator
-from solver import KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    EquationSolver,
+    Evaluator,
+    KnownClueDict,
+    KnownLetterDict,
+)
 
 GRID = """
 X.XXX.XX

@@ -1,10 +1,16 @@
 import itertools
 import re
-from typing import cast, Any
 from collections.abc import Iterable, Sequence
+from typing import Any, cast
 
-from solver import Clue, ClueValueGenerator, ClueValue, ConstraintSolver, KnownClueDict
-from solver import generators
+from solver import (
+    Clue,
+    ClueValue,
+    ClueValueGenerator,
+    ConstraintSolver,
+    KnownClueDict,
+    generators,
+)
 
 ACROSS = """
 a 159 56 165 67 5      4

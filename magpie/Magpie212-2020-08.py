@@ -1,8 +1,7 @@
 import itertools
-from collections.abc import Sequence, Iterable
+from collections.abc import Iterable, Sequence
 
-from solver import Clue, ConstraintSolver, ClueValueGenerator, KnownClueDict
-from solver import generators
+from solver import Clue, ClueValueGenerator, ConstraintSolver, KnownClueDict, generators
 
 
 class Solver212(ConstraintSolver):

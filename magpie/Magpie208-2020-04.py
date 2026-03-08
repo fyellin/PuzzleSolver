@@ -5,6 +5,7 @@ from typing import Any
 from more_itertools import sieve
 
 from solver import Clue, ConstraintSolver, KnownClueDict, Location, generators
+import string
 
 CLUES = """
 1 13?60 
@@ -98,7 +99,7 @@ class Solver208(ConstraintSolver):
     def __get_minimum_prime_non_factor(cls, pattern: str) -> int:
         temp = [pattern]
         for _ in range(pattern.count('?')):
-            temp = [x.replace('?', i, 1) for i in "0123456789" for x in temp]
+            temp = [x.replace('?', i, 1) for i in string.digits for x in temp]
         values = [int(x) for x in temp if x[0] != '0']
         for prime in primes:
             if not any(value % prime == 0 for value in values):

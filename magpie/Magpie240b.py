@@ -166,7 +166,7 @@ class Junk(EquationSolver):
         busted = list(word)
         possibilities = []
         for i in range(len(word) - 1):
-            possibility = busted[:]
+            possibility = busted.copy()
             possibility[i:i+2] = [possibility[i] + possibility[i + 1]]
             assert len(possibility) == clue.length
             if all(known[i] is None or known[i] == possibility[i]

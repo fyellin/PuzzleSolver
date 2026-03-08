@@ -1,9 +1,15 @@
 import math
 from collections.abc import Sequence
 
-from misc.factors import factor_sum, factor_count, shared_factor_count, odd_factor_count, even_factor_count
-from solver import generators, ConstraintSolver, Clues, Clue
-from solver.generators import filterer, allvalues
+from misc import (
+    even_factor_count,
+    factor_count,
+    factor_sum,
+    odd_factor_count,
+    shared_factor_count,
+)
+from solver import Clue, Clues, ConstraintSolver, generators
+from solver.generators import allvalues, filterer
 
 GRID = """
 XX.XX
@@ -81,6 +87,5 @@ class Solver214(ConstraintSolver):
                 self.add_constraint((six_down, clue), lambda x, y: factor_count(int(x)) > factor_count(int(y)))
 
 
-
 if __name__ == '__main__':
-    temp = Solver214()
+    Solver214().run()

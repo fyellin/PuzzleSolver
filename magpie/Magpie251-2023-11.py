@@ -1,15 +1,16 @@
 import itertools
 from functools import cache
 
+from more_itertools import sieve
 from sortedcontainers import SortedDict
 
-from misc import PRIMES
 from solver import Clue, ConstraintSolver, DancingLinks, generators
+from solver.dancing_links import get_row_column_optional_constraints
 
 C = [x for i in range(2, 100) for x in [i ** 3] if 2 <= x < 10_000]
 S = [x for i in range(2, 1000) for x in [i ** 2] if 2 <= x < 10_000]
 T = [x for i in range(2, 1000) for x in [i * (i + 1) // 2] if 2 <= x < 10_000]
-P = [x for x in PRIMES if 2 <= x < 10_000]
+P = list(sieve(10_000))
 P_set = set(P)
 F = [2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765]
 
@@ -260,14 +261,14 @@ class Solver251 (ConstraintSolver):
     def dancing_links(self, numbers):
         numbers = [str(x) for x in numbers]
         constraints = {}
-        optional_constraints = {f'r{r}c{c}' for r in range(1, 10) for c in range(1, 10)}
+        optional_constraints = get_row_column_optional_constraints(10, 10)
         mapper = {'999': '888', '227': '223', '229': '223'}
         for clue in self._clue_list:
             for number in numbers:
                 if clue.length == len(number):
-                    constraint = [mapper.get(number, number), clue.name,
-                                  *((f'r{r}c{c}', letter)
-                                    for (r, c), letter in zip(clue.locations, number))]
+                    constraint = [mapper.get(number, number),
+                                  clue.name,
+                                  *clue.dancing_links_rc_constraints(number)]
                     constraints[f'{clue.name}-{number}'] = constraint
         solver = DancingLinks(constraints, optional_constraints=optional_constraints)
         solver.solve(debug=100)
@@ -302,7 +303,7 @@ class Solver251 (ConstraintSolver):
                           # shading=shading,
                           subtext="\n8 T + 1 = S",
                           # grid_drawer = self.grid_drawer,
-                          extra = self.extra,
+                          extra=self.extra,
                           **args)
 
 

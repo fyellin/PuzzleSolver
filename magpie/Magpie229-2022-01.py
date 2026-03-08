@@ -1,21 +1,12 @@
-from __future__ import annotations
-
 import itertools
 from collections.abc import Iterator, Sequence
 from typing import Any
 
-from misc import PRIMES
-from solver import Clue, ClueValue, Clues, ConstraintSolver, generators, Constraint
+from more_itertools.recipes import sieve, triplewise
+
+from solver import Clue, Clues, ClueValue, Constraint, ConstraintSolver, generators
 from solver.generators import square_pyramidal_generator
-
-
-def digit_sum(value: ClueValue | str | int) -> int:
-    return sum(int(x) for x in str(value))
-
-
-def is_harshad(value: int) -> bool:
-    digits = map(int, list(str(value)))
-    return value % sum(digits) == 0
+from solver.helpers import is_harshad
 
 
 class TaggedString(str):
@@ -52,12 +43,12 @@ X....
 X.X..
 """
 
-even_generator = generators.filtering(lambda x: x % 2 == 0)
-harshad_generator = generators.filtering(lambda x: is_harshad(x))
+even_generator = generators.filterer(lambda x: x % 2 == 0)
+harshad_generator = generators.filterer(lambda x: is_harshad(x))
 
 
 def balanced_prime_generator(clue: Clue) -> Iterator[int]:
-    generator = (b for (a, _), (b, c) in itertools.pairwise(itertools.pairwise(PRIMES)) if c - b == b - a)
+    generator = (b for a, b, c in triplewise(sieve(10 ** clue.length)) if c - b == b - a)
     return generators.within_clue_limits(clue, generator)
 
 
@@ -94,7 +85,6 @@ class Magpie229 (ConstraintSolver):
         a1 = solver.get_initial_values_for_clue(solver.clue_named("10a"))
         print(sorted(a1))
 
-
     def __init__(self) -> None:
         clues, constraints = self.get_clues()
         super().__init__(clues, constraints=constraints, allow_duplicates=True)
@@ -109,15 +99,16 @@ class Magpie229 (ConstraintSolver):
             for number, length, generator1, generator2 in information:
                 r, c = grid[number - 1]
                 generator = self.dual_generator(generator1, generator2)
-                clue1 = Clue(f'{number}{"a" if is_across else "d"}', is_across, (r, c), length,
+                clue1 = Clue(f'{number}{"a" if is_across else "d"}', is_across,
+                             (r, c), length,
                              context='left', generator=generator)
-                clue2 = Clue(f'{number + 10}{"a" if is_across else "d"}', is_across, (r + 5, c), length,
-                             context='right', generator=generator)
+                clue2 = Clue(f'{number + 10}{"a" if is_across else "d"}', is_across,
+                             (r + 5, c), length, context='right', generator=generator)
                 clues += [clue1, clue2]
                 if clue1.name != '3d':
                     # The first clue is for one grid and the second clue is for the other grid
                     constraints.append(Constraint((clue1, clue2),
-                                                  lambda x, y: x.tag != y.tag or x.tag == 3 or y.tag==3))
+                                                  lambda x, y: x.tag != y.tag or x.tag == 3 or y.tag == 3))
                 else:
                     # For
                     constraints.append(Constraint((clue1,), lambda x: x.tag != 2))
@@ -188,7 +179,7 @@ class Magpie229 (ConstraintSolver):
                 terminals = tuple((clue_index, location_index)
                                   for (is_terminal, clue_index, location_index) in locations.values() if is_terminal)
                 others = tuple((clue_index, location_index)
-                                for (is_terminal, clue_index, location_index) in locations.values() if not is_terminal)
+                               for (is_terminal, clue_index, location_index) in locations.values() if not is_terminal)
                 if len(terminals) > 1:
                     self.add_constraint(clues, lambda *values, loc=terminals: check_all_different(values, loc))
                 if len(others) > 1:

@@ -1,6 +1,6 @@
 import itertools
+from collections.abc import Iterable, Sequence
 from fractions import Fraction
-from collections.abc import Sequence, Iterable
 
 from solver import Clue, Clues, EquationSolver, KnownLetterDict
 

@@ -1,13 +1,10 @@
-from __future__ import annotations
-
 import bisect
-import math
 from collections import Counter
 from collections.abc import Callable, Hashable, Sequence
 from datetime import datetime
 from functools import cache
 from itertools import chain, count
-from typing import Any, Final
+from typing import Final, NamedTuple
 
 
 class _Purified:
@@ -19,14 +16,24 @@ PURIFIED: Final = _Purified()
 type DLConstraint = str | tuple[str, str]
 
 
+class DLData(NamedTuple):
+    left: list[int]
+    right: list[int]
+    lengths: list[int]
+    up: list[int]
+    down: list[int]
+    top: list[int]
+    colors: dict[int, str | _Purified]
+    names: dict[int, str]
+    spacer_indices: list[int]
+
+
 class DancingLinks[Row: Hashable]:
     constraints: dict[Row, list[DLConstraint]]
     optional_constraints: set[str]
     row_printer: Callable[[Sequence[Row]], None] | None
-    names: dict[int, str]
-    spacer_indices: list[int]
-    memory: list[list[int | None]]
-    colors: dict[int, str | _Purified]
+    check_solution: Callable[[Sequence[Row]], bool]
+    data: DLData
     debug: bool
     max_debugging_depth: int
 
@@ -36,6 +43,7 @@ class DancingLinks[Row: Hashable]:
         *,
         row_printer: Callable[[Sequence[Row]], None] | None = None,
         optional_constraints: set[str] | None = None,
+        check_solution: Callable[[Sequence[Row]], bool] | None = None,
     ):
         """The entry to the Dancing Links code.  Constraints should be a dictionary.
         Each key is the name of the row (something meaningful to the user).
@@ -49,15 +57,14 @@ class DancingLinks[Row: Hashable]:
         self.constraints = constraints
         self.optional_constraints = optional_constraints or set()
         self.row_printer = row_printer or self._default_row_printer
+        self.check_solution = check_solution or (lambda _: True)
 
     def solve(self, debug: int | None = 0) -> None:
         time1 = datetime.now()
         self.debug = debug is not None
         self.max_debugging_depth = debug if debug is not None else -1
 
-        (*self.memory, self.colors, self.names, self.spacer_indices) = (
-            self.create_data_structure()
-        )
+        self.data = self.create_data_structure()
         steps, solutions = self.inner_solve()
 
         time2 = datetime.now()
@@ -66,27 +73,28 @@ class DancingLinks[Row: Hashable]:
         print("Time =", (time2 - time1))
 
     def inner_solve(self) -> tuple[int, int]:
-        down: list[int]
-        left, right, lengths, up, down, top = self.memory
-        colors = self.colors
-        visible_rows = len(self.spacer_indices)
+        left, right, lengths, up, down, top, colors = (
+            self.data.left, self.data.right, self.data.lengths,
+            self.data.up, self.data.down, self.data.top, self.data.colors,
+        )
+        visible_rows = len(self.data.spacer_indices)
 
         def search_iterative() -> tuple[int, int]:
             steps = solutions = 0
             stack: list[list[int]] = [[1, 0, 0, 0]]
 
             while stack:
-                depth, r, min_constraint, index = frame = stack.pop()
+                depth, r, chosen_item, index = frame = stack.pop()
                 if r > 0:
                     # r is the row before the one I want to scan.  If r == min_constraint,
                     # then this is the first row, and I don't have a row to uncover
-                    if r != min_constraint:
+                    if r != chosen_item:
                         uncover_row(r)
 
                     r = down[r]
                     # The next time we reach min_constraint, the column is exhausted.
-                    if r == min_constraint:
-                        uncover_item(min_constraint)
+                    if r == chosen_item:
+                        uncover_item(chosen_item)
                         continue
 
                     cover_row(r)
@@ -95,14 +103,10 @@ class DancingLinks[Row: Hashable]:
                     stack.append(frame)
                     if depth <= self.max_debugging_depth:
                         self.__print_debug_info(
-                            depth,
-                            min_constraint,
-                            self.get_name(r),
-                            index,
-                            lengths[min_constraint],
-                            visible_rows,
+                            depth, chosen_item, self.get_name(r), index,
+                            lengths[chosen_item], visible_rows,
                         )
-                        depth += lengths[min_constraint] != 1
+                        depth += lengths[chosen_item] != 1
 
                     # stack.append((depth, 0, 0, 0))
                     # Fall through
@@ -113,19 +117,21 @@ class DancingLinks[Row: Hashable]:
                         print(f"{self.__indent(depth)}✓ SOLUTION")
                     # There can't be any frames with r == 0.
                     solution = [s[1] for s in stack if s[1] != s[2]]
-                    solutions += 1
-                    self.row_printer([self.get_name(r) for r in solution])
+                    if self.check_solution(solution):
+                        solutions += 1
+                        self.row_printer([self.get_name(r) for r in solution])
                     continue
 
-                min_constraint, min_count = choose_column()
+                chosen_item, feasible = choose_column()
 
-                if min_count == 0:
+                if not feasible:
                     if depth <= self.max_debugging_depth:
-                        print(f"{self.__indent(depth)}✕ {self.names[min_constraint]}")
+                        name = self.data.names[chosen_item]
+                        print(f"{self.__indent(depth)}✕ {name}")
                     continue
 
-                cover_item(min_constraint)
-                stack.append([depth, min_constraint, min_constraint, 1])
+                cover_item(chosen_item)
+                stack.append([depth, chosen_item, chosen_item, 1])
             return steps, solutions
 
         def cover_row(r: int) -> None:
@@ -230,23 +236,27 @@ class DancingLinks[Row: Hashable]:
                     unhide(q)
                 q = up[q]
 
-        def choose_column() -> tuple[int, int]:
+        def choose_column() -> tuple[int, bool]:
+            """
+            Returns constraint, feasible
+            """
             c = right[0]
             best = -1
-            min_size = math.inf
+            min_size = 1_000_000_000
             while c != 0:
                 if lengths[c] < min_size:
                     best, min_size = c, lengths[c]
                     if min_size == 0:
-                        return c, 0
+                        return c, False
                 c = right[c]
-            return best, min_size
+            return best, True
 
         return search_iterative()
 
-    def create_data_structure(self) -> tuple[Any, ...]:
+    def create_data_structure(self) -> DLData:
         all_constraints = Counter()
         colored_constraints = set()
+
         for name, constraints in self.constraints.items():
             this_rows_constraints = Counter()
             for constraint in constraints:
@@ -255,11 +265,7 @@ class DancingLinks[Row: Hashable]:
                     colored_constraints.add(constraint)
                 this_rows_constraints[constraint] += 1
             if any(value > 1 for value in this_rows_constraints.values()):
-                duplicates = [
-                    constraint
-                    for constraint, value in this_rows_constraints.items()
-                    if value > 1
-                ]
+                duplicates = [k for k, v in this_rows_constraints.items() if v > 1]
                 raise ValueError(f"Row {name} has duplicate constraints {duplicates}")
             all_constraints += this_rows_constraints
         if not colored_constraints <= self.optional_constraints:
@@ -295,7 +301,7 @@ class DancingLinks[Row: Hashable]:
         constraints_length = sum(1 + len(x) for x in self.constraints.values()) + 1
         colors: dict[int, str | _Purified] = {}
         up = [*range(total_length + 2), *([0] * constraints_length)]
-        down = up[:]
+        down = up.copy()
         top = [0] * len(up)
         current_index = total_length + 1
 
@@ -326,7 +332,7 @@ class DancingLinks[Row: Hashable]:
         current_index += 1
         up[current_index:] = down[current_index:] = top[current_index:] = []
 
-        return left, right, lengths, up, down, top, colors, names, spacer_indices
+        return DLData(left, right, lengths, up, down, top, colors, names, spacer_indices)
 
     def __print_debug_info(
         self,
@@ -342,12 +348,12 @@ class DancingLinks[Row: Hashable]:
             print(f"{indent}• ", end="")
         else:
             print(f"{indent}{index}/{count} ", end="")
-        print(f"{self.names[min_constraint]}: Row {row} ({visible_rows})")
+        print(f"{self.data.names[min_constraint]}: Row {row} ({visible_rows})")
 
     def get_name(self, index: int) -> str:
-        spacer_index = bisect.bisect_right(self.spacer_indices, index) - 1
-        next_smallest = self.spacer_indices[spacer_index]
-        return self.names[next_smallest]
+        spacer_index = bisect.bisect_right(self.data.spacer_indices, index) - 1
+        next_smallest = self.data.spacer_indices[spacer_index]
+        return self.data.names[next_smallest]
 
     @staticmethod
     def _default_row_printer(solution: Sequence[Row]) -> None:
@@ -359,34 +365,38 @@ class DancingLinks[Row: Hashable]:
         return " | " * depth
 
     def show(self, index: int, verbose=False) -> str:
-        left, right, lengths, up, down, top = self.memory
+        left, right, lengths, up, down, top, colors, names, spacer_indices = self.data
         if index < len(left):
             if index == 0:
                 return "ROOT"
             elif index == len(left) - 1:  # noqa
                 return "SECOND_ROOT"
             else:
-                return self.names[index]
+                return names[index]
         else:
-            spacer_index = bisect.bisect_right(self.spacer_indices, index) - 1
-            spacer = self.spacer_indices[spacer_index]
+            spacer_index = bisect.bisect_right(spacer_indices, index) - 1
+            spacer = spacer_indices[spacer_index]
             if spacer == index:
-                result = f"<{self.names[spacer]}>"
+                result = f"<{names[spacer]}>"
                 if not verbose:
                     return result
                 items = []
                 for ix in count(index + 1):
                     if top[ix] == 0:
                         break
-                    name = self.names[top[ix]]
-                    color = self.colors.get(ix)
+                    name = names[top[ix]]
+                    color = colors.get(ix)
                     if color:
                         name = f"{name}/{color}"
                     items.append(name)
                 return result + ": " + ",".join(items)
             else: # noqa
-                color = self.colors.get(index)
+                color = colors.get(index)
                 if color:
-                    return f"<{self.names[spacer]} {self.names[top[index]]}/{color}>"
+                    return f"<{names[spacer]} {names[top[index]]}/{color}>"
                 else:
-                    return f"<{self.names[spacer]} {self.names[top[index]]}>"
+                    return f"<{names[spacer]} {names[top[index]]}>"
+
+
+def get_row_column_optional_constraints(rows: int, columns: int) -> set[DLConstraint]:
+    return {f"r{r}c{c}" for r in range(1, rows + 1) for c in range(1, columns + 1)}

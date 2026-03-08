@@ -2,6 +2,7 @@ from collections import Counter
 
 import numpy as np
 
+
 class X:
     string: str
     array: np.ndarray

@@ -1,7 +1,7 @@
 from functools import cache
 from itertools import combinations
 
-PRIMES = [11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97]
+PRIMES = [x for x in sieve(100) if x > 10]
 
 @cache
 def rev(x):

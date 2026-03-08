@@ -52,7 +52,7 @@ def draw_triangle(squares: Sequence[Square], area) -> None:
     figure, axis = plt.subplots(1, 1, dpi=300)
     axis.set_aspect('1.7')
     axis.axis('off')
-    for index, square in enumerate(squares, start = 1):
+    for index, square in enumerate(squares, start=1):
         shape = HEX_MAP[square]
         color = 'lightgreen' if shape in area[0] else 'lightblue' if shape in area[1] else 'yellow'
         color = 'white'
@@ -84,7 +84,7 @@ def draw_map(area):
 
 def dancing_links(debug=False):
     constraints = {}
-    for (index, recipe) in enumerate(RECIPES, start = 1):
+    for (index, recipe) in enumerate(RECIPES, start=1):
         results = set()
         for original in (True, False):
             if not original:

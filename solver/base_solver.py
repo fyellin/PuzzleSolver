@@ -160,6 +160,16 @@ class BaseSolver(ABC):
 
         self.draw_grid(**args)
 
+    def get_board(self, known_clues: KnownClueDict) -> dict[Location, str]:
+        """
+        Constructs a board representation based on known clues and values.
+        """
+        return {
+            location: char
+            for clue, value in known_clues.items()
+            for location, char in zip(clue.locations, value, strict=True)
+        }
+
     def draw_grid(self, **args: Any) -> None:
         """
         Override this method if you need to intercept the call

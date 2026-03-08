@@ -1,8 +1,8 @@
 import itertools
 import math
-from collections.abc import Sequence, Iterator
+from collections.abc import Iterator, Sequence
 
-from solver import ConstraintSolver, Clues, Clue, KnownClueDict
+from solver import Clue, Clues, ConstraintSolver, KnownClueDict
 
 GRID = """
 XXX.X
@@ -169,10 +169,8 @@ class Solver221(ConstraintSolver):
         self.add_constraint(('3d', '8d'), lambda d3, d8: int(d3) > int(d8))
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        locations = {location: int(letter)
-                     for clue in self._clue_list
-                     for location, letter in zip(clue.locations, known_clues[clue])}
-        actual_total = sum(locations.values())
+        locations = self.get_board(known_clues)
+        actual_total = sum(int(x) for x in locations.values())
         expected_total = int(known_clues[self.a8])
         return actual_total == expected_total
 

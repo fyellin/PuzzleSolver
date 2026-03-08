@@ -43,8 +43,8 @@ def get_start_grid():
         grid[0, rc] = Counter(DOWNS[rc - 1])
 
     lines = START_GRID.strip().splitlines()
-    for row, line in enumerate(lines, start = 1):
-        for col, letter in enumerate(line, start = 1):
+    for row, line in enumerate(lines, start=1):
+        for col, letter in enumerate(line, start=1):
             if letter != '.':
                 set_grid(grid, row, col, letter)
     for word1, word2 in PAIRS:

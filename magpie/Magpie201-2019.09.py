@@ -1,7 +1,7 @@
-from typing import Any
 from collections.abc import Sequence
+from typing import Any
 
-from solver import Clue, Clues, Location, EquationSolver
+from solver import Clue, Clues, EquationSolver, Location
 
 ACROSS = """
 1 JE(RK + S) (4)

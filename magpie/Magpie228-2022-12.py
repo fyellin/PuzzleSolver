@@ -1,9 +1,17 @@
 import re
 from itertools import permutations
 
-from solver import Clue, ClueValue, Clues, ConstraintSolver, KnownLetterDict, \
-    Location, generators
-from solver import LCH_Info, LetterCountHandler
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    ConstraintSolver,
+    KnownLetterDict,
+    LCH_Info,
+    LetterCountHandler,
+    Location,
+    generators,
+)
 
 GRID = """
 XXXXXX

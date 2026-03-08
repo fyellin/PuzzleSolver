@@ -1,7 +1,7 @@
 import itertools
+import re
 from collections import defaultdict
 from functools import cache
-import re
 
 ROW = ["[nt]", "h", "[ne]", "[ia]", "[ni]", "[ta]", "[un]", "[ac]", "[e]", "[e]"]
 
@@ -29,7 +29,7 @@ def run(reverse=False):
     corpus = "../misc/words2.txt"
     result = defaultdict(list)
     with open(corpus) as file:
-        for word in file.readlines():
+        for word in file:
             word = word.strip()
             if 6 <= len(word) <= 15:
                 pattern = get_regexp_for_length(len(word), reverse)

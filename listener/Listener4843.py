@@ -1,10 +1,17 @@
 import itertools
 import re
-from typing import Any
 from collections.abc import Iterable, Sequence
+from typing import Any
 
-from solver import Clue, Clues, EquationSolver, Evaluator, equation_parser, Parse, \
-    KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    EquationSolver,
+    Evaluator,
+    KnownLetterDict,
+    Parse,
+    equation_parser,
+)
 
 CLUES = """
 15 fh + mh = (l + z)h

@@ -4,7 +4,7 @@ import string
 from collections import Counter, defaultdict
 from typing import Any
 
-from solver import Clue, Clues, ConstraintSolver, Location, generators, KnownClueDict
+from solver import Clue, Clues, ConstraintSolver, KnownClueDict, Location, generators
 
 ACROSS = """
 9 Present song losing essential character in transmission down line (8;2,5) HERE,DITY

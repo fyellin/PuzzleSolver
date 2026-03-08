@@ -2,7 +2,7 @@ import itertools
 import re
 from typing import Any
 
-from misc.factors import factor_list
+from misc import factor_list
 from solver import Clue, Clues, ConstraintSolver, generators
 
 GRID = """
@@ -168,7 +168,7 @@ class Magpie241(ConstraintSolver):
         X, Y, Z = (276, 403, 1964)
         subtext = f'{X=}, {Y=}, {Z=}'
         super().draw_grid(location_to_entry=location_to_entry,
-                          font_multiplier = .8,
+                          font_multiplier=.8,
                           subtext=subtext,
                           **args)
         # location_to_entry = {loc: temp[int(x)] for loc, x in location_to_entry.items()}

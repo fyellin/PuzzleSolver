@@ -2,9 +2,9 @@ import collections
 import itertools
 import math
 import pickle
+from collections.abc import Iterable, Sequence
 from enum import Enum
 from typing import NamedTuple, cast
-from collections.abc import Iterable, Sequence
 
 import numpy as np
 from matplotlib import patches as mpatches

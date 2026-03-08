@@ -1,7 +1,7 @@
 import math
 from typing import Any
 
-from solver import Clue, ConstraintSolver, Evaluator, generators, Constraint, KnownClueDict
+from solver import Clue, Constraint, ConstraintSolver, Evaluator, KnownClueDict, generators
 
 TRIANGLES = [i * (i + 1) // 2 for i in range(2000)]
 SQUARES = [i * i for i in range(1000)]
@@ -27,8 +27,8 @@ G + b/E, e – A, g – H
 a, F + e, g
 """
 
-VALUES = dict(A=37, B=2079, C=324, D=27, E=20, F=21, G=45, H=11, J=594, K=2277, L=54,
-              a=33, b=720, c=77, d=945, e=42, f=252, g=15, h=495, j=12, k=44)
+VALUES = {'A': 37, 'B': 2079, 'C': 324, 'D': 27, 'E': 20, 'F': 21, 'G': 45, 'H': 11, 'J': 594, 'K': 2277, 'L': 54,
+          'a': 33, 'b': 720, 'c': 77, 'd': 945, 'e': 42, 'f': 252, 'g': 15, 'h': 495, 'j': 12, 'k': 44}
 
 CLUES = [
     ('A', 1, 1, 2),
@@ -123,8 +123,8 @@ class Magpie243(ConstraintSolver):
     def get_constraints(cls) -> list[Constraint]:
         result = []
         mapping = {'test1': cls.is_type_1_triple, 'test2': cls.is_type_2_triple,
-                       'testx': lambda x: x + 1 in TRIANGLES_SET,
-                       'testnz': lambda x: int(x) == x > 0}
+                   'testx': lambda x: x + 1 in TRIANGLES_SET,
+                   'testnz': lambda x: int(x) == x > 0}
         type1, type2 = cls.grab_constraints()
         for c_type, constraints in ((1, type1), (2, type2)):
             for constraint in constraints:

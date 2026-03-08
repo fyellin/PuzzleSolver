@@ -1,9 +1,7 @@
-from __future__ import annotations
+from collections.abc import Callable, Iterable, Sequence
+from typing import Any, Literal, overload
 
-from typing import Any
-from collections.abc import Callable, Sequence, Iterable
-
-from .clue_types import Location
+from .clue_types import ClueValue, Location
 from .evaluator import Evaluator
 
 ClueValueGenerator = Callable[['Clue'], Iterable[str | int]]
@@ -27,7 +25,7 @@ class Clue:
                  generator: ClueValueGenerator | None = None,
                  context: Any = None,
                  locations: Iterable[Location] | None = None,
-                 priority = 0):
+                 priority=0):
         self.name = name
         self.is_across = is_across
         if locations:
@@ -54,6 +52,17 @@ class Clue:
 
     def location(self, i: int) -> Location:
         return self.locations[i]
+
+    def dancing_links_rc_constraints(self, value: ClueValue | int) -> Sequence[tuple[str, str]]:
+        """
+        Provides a map from the encoding location to its current value. The key is
+        either the tuple (r, c) or the string "r{row}c{column}" depending on the value
+        of dancing_links.
+        """
+        return [
+            (f'r{r}c{c}', ch)
+            for ch, (r, c) in zip(str(value), self.locations, strict=True)
+        ]
 
     __hash__ = object.__hash__
 

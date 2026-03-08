@@ -1,11 +1,9 @@
 import itertools
-from collections.abc import Iterator, Sequence, Iterable, Callable
+from collections.abc import Callable, Iterable, Iterator, Sequence
 
 from more_itertools import is_prime, sieve
 
-from solver import Clue, Clues, ClueValueGenerator
-from solver import ConstraintSolver
-from solver import generators
+from solver import Clue, Clues, ClueValueGenerator, ConstraintSolver, generators
 
 """
 A decomposition n = a^2 - b^2 = (a-b)(a+b) = d*(n/d) is given for each divisor d less than

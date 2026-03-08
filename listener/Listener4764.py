@@ -135,7 +135,7 @@ class Listener4764(ConstraintSolver):
 
         for clue in self.real_clues:
             value1 = clue.evaluators[0](letter_values)[0]
-            expression = eq.parse(clue.expression)[0].to_string(simple=True)
+            expression = eq.parse(clue.expression)[0].to_string()
             value2 = eval(expression, letter_values)
             assert str(int(value2)) == value1
             entry = known_clues[clue]

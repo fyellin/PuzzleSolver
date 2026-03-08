@@ -1,13 +1,15 @@
 import functools
 import itertools
 import math
-from more_itertools import sieve
-
-from solver import Clue, generators, Clues, ConstraintSolver, KnownClueDict
-from collections.abc import Sequence, Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from typing import Any
 
-PRIMES_2DIGIT = {11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97}
+from more_itertools import sieve
+
+from solver import Clue, Clues, ConstraintSolver, KnownClueDict
+from solver.helpers import digit_sum
+
+PRIMES_2DIGIT = {x for x in sieve(100) if x > 10}
 PRIMES_2DIGIT_STR = {str(x) for x in PRIMES_2DIGIT}
 
 
@@ -21,7 +23,7 @@ class MyString(str):
         return temp[0:offset] + '[' + temp[offset:offset + 2] + ']' + temp[offset + 2:]
 
     @staticmethod
-    def get(value: int) -> Sequence['MyString']:
+    def get(value: int) -> Sequence[MyString]:
         temp = str(value)
         return [MyString(value=value, prime=int(prime), entry=int(rest), offset=i)
                 for i in range(0, len(temp) - 1)
@@ -46,10 +48,6 @@ class MyString(str):
 
     def __lt__(self, other) -> bool:
         return (self.value, self.offset) < (other.value, other.offset)
-
-
-def digit_sum(number: int) -> int:
-    return sum(int(x) for x in str(number))
 
 
 def generate_palindrome(clue: Clue) -> Iterator[MyString]:
@@ -250,7 +248,3 @@ class Solver6220 (ConstraintSolver):
 
 if __name__ == '__main__':
     Solver6220.run()
-    # temp = Solver6220()
-    # clue = temp.clue_named("15a")
-    # result = list(x.code for x in clue.generator(clue))
-    # print(result)

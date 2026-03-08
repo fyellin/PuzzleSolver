@@ -1,10 +1,18 @@
 import functools
 import re
+from collections.abc import Callable, Sequence
 from typing import Any
-from collections.abc import Sequence, Callable
 
-from solver import Clue, Location, Clues, ConstraintSolver, Intersection, Letter
-from solver import EquationSolver, KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    ConstraintSolver,
+    EquationSolver,
+    Intersection,
+    KnownClueDict,
+    KnownLetterDict,
+    Location,
+)
 
 GRID = """
 X.XXXXXXXX
@@ -166,7 +174,7 @@ class InnerSolver(ConstraintSolver):
                    ('E', 6), ('S', 1), ('I', 8), ('W', 13), ('G', 4), ('D', 15), ('C', 2), ('O', 14), ('U', 16),
                    ('H', 12))
         print(', '.join(x for x, _ in letters), '=', ', '.join(str(x) for _, x in letters))
-        letter_values = {Letter(letter): value for letter, value in letters}
+        letter_values = {letter: value for letter, value in letters}
         grid = Clues.get_locations_from_grid(GRID)
         clues = OuterSolver.create_from_text(ACROSS, DOWN, grid)
         clue_values: KnownClueDict = {clue: clue.evaluators[0](letter_values) for clue in clues}

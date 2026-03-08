@@ -106,9 +106,7 @@ class Solver215(ConstraintSolver):
         return False
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        location_to_value = {location : char
-                             for clue, value in known_clues.items()
-                             for location, char in zip(clue.locations, value)}
+        location_to_value = self.get_board(known_clues)
         counter = collections.Counter(location_to_value.values())
         if '0' in counter:
             return False

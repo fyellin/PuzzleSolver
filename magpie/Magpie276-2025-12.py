@@ -1,16 +1,26 @@
 import functools
 import io
 import itertools
+import math
 import multiprocessing
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 from fractions import Fraction
 
-import math
-
-from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks as DancingLinks, \
-    Evaluator, Letter, MultiEquationSolver, KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    ConstraintSolver,
+    Evaluator,
+    KnownClueDict,
+    KnownLetterDict,
+    Letter,
+    MultiEquationSolver,
+)
+from solver import DancingLinks as DancingLinks
+from solver.dancing_links import get_row_column_optional_constraints
 
 CLUES = """
 a H! −E+A−D
@@ -240,7 +250,7 @@ class Magpie276(MultiEquationSolver):
         if not down_totals:
             return ()
 
-        return tuple(ClueValue(str(88 + delta)) for delta in (0, 1) if across_total + delta in down_totals)
+        return tuple(str(88 + delta) for delta in (0, 1) if across_total + delta in down_totals)
 
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
         result = [known_clues[clue] for clue in self._clue_list]
@@ -278,7 +288,7 @@ u  C    L+E−A+CH
 """
 
 class FastConstraintSolver:
-    def __init__(self, *, prefix = None):
+    def __init__(self, *, prefix=None):
         self.solver = Magpie276()
         self.solver._debug = False
         self.solving_order = self.solver._get_solving_order()
@@ -421,16 +431,15 @@ class MyDancingLinks (ConstraintSolver):
         across_clues = [value for key, value in solution.items() if key.name <= 'm']
         down_clues = [value for key, value in solution.items() if key.name >= 'n']
 
-        optional_constraints = {f'r{r}c{c}' for r in range(1, 7) for c in range(1, 7)}
+        optional_constraints = get_row_column_optional_constraints(7, 7)
         constraints = {}
         for clue in self._clue_list:
             code = 'aa' if clue.is_across else 'dd'
             for value in (across_clues if clue.is_across else down_clues):
                 if len(value) != clue.length:
                     continue
-                constraint = [f'{clue.name}', f'{value}{code}']
-                constraint.extend((f'r{r}c{c}', letter)
-                                  for (r, c), letter in zip(clue.locations, value))
+                constraint = [f'{clue.name}', f'{value}{code}',
+                              *clue.dancing_links_rc_constraints(value)]
                 constraints[(clue.name, value)] = constraint
         intersection, = [x for x in across_clues if x in down_clues]
 
@@ -496,10 +505,9 @@ FOOBAR = [
 
 if __name__ == '__main__':
     start = datetime.now()
-    match 0:
+    match 1:
         case 0:
             MyDancingLinks.test_run()
-
         case 1:
             Magpie276.run()
     end = datetime.now()

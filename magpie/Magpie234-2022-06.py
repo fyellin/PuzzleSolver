@@ -1,10 +1,9 @@
-from __future__ import annotations
-
 from collections.abc import Iterable
 from typing import Any, cast
 
-from misc import PRIMES
-from solver import ClueValue, Clues, EquationSolver, Evaluator, KnownClueDict, KnownLetterDict
+from more_itertools import is_prime
+
+from solver import Clues, ClueValue, EquationSolver, Evaluator, KnownClueDict, KnownLetterDict
 
 
 class MultiValue:
@@ -104,7 +103,7 @@ class Magpie234 (EquationSolver):
                 # calculation will also be a MultiValue.  So we just need to convert the MultiValue to a list
                 # of values.  No filtering is necessary since we toss out all negative numbers in the - operator.
                 result = evaluator.raw_call(value_dict)
-                return (ClueValue(str(x)) for x in cast(MultiValue, result).values)
+                return (str(x) for x in cast(MultiValue, result).values)
             except ArithmeticError:
                 return ()
 
@@ -116,11 +115,9 @@ class Magpie234 (EquationSolver):
         super().__init__(clues, items=cast(tuple[int], self.get_non_primes()))
 
     def check_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> bool:
-        temp = {location: int(value)
-                for clue, value in known_clues.items()
-                for location, value in zip(clue.locations, value)}
+        temp = self.get_board(known_clues)
         assert len(temp) == 35
-        return sum(temp.values()) in known_letters['J']
+        return sum(int(x) for x in temp.values()) in known_letters['J']
 
     def draw_grid(self, **args: Any) -> None:
         super().draw_grid(font_multiplier=.8, **args)
@@ -129,9 +126,9 @@ class Magpie234 (EquationSolver):
     def get_non_primes():
         results = []
         for x in range(10, 1000):
-            if x not in PRIMES:
+            if not is_prime(x):
                 rev_x = int(str(x)[::-1])
-                if x < rev_x and rev_x not in PRIMES:
+                if x < rev_x and not is_prime(rev_x):
                     results.append(MultiValue({x, rev_x}))
         return results
 
