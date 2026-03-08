@@ -1,10 +1,11 @@
 import itertools
 import math
+import string
 from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
-from solver import Clue, Clues, ConstraintSolver, generators, KnownClueDict
+from solver import Clue, Clues, ConstraintSolver, KnownClueDict, generators
 from solver.generators import allvalues, known
 
 
@@ -18,8 +19,8 @@ class Permutation:
     @staticmethod
     def from_perm(permutation):
         result = ''.join(str(x) for x in permutation)
-        translation = str.maketrans("0123456789", result)
-        untranslation = str.maketrans(result, "0123456789")
+        translation = str.maketrans(string.digits, result)
+        untranslation = str.maketrans(result, string.digits)
         return Permutation(permutation, translation, untranslation, result)
 
     def encode(self, value: str | int) -> str:
@@ -52,7 +53,7 @@ class Permutation:
         return sum(int(x) for x in str(value)) % 2 == 0
 
     def permute(self):
-        unseen = set('0123456789')
+        unseen = set(string.digits)
         result = ''
         while unseen:
             cycle = [min(unseen)]
@@ -171,7 +172,7 @@ class Magpie242(ConstraintSolver):
 
     def print(self, **values):
         seen = {}
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             alt_name = clue.name[-1] + clue.name[:-1]
             if alt_name in values:
                 seen[clue] = self.code.encode(values[alt_name])

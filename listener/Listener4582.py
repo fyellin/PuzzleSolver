@@ -1,10 +1,19 @@
 import re
+from collections.abc import Callable, Sequence
 from os.path import commonprefix
-from typing import Any
-from collections.abc import Sequence, Callable
+from typing import Unpack
 
-from solver import Clue, Location, Clues, ConstraintSolver, Intersection, Letter
-from solver import EquationSolver, KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    ConstraintSolver,
+    DrawGridKwargs,
+    EquationSolver,
+    Intersection,
+    KnownClueDict,
+    KnownLetterDict,
+    Location,
+)
 
 # An X marks were the numbered squares are
 GRID = """
@@ -91,7 +100,7 @@ class OuterSolver(EquationSolver):
     # now are the values.
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
         self.show_letter_values(known_letters)
-        InnerSolver.run(self._clue_list, known_clues, known_letters)
+        InnerSolver.run(self.clue_list, known_clues, known_letters)
 
 
 class InnerSolver(ConstraintSolver):
@@ -109,7 +118,7 @@ class InnerSolver(ConstraintSolver):
         locations = Clues.get_locations_from_grid(GRID)
         clue_list = Clues.create_from_text(ACROSS, DOWN, locations)
         solution = {'H': 1, 'E': 2, 'S': 3, 'N': 4,  'I': 5, 'G': 6, 'L': 7, 'R': 8, 'T': 9, 'D': 10, 'A': 11, }
-        letter_values = {Letter(letter): value for letter, value in solution.items()}
+        letter_values = {letter: value for letter, value in solution.items()}
         # Evaluate each of the clues
         clue_values = {clue: clue.evaluators[0](letter_values) for clue in clue_list}
         solver = InnerSolver(clue_list, clue_values, letter_values)
@@ -140,7 +149,7 @@ class InnerSolver(ConstraintSolver):
                     for i, location in enumerate(clue.locations)
                     for j in (10, 11)]
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         """
         Once we've solved the puzzle, we've overridden this function so that we print the graph with the shading
         that we want.
@@ -152,7 +161,7 @@ class InnerSolver(ConstraintSolver):
         across_inserted_locations: set[Location] = set()
         down_inserted_locations: set[Location] = set()
         inserted_number: list[int] = []
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             original_clue_value = self.clue_values[clue]
             current_clue_value = clue_values[clue]
             delta = len(current_clue_value) - len(original_clue_value)

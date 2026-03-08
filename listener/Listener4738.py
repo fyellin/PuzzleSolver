@@ -1,9 +1,17 @@
 import itertools
 from collections.abc import Iterable, Sequence
-from typing import Any
+from typing import Unpack
 
-from solver import ClueValue, Clues, Evaluator, Location, \
-    MultiEquationSolver, KnownClueDict, KnownLetterDict
+from solver import (
+    Clues,
+    ClueValue,
+    DrawGridKwargs,
+    Evaluator,
+    KnownClueDict,
+    KnownLetterDict,
+    Location,
+    MultiEquationSolver,
+)
 
 GRID = """
 X.XXXXXXXX
@@ -126,14 +134,14 @@ class Listener4738(MultiEquationSolver):
             result = evaluator.compiled_code(*(value_dict[x] ^ 1 for x in evaluator.vars))
             int_result = int(result)
             if result == int_result > 0:
-                return ClueValue(str(int_result)),
+                return str(int_result),
             return ()
         except ArithmeticError:
             return ()
 
     @staticmethod
     def fixed_wrapper(_evaluator: Evaluator, _value_dict: KnownLetterDict) -> Iterable[ClueValue]:
-        yield from [ClueValue(str(120)), ClueValue(str(720))]
+        yield from [str(120), str(720)]
 
     def get_letter_values(self, known_letters: KnownLetterDict, letters: Sequence[str]) -> Iterable[Sequence[int]]:
         count = len(letters)
@@ -151,9 +159,11 @@ class Listener4738(MultiEquationSolver):
         print(temp)
         print(known_letters)
 
-    def draw_grid(self, max_row, clue_values, left_bars, top_bars, location_to_entry,
-                  clued_locations, **args: Any) -> None:
-        max_row += 3
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        top_bars = args['top_bars']
+        location_to_entry = args['location_to_entry']
+        clued_locations = args['clued_locations']
+        args['max_row'] += 3
         clued_locations |= {(row, column) for row in range(10, 13) for column in range(1, 11)}
 
         top_bars |= {(10, i) for i in range(1, 11)}
@@ -174,13 +184,8 @@ class Listener4738(MultiEquationSolver):
         shading |= {(row, column): color2 for row in (4, 5, 6, 11) for column in range(1, 11)}
         shading |= {(row, column): color3 for row in (7, 8, 9, 12) for column in range(1, 11)}
 
-        super().draw_grid(clue_values=clue_values, left_bars=left_bars, top_bars=top_bars,
-                          location_to_entry=location_to_entry,
-                          clued_locations=clued_locations,
-                          max_row=max_row,
-                          font_multiplier=.8,
+        super().draw_grid(font_multiplier=.8,
                           shading=shading,
-                          # extra=self.extra,
                           **args)
 
     @staticmethod
@@ -194,5 +199,5 @@ class Listener4738(MultiEquationSolver):
         # solver.show_letter_values(known_letters)
 
 if __name__ == '__main__':
-    Listener4738.run()
-    #  Listener4738.handle_finish_up()
+    # Listener4738.run()
+    Listener4738.handle_finish_up()

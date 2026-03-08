@@ -3,9 +3,9 @@ get_letter_values:  Each digit can be used more than once.
 is_zero_allowed:    This puzzle doesn't allow 0 in any intersection
 """
 
-from collections.abc import Sequence, Iterable
+from collections.abc import Iterable, Sequence
 
-from solver import Clue, Clues, KnownLetterDict, Location, EquationSolver
+from solver import Clue, Clues, EquationSolver, KnownLetterDict, Location
 
 
 class MySolver(EquationSolver):

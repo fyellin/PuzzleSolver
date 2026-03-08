@@ -1,6 +1,7 @@
 import contextlib
 import math
-import os
+import pathlib
+import re
 from collections import Counter
 from collections.abc import Sequence
 from itertools import pairwise
@@ -44,26 +45,28 @@ class PlayfairEncoder:
 
 
 def get_word_list():
-    filename = os.path.dirname(os.path.abspath(__file__)) + "/../misc/words.txt"
-    with open(filename) as file:
+    filename = pathlib.Path(__file__).parent / "../../misc/words2.txt"
+    print(filename)
+    with pathlib.Path(filename).open() as file:
         words = set(file.read().split())
-    words = {x.upper().replace('-', '').replace("'", '') for x in words}
+    words = {x.upper().replace('-', '').replace("'", '').replace('J', 'I') for x in words}
+    words = {x for x in words if re.fullmatch(r'[A-Z]*', x)}
+    all_words = words
     words = {x for x in words if x.isalpha() and len(set(x)) == len(x)}
-    words = {x for x in words if not('I' in x and 'J' in x)}
-    return words
+    return words, all_words
 
 
 def main1():
     global result
-    phrase = "IBTH GYRK LQBY CKBX QOIL MCIE YTEM MIBI MVMG GOMH GYIE PAFA COEY".replace(
-        " ", "")
-    words = get_word_list()
-    words = {x for x in words if len(x) == 9}
-    with open("/tmp/stuff.txt", "w") as f:
-        with contextlib.redirect_stdout(f):
-            for word in sorted(words):
-                result = PlayfairEncoder(word).decode(phrase)
-                print(result)
+    _phrase = "maysamenbufo".upper()
+    _words, all_words = get_word_list()
+    encoder = PlayfairEncoder("SHOCKUMENTARY")
+    for word in sorted(all_words):
+        if len(word) != 4:
+            continue
+        result = encoder.encode(word)
+        if re.fullmatch(r'.AYS', result) and result in all_words:
+            print(word, result)
 
 
 def main3():
@@ -94,7 +97,7 @@ def main2():
     # result = urlopen(url).read().decode("ASCII").upper().replace("J", "I")
     #
     file = "/users/fy/Desktop/text_fic.txt"
-    with open(file) as f:
+    with pathlib.Path(file).open() as f:
         result = f.read().upper().replace("J", "I")
 
     result = [x for x in result if x.isalpha()]
@@ -109,11 +112,11 @@ def main2():
         delta = Template(decode) @ english
         results.append((delta, word, decode))
     results.sort(reverse=True)
-    with open("/tmp/stuff.txt", "w") as f:
+    with pathlib.Path("/tmp/stuff.txt").open("w") as f:
         with contextlib.redirect_stdout(f):
             for delta, word, decode in results:
                 print(word, decode, delta)
 
 
 if __name__ == '__main__':
-    main2()
+    main1()

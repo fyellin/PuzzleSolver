@@ -1,11 +1,11 @@
 import math
 import re
 from collections.abc import Sequence
-from typing import Any
+from typing import Unpack
 
 from matplotlib import pyplot as plt
 
-from solver import Clue, Clues, EquationSolver, Evaluator, Location
+from solver import Clue, Clues, DrawGridKwargs, EquationSolver, Evaluator
 
 GRID = """
 x...xxx..x....x
@@ -111,11 +111,10 @@ class Solver236(EquationSolver):
                 clues.append(clue)
         return clues
 
-    def draw_grid(self, *,
-                  location_to_entry: dict[Location, str],
-                  location_to_clue_numbers: dict[Location, Sequence[str]],
-                  shading: dict[Location, str] = None,
-                  **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = args['location_to_entry']
+        location_to_clue_numbers = args['location_to_clue_numbers']
+        shading = args.get('shading', None)
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
         # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
         axes.axis([1, 9, 9, 1])
@@ -141,7 +140,7 @@ class Solver236(EquationSolver):
                 if is_point_up or row != 1:
                     axes.plot([center_x - .5, center_x + .5], [flat_row, flat_row], **args)
 
-        locations = { location for clue in self._clue_list for location in clue.locations}
+        locations = { location for clue in self.clue_list for location in clue.locations}
 
         text_args = dict(verticalalignment='center', horizontalalignment='center',
                          fontsize=20, fontfamily="sans-serif", fontweight='bold')
@@ -179,7 +178,7 @@ class Solver236(EquationSolver):
                     axes.text(center_x, row + .15, str(label[0]),
                               verticalalignment='top', horizontalalignment='center', **label_args)
 
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             if clue.name.endswith("i"):
                 draw_heavy(*clue.locations[0], 'left')
                 draw_heavy(*clue.locations[-1], 'right')

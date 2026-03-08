@@ -1,8 +1,8 @@
 import re
 from collections import Counter, defaultdict
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, Clues, EquationSolver
+from solver import Clue, Clues, DrawGridKwargs, EquationSolver
 
 GRID = """
 ..X.XXX.X..X..
@@ -122,7 +122,7 @@ class Junk(EquationSolver):
     def go(self):
         extra_clues = []
         locations = {}
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             if word := clue.context:
                 if len(word) == clue.length:
                     for (letter, location) in zip(word, clue.locations):
@@ -154,8 +154,8 @@ class Junk(EquationSolver):
                         work_done = True
 
         result = {clue: [locations[location] for location in clue.locations]
-                  for clue in self._clue_list if clue.context}
-        for clue in self._clue_list:
+                  for clue in self.clue_list if clue.context}
+        for clue in self.clue_list:
             assert ''.join(result[clue]) == clue.context
 
         self.plot_board(result)
@@ -166,7 +166,7 @@ class Junk(EquationSolver):
         busted = list(word)
         possibilities = []
         for i in range(len(word) - 1):
-            possibility = busted[:]
+            possibility = busted.copy()
             possibility[i:i+2] = [possibility[i] + possibility[i + 1]]
             assert len(possibility) == clue.length
             if all(known[i] is None or known[i] == possibility[i]
@@ -225,10 +225,10 @@ class Junk(EquationSolver):
             result.append((row, column))
         return result
 
-    def draw_grid(self, location_to_entry, top_bars, left_bars,
-                  **args: Any) -> None:
-        # Verify we've entered values correctly
-        for clue in self._clue_list:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = args['location_to_entry']
+        args['top_bars'] = args['left_bars'] = {}
+        for clue in self.clue_list:
             assert clue.context == ''.join(location_to_entry[location]
                                            for location in clue.locations)
 
@@ -257,9 +257,7 @@ class Junk(EquationSolver):
         for letter, location in zip("PREDATORSATIATION", doubles):
             location_to_entry[location] = letter
 
-        super().draw_grid(location_to_entry=location_to_entry,
-                          top_bars={}, left_bars={},
-                          font_multiplier=.5,
+        super().draw_grid(font_multiplier=.5,
                           coloring=dict.fromkeys(doubles, 'blue'),
                           subtext=subtext,
                           **args)

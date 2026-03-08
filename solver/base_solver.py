@@ -3,11 +3,11 @@ import re
 from abc import ABC, abstractmethod
 from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Unpack
 
 from .clue import Clue, Location
 from .clue_types import ClueValue
-from .draw_grid import draw_grid
+from .draw_grid import DrawGridKwargs, draw_grid
 
 type KnownClueDict = dict[Clue, ClueValue]
 
@@ -15,6 +15,7 @@ type KnownClueDict = dict[Clue, ClueValue]
 class BaseSolver(ABC):
     _clue_list: Sequence[Clue]
     _allow_duplicates: bool
+
     __name_to_clue: Mapping[str, Clue]
     __max_row: int
     __max_column: int
@@ -37,6 +38,10 @@ class BaseSolver(ABC):
         self.__intersections = frozenset(location
                                          for location, count in all_locations.items()
                                          if count >= 2)
+
+    @property
+    def clue_list(self) -> Sequence[Clue]:
+        return self._clue_list
 
     def clue_named(self, name: str) -> Clue:
         """Returns the new with the specified name"""
@@ -103,8 +108,11 @@ class BaseSolver(ABC):
         return {(clue.base_location, clue.length, clue.is_across)
                 for clue in self.__name_to_clue.values()}
 
-    def plot_board(self, clue_values: KnownClueDict | None = None, **more_args: Any
-                   ) -> None:
+    def plot_board(
+        self,
+        clue_values: KnownClueDict | None = None,
+        **more_args: Unpack[DrawGridKwargs],
+    ) -> None:
         """Draws a picture of the grid with the specified clues filled in."""
         max_row = self.__max_row
         max_column = self.__max_column
@@ -116,7 +124,7 @@ class BaseSolver(ABC):
         # A map from location to value to put in that location.
         location_to_entry: dict[Location, str] = {}
 
-        # A map from location to clue number to put in that location
+        # A map from a location to the clue number(s) to put in that location
         location_to_clue_numbers: dict[Location, list[str]] = defaultdict(list)
 
         # Location of squares that have a heavy bar on their left.
@@ -125,7 +133,7 @@ class BaseSolver(ABC):
         # Location of squares that have a heavy bar at their top
         top_bars = set(itertools.product(range(2, max_row), range(1, max_column)))
 
-        # The location of left heavy bars, top heavy bars, and squares that are part
+        # The location of left-heavy bars, top-heavy bars, and squares that are part
         # of an answer Note that we determine top_bars and left_bars by elimination.  We
         # originally place all possible locations in the set, then remove those bars that
         # are in the interior of a clue.
@@ -139,7 +147,8 @@ class BaseSolver(ABC):
             # These squares are filled.
             clued_locations.update(clue.locations)
             if clue in clue_values:
-                for location, value in zip(clue.locations, clue_values[clue]):
+                for location, value in zip(clue.locations, str(clue_values[clue]),
+                                           strict=True):
                     if location in location_to_entry:
                         assert value == location_to_entry[location], \
                             f'Clash at {location} {value} ≠ {location_to_entry[location]}'
@@ -160,7 +169,17 @@ class BaseSolver(ABC):
 
         self.draw_grid(**args)
 
-    def draw_grid(self, **args: Any) -> None:
+    def get_board(self, known_clues: KnownClueDict) -> dict[Location, str]:
+        """
+        Constructs a board representation based on known clues and values.
+        """
+        return {
+            location: char
+            for clue, value in known_clues.items()
+            for location, char in zip(clue.locations, str(value), strict=True)
+        }
+
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         """
         Override this method if you need to intercept the call
          to the draw_grid() function.

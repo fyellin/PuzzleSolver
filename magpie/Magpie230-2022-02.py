@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 import itertools
 from collections.abc import Iterable
-from typing import Any, cast
+from typing import Unpack, cast
 
-from solver import ClueValue, Clues, EquationSolver, Evaluator
+from solver import Clues, ClueValue, DrawGridKwargs, EquationSolver, Evaluator
 
 
 class MultiValue:
@@ -19,7 +17,7 @@ class MultiValue:
 
     @classmethod
     def make_all(cls):
-        return tuple(cls.make(a, b) for a, b in itertools.combinations(range(1, 10), 2))
+        return tuple(itertools.starmap(cls.make, itertools.combinations(range(1, 10), 2)))
 
     def __init__(self, values: set[int]):
         self.values = values
@@ -121,7 +119,7 @@ class Magpie230 (EquationSolver):
                 # calculation will also be a MultiValue.  So we just need to convert the MultiValue to a list
                 # of values.  No filtering is necessary since we toss out all negative numbers in the - operator.
                 result = evaluator.raw_call(value_dict)
-                return (ClueValue(str(x)) for x in cast(MultiValue, result).values)
+                return (str(x) for x in cast(MultiValue, result).values)
             except ArithmeticError:
                 return ()
 
@@ -132,7 +130,7 @@ class Magpie230 (EquationSolver):
         # This cast is a bald-faced lie.  But it works.
         super().__init__(clues, items=cast(tuple[int], MultiValue.make_all()))
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         super().draw_grid(font_multiplier=.8, **args)
 
 

@@ -1,7 +1,8 @@
 from typing import Any
 
+from misc import number_to_words
 from misc.Pentomino import get_graph_shading
-from solver import Clue, Clues, ConstraintSolver, EquationSolver
+from solver import Clues, DancingLinks, EquationSolver
 
 ACROSS = """
 1 O(TV – W) – N (4) 
@@ -78,7 +79,7 @@ class Magpie265 (EquationSolver):
         clues = Clues.create_from_text(ACROSS, DOWN, locations)
         return clues
 
-    def draw_grid(self, location_to_entry, known_letters,
+    def draw_gridx(self, location_to_entry, known_letters,
                   top_bars, left_bars, location_to_clue_numbers, **args: Any) -> None:
         substitution = [''] * 10
         for letter, value in known_letters.items():
@@ -87,43 +88,31 @@ class Magpie265 (EquationSolver):
                 substitution[value] += letter
         location_to_entry = {location: substitution[int(value)]
                              for location, value in location_to_entry.items()}
-        names = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE",
-                 "TEN", "ELEVEN", "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN"]
-        seen_across = set()
-        seen_down = set()
+        constraints = {}
+        for i in range(1, 17):
+            name = number_to_words(i).upper()
+            for u in range(1, 10):
+                for v in range(1, 11 - len(name)):
+                    if all(ch in location_to_entry[u, v + i] for i, ch in enumerate(name)):
+                        constraints[u, v, 'A', name] = [name, *(f'r{u}c{v + i}' for i in range(len(name)))]
+                    if all(ch in location_to_entry[v + i, u] for i, ch in enumerate(name)):
+                        constraints[v, u, 'D', name] = [name, *(f'r{v + i}c{u}' for i in range(len(name)))]
+        super_draw = super().draw_grid
 
-        def find_spot(name):
-            for row in range(1, 10):
-                for column in range(1, 11 - len(name)):
-                    if all(ch in location_to_entry[row, column + i] and (row, column + i) not in seen_across
-                           for i, ch in enumerate(name)):
-                        seen_across.update((row, column + i) for i in range(len(name)))
-                        return Clue('', True, (row, column), len(name))
-                    if all(ch in location_to_entry[column + i, row] and (column + i, row) not in seen_down
-                           for i, ch in enumerate(name)):
-                        seen_down.update((column + i, row) for i in range(len(name)))
-                        return Clue("", False, (column, row), len(name))
+        def row_printer(output):
+            solution = []
+            location_to_letter = {}
+            for (row, column, direction, name) in output:
+                dr, dc = (0, 1) if direction == 'A' else (1, 0)
+                squares = [(row + i * dr, column + i * dc) for i in range(len(name))]
+                solution.append(squares)
+                location_to_letter.update(zip(squares, name, strict=True))
+            shading = get_graph_shading(solution)
+            super_draw(shading=shading, top_bars=set(), left_bars=set(),
+                       location_to_entry=location_to_letter, **args)
 
-        clue_to_value = {}
-        for name in reversed(names):
-            clue = find_spot(name)
-            assert clue.length == len(name)
-            assert (ch in location_to_entry[location] for ch, location in zip(name, clue.locations))
-            for ch, location in zip(name, clue.locations):
-                location_to_entry[location] = ch
-            clue_to_value[clue] = name
-
-        class Foobar(ConstraintSolver):
-            def __init__(self):
-                super().__init__(list(clue_to_value))
-
-            def draw_grid(self, top_bars, left_bars, **args):
-                solution = [clue.locations for clue in clue_to_value]
-                shading = get_graph_shading(solution)
-                super().draw_grid(shading=shading, top_bars=set(), left_bars=set(), **args)
-
-        temp = Foobar()
-        temp.plot_board(clue_to_value)
+        solver = DancingLinks(constraints, row_printer=row_printer)
+        solver.solve(debug=10)
 
 
 if __name__ == '__main__':

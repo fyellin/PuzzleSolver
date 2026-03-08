@@ -1,29 +1,30 @@
 import itertools
+import string
 from collections.abc import Sequence
-from typing import Any
+from typing import Unpack
 
 from more_itertools import sieve
 
-from solver import Clue, ConstraintSolver, KnownClueDict, Location, generators
+from solver import Clue, ConstraintSolver, DrawGridKwargs, KnownClueDict, Location, generators
 
 CLUES = """
-1 13?60 
-2 41?90 
-3 4?690 
-4 ?68?0 
-5 8717? 
+1 13?60
+2 41?90
+3 4?690
+4 ?68?0
+5 8717?
 6 4358?
-7 ?146? 
-8 ?65?0 
+7 ?146?
+8 ?65?0
 9 ?66?0
-10 ?849? 
-11 ?9?60 
+10 ?849?
+11 ?9?60
 12 ?95?0
 13 ?3?50
-14 351?? 
-15 ??780 
-16 ??890 
-17 566?? 
+14 351??
+15 ??780
+16 ??890
+17 566??
 18 491??
 """
 
@@ -43,12 +44,12 @@ class Solver208(ConstraintSolver):
         clue_list = self.make_clue_list()
         super().__init__(clue_list)
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         clue_values: KnownClueDict = args['clue_values']
 
         specials = self.__get_specials()
         shaded: set[Location] = set()
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             value = clue_values[clue]
             if int(value) in specials:
                 shaded.update(clue.locations)
@@ -98,17 +99,17 @@ class Solver208(ConstraintSolver):
     def __get_minimum_prime_non_factor(cls, pattern: str) -> int:
         temp = [pattern]
         for _ in range(pattern.count('?')):
-            temp = [x.replace('?', i, 1) for i in "0123456789" for x in temp]
+            temp = [x.replace('?', i, 1) for i in string.digits for x in temp]
         values = [int(x) for x in temp if x[0] != '0']
         for prime in primes:
             if not any(value % prime == 0 for value in values):
                 return prime
-        assert False
+        raise AssertionError('No prime found')
 
     def __get_specials(self) -> Sequence[int]:
         primes_set = frozenset(primes)
         for items in itertools.combinations(self.clue_primes, 5):
-            clue_info, clue_values = zip(*items)
+            clue_info, clue_values = zip(*items, strict=True)
             if sum(clue_values) != 315:
                 continue
             if clue_info[0] in primes_set:
@@ -119,9 +120,9 @@ class Solver208(ConstraintSolver):
             sum_digits = sum(int(x) for x in joined)
             if sum_digits != 27:
                 continue
-            print(list(zip(clue_info, clue_values)))
+            print(list(zip(clue_info, clue_values, strict=True)))
             return clue_values
-        assert False
+        raise AssertionError('No specials found')
 
 
 if __name__ == '__main__':

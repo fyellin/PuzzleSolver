@@ -9,8 +9,7 @@ from collections.abc import Iterator, Mapping, Sequence
 
 from more_itertools import sieve
 
-from solver import Clue, ConstraintSolver
-from solver import generators
+from solver import Clue, ConstraintSolver, generators
 
 
 def fibonacci_generator() -> Iterator[int]:

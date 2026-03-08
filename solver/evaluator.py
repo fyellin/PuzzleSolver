@@ -1,28 +1,26 @@
-from __future__ import annotations
-
 import math
-from collections.abc import Iterable, Mapping, Sequence, Callable
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import ClassVar, cast
 
 from .clue_types import ClueValue, Letter
 from .equation_parser import EquationParser
 
-WrapperType = Callable[['Evaluator', dict[Letter, int]], Iterable[ClueValue]]
+type WrapperType[C, W] = Callable[[Evaluator[C, W], dict[Letter, int]], Iterable[W]]
 
 
 @dataclass
-class Evaluator:
-    _wrapper: WrapperType
-    _compiled_code: Callable[[dict[Letter, int]], ClueValue | None]
+class Evaluator[C, W]:
+    _wrapper: WrapperType[C, W]
+    _compiled_code: Callable[[dict[Letter, int]], C]
     _expression: str
     _vars: Sequence[Letter]
-    _equation_parser: ClassVar[EquationParser] = None
+    _equation_parser: ClassVar[EquationParser | None] = None
 
     @classmethod
     def create_evaluator(cls, expression: str,
                          mapping: Mapping[str, Callable] | None = None,
-                         wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]] | None = None,
+                         wrapper: WrapperType | None = None,
                          ) -> Evaluator:
         result, = cls.create_evaluators(expression, mapping, wrapper)
         return result
@@ -30,7 +28,7 @@ class Evaluator:
     @classmethod
     def create_evaluators(cls, expression: str,
                           mapping: Mapping[str, Callable] | None = None,
-                          wrapper: Callable[[Evaluator, dict], Iterable[ClueValue]] | None = None,
+                          wrapper: WrapperType | None = None,
                           ) -> Sequence[Evaluator]:
         if cls._equation_parser is None:
             cls._equation_parser = EquationParser()
@@ -69,23 +67,23 @@ class Evaluator:
         return self._vars
 
     @property
-    def compiled_code(self):
+    def compiled_code(self) -> Callable[[dict[Letter, int]], C]:
         return self._compiled_code
 
-    def standard_wrapper(self, value_dict: dict[Letter, int]) -> Iterable[ClueValue]:
+    def standard_wrapper(self, value_dict: dict[Letter, int]) -> Iterable[str]:
         try:
             result = self._compiled_code(*(value_dict[x] for x in self._vars))
             int_result = int(result)
             if result == int_result > 0:
-                return ClueValue(str(int_result)),
+                return str(int_result),
             return ()
         except ArithmeticError:
             return ()
 
-    def raw_call(self, value_dict: dict[Letter, int]) -> Iterable[int]:
+    def raw_call(self, value_dict: dict[Letter, int]) -> C:
         return self._compiled_code(*(value_dict[x] for x in self._vars))
 
-    def set_wrapper(self, wrapper: WrapperType):
+    def set_wrapper(self, wrapper: WrapperType[C, W]):
         self._wrapper = wrapper
 
     def __str__(self):

@@ -1,13 +1,21 @@
-from __future__ import annotations
-
 import itertools
+import string
 from collections import Counter
 from collections.abc import Iterator, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Unpack
 
-from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, Location, \
-    generators, LetterCountHandler
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    ConstraintSolver,
+    DancingLinks,
+    DrawGridKwargs,
+    LetterCountHandler,
+    Location,
+    generators,
+)
 
 GRID = """
 XX.XXXXX
@@ -146,15 +154,15 @@ class Magpie233 (ConstraintSolver):
             super().start()
             counts = get_counts()
             for i in range(10):
-                self._counter[chr(48 + i)] = -counts[i]
+                self.counter[chr(48 + i)] = -counts[i]
 
         def close(self):
             counts = get_counts()
             for i in range(10):
-                assert self._counter[chr(48 + i)] == -counts[i]
+                assert self.counter[chr(48 + i)] == -counts[i]
 
         def real_checking_value(self, value: ClueValue, _info: Any) -> bool:
-            counter = self._counter
+            counter = self.counter
             assert counter['0'] == 0
             result = all(value <= 0 for value in counter.values())
             return result
@@ -170,7 +178,7 @@ class Magpie233 (ConstraintSolver):
             return result
 
     def draw_image(self, _plt, axes):
-        from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+        from matplotlib.offsetbox import AnnotationBbox, OffsetImage
         from matplotlib.patches import Rectangle
         from PIL import Image
 
@@ -185,7 +193,7 @@ class Magpie233 (ConstraintSolver):
         axes.add_artist(ab)
 
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         super().draw_grid(**args, blacken_unused=False)
         return
         location_to_entry = args['location_to_entry']
@@ -222,7 +230,7 @@ class Magpie233 (ConstraintSolver):
                         constraints[loc1, loc2] = [str(loc1), str(loc2), domino]
         solutions = []
         links = DancingLinks(constraints, row_printer=lambda x: solutions.append(x))
-        links.solve(debug=False)
+        links.solve()
         assert len(solutions) == 1
         return solutions[0]
 
@@ -236,7 +244,7 @@ class Magpie233 (ConstraintSolver):
                                    for i in range(1, 9) if (i, rc) in clued_locations))
 
         mapping = {str(ord(letter) - 64): letter
-                   for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'}
+                   for letter in string.ascii_uppercase}
 
         def find_words(word, index):
             length = len(word)

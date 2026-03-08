@@ -73,7 +73,7 @@ class MultiEquationSolver(EquationSolver):
                      ) -> Sequence[tuple[KnownClueDict, ClueValue,
                                    KnownLetterDict, Sequence[int]]]:
         if current_index == len(self._solving_order):
-            results = [(known_clues, ClueValue(''), known_letters, ())
+            results = [(known_clues, '', known_letters, ())
                        for known_clues, known_letters in states
                        if self.check_solution(known_clues, known_letters)]
             return results
@@ -103,7 +103,7 @@ class MultiEquationSolver(EquationSolver):
                         (known_clues, twin_value, known_letters, next_letter_values))
                     continue
                 for clue_value in clue_values:
-                    if not (clue_value and pattern.fullmatch(clue_value)):
+                    if not (clue_value and pattern.fullmatch(str(clue_value))):
                         continue
                     known_clues.pop(clue, None)
                     if not self._allow_duplicates and clue_value in known_clues.values():

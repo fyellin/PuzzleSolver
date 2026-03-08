@@ -1,13 +1,13 @@
-from typing import Any
-
 import math
 from collections import defaultdict
-from collections.abc import Sequence, Iterable
+from collections.abc import Iterable, Sequence
 from functools import cache
+from typing import Unpack
 
-from misc.RandomFunctions import FastDijkstra, State
-from solver import Clue, Clues, ConstraintSolver, generators, Constraint
+from misc.RandomFunctions import FastDijkstra
+from solver import Clue, Clues, Constraint, ConstraintSolver, DrawGridKwargs, generators
 from solver.generators import known, palindrome, prime, square
+from solver.helpers import digit_product, digit_sum, is_square
 
 GRID = """
 XX.XXXX
@@ -20,20 +20,8 @@ X.X.X..
 """
 
 
-def digit_sum(n):
-    return sum(int(i) for i in n)
-
-
-def digit_product(n):
-    return math.prod(int(i) for i in n)
-
-
 def is_permutation(a, b):
     return a != b and sorted(a) == sorted(b)
-
-
-def is_square(x):
-    return 0 <= x == math.isqrt(x) ** 2
 
 
 def is_reverse(x, y):
@@ -115,17 +103,9 @@ class Magpie245 (ConstraintSolver):
                 clues.append(clue)
         return clues, constraints
 
-    def draw_grid(self, location_to_entry, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = args['location_to_entry']
         paths = self.get_paths(location_to_entry)
-
-        # import matplotlib
-        # import colorsys
-        # cmap = matplotlib.cm.get_cmap('tab10')
-        # colors2 = [colorsys.hls_to_rgb(h, min(1, l * 1.5), s=s)
-        #           for i in range(4)
-        #           for r, g, b, alpha in [cmap(.25 * i)]
-        #           for h, l, s in [colorsys.rgb_to_hls(r, g, b)]]
-        # print(cmap(0))
         colors = ['pink', 'lightblue', 'lightgreen', 'yellow']
         shading = {location: color
                    for locations, color in zip(paths, colors)
@@ -139,9 +119,7 @@ class Magpie245 (ConstraintSolver):
             letter = chr(65 + letter_index)
             letters.append((first, letter))
         subtext = ''.join(letter for _, letter in sorted(letters))
-        super().draw_grid(location_to_entry=location_to_entry, shading=shading,
-                          subtext=subtext,
-                          **args)
+        super().draw_grid(shading=shading, subtext=subtext, **args)
 
     def get_paths(self, location_to_entry):
         digit_to_locations = defaultdict(list)
@@ -154,6 +132,9 @@ class Magpie245 (ConstraintSolver):
         solver = MyDijkstra(starts, ends)
         _distance, result = solver.run(verbose=3)
         return result
+
+
+type State = tuple[tuple[int, int], ...]
 
 
 class MyDijkstra (FastDijkstra):
@@ -203,4 +184,3 @@ class MyDijkstra (FastDijkstra):
 
 if __name__ == '__main__':
     Magpie245.run()
-    # MyDijkstra.go()

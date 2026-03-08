@@ -1,8 +1,9 @@
-from typing import Any
+from typing import Unpack
 
-from matplotlib import pyplot as plt, patches
+from matplotlib import patches
+from matplotlib import pyplot as plt
 
-from solver import Clues, Clue, ConstraintSolver
+from solver import Clue, Clues, ConstraintSolver, DrawGridKwargs
 
 EQUATIONS = """
 """
@@ -107,9 +108,9 @@ class PrettyPrinter (ConstraintSolver):
         return clues
 
     def get_filled_in_clues(self):
-        return {clue: ''.join(x for x in clue.context if x not in 'NSEW') for clue in self._clue_list}
+        return {clue: ''.join(x for x in clue.context if x not in 'NSEW') for clue in self.clue_list}
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         """Override this method if you need to intercept the call to the draw_grid() function."""
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
         args['axes'] = axes
@@ -124,7 +125,7 @@ class PrettyPrinter (ConstraintSolver):
         x, y = 17, 19
         axes.add_patch(patches.Rectangle((x / 2, y / 2), 0.5, 0.5, facecolor='lightblue', linewidth=0))
 
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             old_x, old_y = x, y
             word = clue.context
             x = old_x - word.count('W') + word.count('E')

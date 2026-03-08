@@ -1,30 +1,20 @@
 import itertools
-from typing import Any
-from collections.abc import Iterator, Sequence, Callable
+from collections.abc import Callable, Iterator, Sequence
+from typing import Unpack
 
-from solver import Clue, ConstraintSolver, ClueValue, Location, ClueValueGenerator
-from solver import generators, KnownClueDict
+from solver import (
+    Clue,
+    ClueValueGenerator,
+    ConstraintSolver,
+    DrawGridKwargs,
+    KnownClueDict,
+    Location,
+    generators,
+)
+from solver.helpers import digit_sum, is_square, is_triangular
 
 squares = set(itertools.takewhile(lambda x: x < 1000, (x**2 for x in itertools.count())))
 triangles = set(itertools.takewhile(lambda x: x < 1000, (x * (x + 1) // 2 for x in itertools.count())))
-
-
-def digit_sum(value: int | str) -> int:
-    return sum(int(x) for x in str(value))
-
-
-def is_square(x: int) -> bool:
-    return x in squares
-
-
-def is_triangular(x: int) -> bool:
-    return x in triangles
-
-
-def is_fibonacci(x: int) -> bool:
-    assert x < 100
-    return x in (1, 2, 3, 5, 8, 13, 21, 34, 55, 89)
-
 
 
 class Solver210(ConstraintSolver):
@@ -66,7 +56,7 @@ class Solver210(ConstraintSolver):
             ('11dD', '20'), ('3dC', '75'), ('8dC', '441'), ('8aD', '12'), ('8aC', '41'), ('8dD', '196'), ('15aD', '60'),
             ('1aD', '574'), ('1dD', '54'), ('6aD', '40'), ('2dC', '291'), ('1aC', '427'), ('2dD', '702'), ('1dC', '49'),
             ('6aC', '99')]
-        known_clues = {solver.clue_named(name): ClueValue(value) for (name, value) in answers}
+        known_clues = {solver.clue_named(name): value for (name, value) in answers}
         solver.plot_board(known_clues)
 
     def __init__(self, which: str, exclusions: set[int]) -> None:
@@ -161,7 +151,7 @@ class Solver210(ConstraintSolver):
         self.solutions.append(known_clues.copy())
         super().show_solution(known_clues)
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         location_to_entry: dict[Location, str] = args['location_to_entry']
         location_to_entry[3,3] = 'A'
         location_to_entry[3,9] = 'B'

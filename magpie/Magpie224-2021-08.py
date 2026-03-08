@@ -1,17 +1,17 @@
 import itertools
 import math
-from collections.abc import Sequence, Iterable
+from collections.abc import Iterable, Sequence
 
-from solver import Clue, ConstraintSolver, generators, Location, ClueValue
-from solver import Constraint, KnownClueDict
+from solver import (
+    Clue,
+    Constraint,
+    ConstraintSolver,
+    KnownClueDict,
+    Location,
+    generators,
+)
+from solver.helpers import digit_product, digit_sum
 
-
-def digit_sum(value: ClueValue) -> int:
-    return sum(int(x) for x in str(value))
-
-
-def digit_product(value: ClueValue) -> int:
-    return math.prod(int(x) for x in str(value))
 
 def triangular_permutation(clue: Clue):
     for value in generators.triangular(clue):
@@ -126,7 +126,7 @@ class Magpie224 (ConstraintSolver):
 
         clues = [
             *[Clue(f'{i}', True, (i, 1), 1, generator=lambda _: range(10)) for i in range(1, 61)],
-            *[build_clue(*args) for args in CLUE_INFO]
+            *list(itertools.starmap(build_clue, CLUE_INFO))
         ]
         return clues
 
@@ -162,7 +162,7 @@ class Magpie224 (ConstraintSolver):
         ]
 
     def show_solution(self, known_clues: KnownClueDict) -> None:
-        items = [(clue.name, known_clues[clue]) for clue in self._clue_list]
+        items = [(clue.name, known_clues[clue]) for clue in self.clue_list]
         print(', '.join(f'{name}:{value}' for name, value in items))
 
     def add_all_constraints(self) -> None:

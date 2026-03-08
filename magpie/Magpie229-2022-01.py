@@ -1,48 +1,49 @@
-from __future__ import annotations
-
 import itertools
 from collections.abc import Iterator, Sequence
-from typing import Any
+from typing import Unpack, cast
 
-from misc import PRIMES
-from solver import Clue, ClueValue, Clues, ConstraintSolver, generators, Constraint
+from more_itertools.recipes import sieve, triplewise
+
+from solver import (
+    AbstractClueValue,
+    Clue,
+    Clues,
+    ClueValue,
+    ClueValueGenerator,
+    Constraint,
+    ConstraintSolver,
+    DrawGridKwargs,
+    generators,
+)
 from solver.generators import square_pyramidal_generator
+from solver.helpers import is_harshad
 
 
-def digit_sum(value: ClueValue | str | int) -> int:
-    return sum(int(x) for x in str(value))
+class TaggedString(AbstractClueValue):
+    """Clue string plus a tag; subtype of ``AbstractClueValue``."""
 
-
-def is_harshad(value: int) -> bool:
-    digits = map(int, list(str(value)))
-    return value % sum(digits) == 0
-
-
-class TaggedString(str):
-    tag: int
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def __str__(self) -> str:
-        return f'{self.tag}.{self.value}'
-
-    def __new__(cls, value: int | str, tag: int) -> Any:
-        return super().__new__(cls, value)  # type: ignore
+    __slots__ = ('tag',)
 
     def __init__(self, value: int | str, tag: int) -> None:
-        super().__init__()
-        self.value = str(value)
+        super().__init__(str(value))
         self.tag = tag
 
-    def __eq__(self, other) -> bool:
-        return other is not None and super().__eq__(other) and self.tag == other.tag
+    @property
+    def value(self) -> str:
+        return self._text
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, TaggedString):
+            return self._text == other._text and self.tag == other.tag
+        return NotImplemented
 
     def __hash__(self) -> int:
-        return hash((super().__hash__(), self.tag))
+        return hash((self._text, self.tag))
 
-    def __lt__(self, other) -> bool:
-        return (self.value, self.tag) < (other.value, other.tag)
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, TaggedString):
+            return (self._text, self.tag) < (other._text, other.tag)
+        return NotImplemented
 
 
 GRID = """
@@ -52,12 +53,12 @@ X....
 X.X..
 """
 
-even_generator = generators.filtering(lambda x: x % 2 == 0)
-harshad_generator = generators.filtering(lambda x: is_harshad(x))
+even_generator = generators.filterer(lambda x: x % 2 == 0)
+harshad_generator = generators.filterer(lambda x: is_harshad(x))
 
 
 def balanced_prime_generator(clue: Clue) -> Iterator[int]:
-    generator = (b for (a, _), (b, c) in itertools.pairwise(itertools.pairwise(PRIMES)) if c - b == b - a)
+    generator = (b for a, b, c in triplewise(sieve(10 ** clue.length)) if c - b == b - a)
     return generators.within_clue_limits(clue, generator)
 
 
@@ -94,11 +95,10 @@ class Magpie229 (ConstraintSolver):
         a1 = solver.get_initial_values_for_clue(solver.clue_named("10a"))
         print(sorted(a1))
 
-
     def __init__(self) -> None:
         clues, constraints = self.get_clues()
         super().__init__(clues, constraints=constraints, allow_duplicates=True)
-        self.terminal_locations = {clue.locations[-1] for clue in self._clue_list}
+        self.terminal_locations = {clue.locations[-1] for clue in self.clue_list}
         self.add_puzzle_constraints()
         self.add_pairwise_constraints()
 
@@ -109,15 +109,16 @@ class Magpie229 (ConstraintSolver):
             for number, length, generator1, generator2 in information:
                 r, c = grid[number - 1]
                 generator = self.dual_generator(generator1, generator2)
-                clue1 = Clue(f'{number}{"a" if is_across else "d"}', is_across, (r, c), length,
+                clue1 = Clue(f'{number}{"a" if is_across else "d"}', is_across,
+                             (r, c), length,
                              context='left', generator=generator)
-                clue2 = Clue(f'{number + 10}{"a" if is_across else "d"}', is_across, (r + 5, c), length,
-                             context='right', generator=generator)
+                clue2 = Clue(f'{number + 10}{"a" if is_across else "d"}', is_across,
+                             (r + 5, c), length, context='right', generator=generator)
                 clues += [clue1, clue2]
                 if clue1.name != '3d':
-                    # The first clue is for one grid and the second clue is for the other grid
+                    # The first clue is for one grid, and the second clue is for the other grid
                     constraints.append(Constraint((clue1, clue2),
-                                                  lambda x, y: x.tag != y.tag or x.tag == 3 or y.tag==3))
+                                                  lambda x, y: x.tag != y.tag or x.tag == 3 or y.tag == 3))
                 else:
                     # For
                     constraints.append(Constraint((clue1,), lambda x: x.tag != 2))
@@ -125,15 +126,15 @@ class Magpie229 (ConstraintSolver):
         return clues, constraints
 
     @staticmethod
-    def dual_generator(generator1, generator2):
-        def generator(clue: Clue):
+    def dual_generator(generator1: ClueValueGenerator, generator2: ClueValueGenerator) -> ClueValueGenerator:
+        def generator(clue: Clue) -> Iterator[TaggedString]:
             one = {str(x) for x in generator1(clue)}
             two = {str(x) for x in generator2(clue)}
             yield from (TaggedString(x, 1) for x in one - two)
             yield from (TaggedString(x, 2) for x in two - one)
             yield from (TaggedString(x, 3) for x in one & two)
 
-        return generator
+        return cast(ClueValueGenerator, generator)
 
     def add_puzzle_constraints(self):
         def constraint_8a(across, down):
@@ -179,7 +180,7 @@ class Magpie229 (ConstraintSolver):
             return True
 
         for count in (1, 2):
-            for clues in itertools.combinations(self._clue_list, count):
+            for clues in itertools.combinations(self.clue_list, count):
                 if count == 2 and clues[0].context != clues[1].context:
                     continue
                 locations = {location: (location in self.terminal_locations, clue_index, location_index)
@@ -188,13 +189,14 @@ class Magpie229 (ConstraintSolver):
                 terminals = tuple((clue_index, location_index)
                                   for (is_terminal, clue_index, location_index) in locations.values() if is_terminal)
                 others = tuple((clue_index, location_index)
-                                for (is_terminal, clue_index, location_index) in locations.values() if not is_terminal)
+                               for (is_terminal, clue_index, location_index) in locations.values() if not is_terminal)
                 if len(terminals) > 1:
                     self.add_constraint(clues, lambda *values, loc=terminals: check_all_different(values, loc))
                 if len(others) > 1:
                     self.add_constraint(clues, lambda *values, loc=others: check_all_different(values, loc))
 
-    def draw_grid(self, location_to_clue_numbers, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_clue_numbers = args.pop('location_to_clue_numbers')
         location_to_clue_numbers = {location: [str((int(value) - 1) % 10 + 1) for value in values]
                                     for location, values in location_to_clue_numbers.items()}
         super().draw_grid(location_to_clue_numbers=location_to_clue_numbers, font_multiplier=.8, **args)

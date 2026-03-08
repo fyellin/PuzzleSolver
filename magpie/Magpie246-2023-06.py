@@ -2,10 +2,19 @@ import itertools
 from collections import defaultdict
 from collections.abc import Sequence
 from functools import cache
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, Clues, Constraint, ConstraintSolver, DancingLinks, Location, \
-    generators, KnownClueDict
+from solver import (
+    Clue,
+    Clues,
+    Constraint,
+    ConstraintSolver,
+    DancingLinks,
+    DrawGridKwargs,
+    KnownClueDict,
+    Location,
+    generators,
+)
 from solver.generators import cube, palindrome, prime, square, triangular
 
 GRID = """
@@ -99,7 +108,9 @@ class Magpie246 (ConstraintSolver):
             for location, digit in zip(clue.locations, value):
                 self.summary[location].add(int(digit))
 
-    def draw_grid(self, location_to_entry, solution=None, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = args.pop('location_to_entry')
+        solution = args.get('solution')
         if solution is not None:
             location_to_entry = solution
         colors = ['pink', 'lightblue', 'lightgreen', 'yellow', 'white', 'lightgray']
@@ -209,8 +220,7 @@ class Magpie246 (ConstraintSolver):
         def get_chains():
             seen = set()
             for i, j in itertools.product(range(1, 7), repeat=2):
-                for value in add_internal(((i, j),)):
-                    seen.add(frozenset(value))
+                seen.update(frozenset(value) for value in add_internal(((i, j),)))
             special_set = frozenset([(1, 1), (2, 1), (3, 1), (4, 1), (5, 1)])
             return  {x for x in seen if len(x & special_set) <= 1}
 

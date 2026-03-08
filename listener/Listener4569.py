@@ -1,9 +1,15 @@
 import re
 from collections.abc import Sequence
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, KnownClueDict, KnownLetterDict, Location
-from solver import EquationSolver
+from solver import (
+    Clue,
+    DrawGridKwargs,
+    EquationSolver,
+    KnownClueDict,
+    KnownLetterDict,
+    Location,
+)
 
 ACROSS = """
 1 GS − Gz − S (6)
@@ -68,11 +74,10 @@ class MySolver (EquationSolver):
     def show_solution(self,  known_clues: KnownClueDict, known_letters: KnownLetterDict
                       ) -> None:
         super().show_solution(known_clues, known_letters)
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             print(clue.name, known_clues[clue])
 
-    def draw_grid(self, **args: Any) -> None:
-        # The only thick bars we want are between each of the sections.
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         args['left_bars'] = set()
         args['top_bars'] = {(row, column) for row in (5, 9, 13) for column in (1, 2, 3, 4)}
         super().draw_grid(**args)

@@ -7,9 +7,7 @@ from itertools import chain, combinations, pairwise, product
 from more_itertools import is_prime
 
 from solver import (
-    Clue,
     Clues,
-    ClueValue,
     ConstraintSolver,
     DancingLinks,
     DLConstraint,
@@ -17,6 +15,7 @@ from solver import (
     Orderer,
     generators,
 )
+from solver.dancing_links import get_row_column_optional_constraints
 from solver.helpers import is_square
 
 ACROSS_LENGTHS = "33/222/33/222/33"
@@ -121,8 +120,7 @@ class Magpie278(ConstraintSolver):
 
     def solve_with_dancing_links(self):
         constraints: dict[Hashable, list[DLConstraint]] = {}
-        optional_constraints = {
-            f'r{r}c{c}' for r in range(1, 6) for c in range(1, 7)}
+        optional_constraints = get_row_column_optional_constraints(6, 7)
         saved_constraints = defaultdict(list)
         prime_lv = self.get_initial_letter_values(prime=True)
         square_lv = self.get_initial_letter_values(square=True)
@@ -130,22 +128,22 @@ class Magpie278(ConstraintSolver):
         ordering2 = (square_lv, square_lv, prime_lv)
         for equation in self.equations:
             letters = equation.letters
-            values1 = [values[letter] for values, letter in zip(ordering1, letters)]
-            values2 = [values[letter] for values, letter in zip(ordering2, letters)]
+            values1 = [values[letter] for values, letter in zip(ordering1, letters, strict=True)]
+            values2 = [values[letter] for values, letter in zip(ordering2, letters, strict=True)]
             triples = chain(self.get_valid_triples(equation, values1),
                             self.get_valid_triples(equation, values2))
             for triple in triples:
                 constraint: list[DLConstraint] = [f'Equation-{equation.index}']
                 row_info = {}
-                for i, (letter, value) in enumerate(zip(letters, triple)):
+                for letter, value in zip(letters, triple, strict=True):
                     optional_constraints.add(value_constraint := f'Value-{value}')
                     if letter != '?':
                         clue = self.clue_named(letter)
-                        row_info |= self._location_to_value(clue, ClueValue(str(value)))
+                        row_info |= dict(clue.dancing_links_rc_constraints(value))
                         # This value can only be used with this clue
                         constraint.append((value_constraint, f'Clue-{letter}'))
                     else:
-                        # This value can not ever be used again.
+                        # This value cannot ever be used again.
                         constraint.append(value_constraint)
                 name = equation, ''.join(equation.letters), *triple
                 constraints[name] = [*constraint, *row_info.items()]
@@ -159,11 +157,11 @@ class Magpie278(ConstraintSolver):
                 constraints[100, letter, value] = [
                     f'Clue-{letter}',  # We must have a way of forcing one of these
                     (value_constraint, f'Clue-{letter}'),
-                    *self._location_to_value(clue, ClueValue(str(value))).items()
+                    *clue.dancing_links_rc_constraints(value)
                 ]
         solver = DancingLinks(constraints, optional_constraints=optional_constraints,
                               row_printer=self.row_printer)
-        solver.solve(debug=10)
+        solver.solve(debug=True, max_debug_depth=10)
 
     def _handle_increasing_question_mark(
             self,
@@ -185,7 +183,7 @@ class Magpie278(ConstraintSolver):
 
     def row_printer(self, result) -> None:
         values_dict = {}
-        for (equation_number, letters, *values) in result:
+        for (_equation_number, letters, *values) in result:
             for letter, value in zip(letters, values, strict=True):
                 if letter in "?":
                     continue
@@ -197,11 +195,7 @@ class Magpie278(ConstraintSolver):
         if self.print_result:
             self.plot_board(values_dict)
 
-    @staticmethod
-    def _location_to_value(clue: Clue, value: ClueValue) -> dict[str, str]:
-        return {f'r{r}c{c}': ch for ch, (r, c) in zip(value, clue.locations)}
-
 
 if __name__ == '__main__':
     # Magpie278.run(use_dancing_links=False, print_result=False)
-    Magpie278.run(use_dancing_links=True, print_result=False)
+    Magpie278.run(use_dancing_links=True, print_result=True)

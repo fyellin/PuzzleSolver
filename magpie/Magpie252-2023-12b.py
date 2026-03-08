@@ -1,6 +1,8 @@
+import pathlib
 from collections import Counter
 
 import numpy as np
+
 
 class X:
     string: str
@@ -48,7 +50,7 @@ class X:
 
 def run():
     words = set()
-    with open("../misc/words.txt") as file:
+    with pathlib.Path("../misc/words.txt").open() as file:
         for word in file:
             word = word.strip()
             if all(x.isalpha() for x in word):

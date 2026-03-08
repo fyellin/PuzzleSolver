@@ -1,16 +1,27 @@
 import functools
 import io
 import itertools
+import math
 import multiprocessing
+import pathlib
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 from fractions import Fraction
 
-import math
-
-from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks as DancingLinks, \
-    Evaluator, Letter, MultiEquationSolver, KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    ConstraintSolver,
+    Evaluator,
+    KnownClueDict,
+    KnownLetterDict,
+    Letter,
+    MultiEquationSolver,
+)
+from solver import DancingLinks as DancingLinks
+from solver.dancing_links import get_row_column_optional_constraints
 
 CLUES = """
 a H! −E+A−D
@@ -104,7 +115,7 @@ class Magpie276(MultiEquationSolver):
         return clues
 
     def initialize_constraints(self):
-        for clue1, clue2 in itertools.combinations(self._clue_list, 2):
+        for clue1, clue2 in itertools.combinations(self.clue_list, 2):
             # Acrosses and downs each have to be strictly increasing
             if clue1.is_across == clue2.is_across and clue1.length == clue2.length:
                 self.add_constraint((clue1, clue2), lambda x, y: x < y)
@@ -132,7 +143,7 @@ class Magpie276(MultiEquationSolver):
         self.add_constraint(("h",), lambda x: x == "110") # We know that #11a scored a 0.
         self.add_constraint(("n",), lambda x: x <= '20')  # the first number must be the extra or less.
 
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             if clue.is_across:
                 if clue.length == 3:
                     # If the second digit is a 0, it must be player #10a and not the first
@@ -193,7 +204,7 @@ class Magpie276(MultiEquationSolver):
     def clue_e_wrapper(self, _wrapper, letters: KnownLetterDict) -> Iterable[ClueValue]:
         if not any(isinstance(x, Clue) for x in letters.values()):
             temp = {clue: str(clue.evaluators[0].raw_call(letters))
-                    for clue in self._clue_list if clue.name != 'e'}
+                    for clue in self.clue_list if clue.name != 'e'}
             letters = temp | letters
 
         acrosses, downs = set(), set()
@@ -240,10 +251,10 @@ class Magpie276(MultiEquationSolver):
         if not down_totals:
             return ()
 
-        return tuple(ClueValue(str(88 + delta)) for delta in (0, 1) if across_total + delta in down_totals)
+        return tuple(str(88 + delta) for delta in (0, 1) if across_total + delta in down_totals)
 
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
-        result = [known_clues[clue] for clue in self._clue_list]
+        result = [known_clues[clue] for clue in self.clue_list]
         dl = MyDancingLinks()
         results = dl.dancing_links(known_clues)
         for result in results:
@@ -278,7 +289,7 @@ u  C    L+E−A+CH
 """
 
 class FastConstraintSolver:
-    def __init__(self, *, prefix = None):
+    def __init__(self, *, prefix=None):
         self.solver = Magpie276()
         self.solver._debug = False
         self.solving_order = self.solver._get_solving_order()
@@ -323,12 +334,12 @@ class FastConstraintSolver:
         if index == 0:
             file = io.StringIO("\n")
         else:
-            file = open(self.file_name_for_index(index - 1))
+            file = pathlib.Path(self.file_name_for_index(index - 1)).open()
 
         in_count = out_count = 0
         clue, evaluator, clue_letters, _, constraints = self.solving_order[index]
         print(f'{index} {clue.name} {"".join(clue_letters)}', end='')
-        with file, open(self.file_name_for_index(index), "w") as output:
+        with file, pathlib.Path(self.file_name_for_index(index)).open("w") as output:
             with multiprocessing.Pool(initializer=self.pool_initializer) as pool:
                 if self.solver.MULTIPROCESSING:
                     results = pool.imap_unordered(self.bridge,
@@ -391,7 +402,7 @@ class FastConstraintSolver:
 
         result = defaultdict(set)
 
-        with open(self.file_name_for_index(index)) as file:
+        with pathlib.Path(self.file_name_for_index(index)).open() as file:
             for line in file:
                 dictionary = decoder(line)
                 for key, value in dictionary.items():
@@ -410,7 +421,7 @@ class MyDancingLinks (ConstraintSolver):
     def test_run(cls):
         other_solver = Magpie276()
         for result in FOOBAR:
-            known_clues = dict(zip(other_solver._clue_list, result))
+            known_clues = dict(zip(other_solver.clue_list, result))
             solver = cls()
             results = solver.dancing_links(known_clues)
             for result in results:
@@ -421,21 +432,20 @@ class MyDancingLinks (ConstraintSolver):
         across_clues = [value for key, value in solution.items() if key.name <= 'm']
         down_clues = [value for key, value in solution.items() if key.name >= 'n']
 
-        optional_constraints = {f'r{r}c{c}' for r in range(1, 7) for c in range(1, 7)}
+        optional_constraints = get_row_column_optional_constraints(7, 7)
         constraints = {}
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             code = 'aa' if clue.is_across else 'dd'
             for value in (across_clues if clue.is_across else down_clues):
                 if len(value) != clue.length:
                     continue
-                constraint = [f'{clue.name}', f'{value}{code}']
-                constraint.extend((f'r{r}c{c}', letter)
-                                  for (r, c), letter in zip(clue.locations, value))
+                constraint = [f'{clue.name}', f'{value}{code}',
+                              *clue.dancing_links_rc_constraints(value)]
                 constraints[(clue.name, value)] = constraint
         intersection, = [x for x in across_clues if x in down_clues]
 
-        across_twos = [clue for clue in self._clue_list if clue.length == 2 and clue.is_across]
-        down_twos = [clue for clue in self._clue_list if clue.length == 2 and not clue.is_across]
+        across_twos = [clue for clue in self.clue_list if clue.length == 2 and clue.is_across]
+        down_twos = [clue for clue in self.clue_list if clue.length == 2 and not clue.is_across]
         for clue1, clue2 in itertools.product(across_twos, down_twos):
             if not any(clue1.locations[i] == clue2.locations[i] for i in range(2)):
                 constraint = f'{clue1.name}≠{clue2.name}'
@@ -499,8 +509,8 @@ if __name__ == '__main__':
     match 0:
         case 0:
             MyDancingLinks.test_run()
-
         case 1:
+            # This code takes a really long time.
             Magpie276.run()
     end = datetime.now()
     print(end - start)

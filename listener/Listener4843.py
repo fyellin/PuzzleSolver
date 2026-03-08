@@ -1,10 +1,19 @@
 import itertools
 import re
-from typing import Any
 from collections.abc import Iterable, Sequence
+from typing import Unpack
 
-from solver import Clue, Clues, EquationSolver, Evaluator, equation_parser, Parse, \
-    KnownLetterDict
+from solver import (
+    AbstractClueValue,
+    Clue,
+    Clues,
+    DrawGridKwargs,
+    EquationSolver,
+    Evaluator,
+    KnownLetterDict,
+    Parse,
+    equation_parser,
+)
 
 CLUES = """
 15 fh + mh = (l + z)h
@@ -54,26 +63,31 @@ CLUE_EXTRAS = ("21.10ac.8.1dn.11.14.10dn.30ac.20.28.8.1dn.5.7ac.22.32.17.1ac.10d
                "7ac.28.21.14.20.32.5.24.23.9.1ac.22.29.7dn".split('.'))
 
 
-class MyString(str):
-    def __repr__(self) -> str:
-        return self.__str__()
+class MyString(AbstractClueValue):
+    """Numeric grid text plus ``delta``; subtype of :class:`~solver.clue_types.AbstractClueValue`."""
 
-    def __new__(cls, value: str, delta: int) -> Any:
-        return super().__new__(cls, value)  # type: ignore
+    __slots__ = ("delta",)
 
     def __init__(self, value: str, delta: int) -> None:
-        super().__init__()
-        self.value = value
+        super().__init__(value)
         self.delta = delta
 
-    def __eq__(self, other) -> bool:
-        return other is not None and (self.value, self.delta) == (other.value, other.delta)
+    def __repr__(self) -> str:
+        return self._text
+
+    def _key(self) -> tuple[str, int]:
+        return (self._text, self.delta)
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, MyString) and self._key() == other._key()
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, MyString):
+            return NotImplemented
+        return self._key() < other._key()
 
     def __hash__(self) -> int:
-        return hash((self.value, self.delta))
-
-    def __lt__(self, other) -> bool:
-        return (self.value, self.delta) < (other.value, other.delta)
+        return hash(self._key())
 
 
 @lambda _: _()
@@ -87,6 +101,7 @@ def clue_equations():
         assert left.expression[0] == '+'
         x, y, z = left.expression[1], left.expression[2], right.expression
         assert len(x) == len(y) == len(z) == 3
+        assert x[2] == y[2] == z[2]
         clue_info.append((number, x[1], y[1], z[1], x[2]))
     return clue_info
 
@@ -108,7 +123,7 @@ class Listener4843(EquationSolver):
         normal_clues = []
         for index, (name, x, y, z, h) in enumerate(clue_equations):
             clue = self.clue_from_name(name)
-            equation = str(Parse(('function', 'pyth', (x, y, z, h))))
+            equation = f'@pyth({Parse(x)}, {Parse(y)}, {Parse(z)}, {Parse(h)})'
             clue.evaluators = Evaluator.create_evaluators(equation, mapping, self.my_wrapper)
             if clue not in self.clue_extras:
                 if not normal_clues:
@@ -121,7 +136,7 @@ class Listener4843(EquationSolver):
         for clue1, clue2 in itertools.combinations(normal_clues, 2):
             self.add_constraint((clue1, clue2), lambda x, y: x.delta <= y.delta)
 
-        self.exponents = {h for (*_, (_, h)) in clue_equations}
+        self.exponents = {h for (*_, h) in clue_equations}
 
     def get_clues(self):
         clue_list = Clues.clues_from_clue_sizes(ACROSS, DOWN)
@@ -188,10 +203,12 @@ class Listener4843(EquationSolver):
             clue_values[self.fake_clues[3]] = letters[30:][::-1]
         super().plot_board(clue_values, font_multiplier=0.7, **more_args)
 
-    def draw_grid(self, top_bars, left_bars, **args) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        top_bars = args['top_bars']
+        left_bars = args['left_bars']
         left_bars -= {(1, 11), (11, 2)}
         top_bars -= {(11, 11)}
-        super().draw_grid(top_bars=top_bars, left_bars=left_bars, **args)
+        super().draw_grid(**args)
 
     def clue_from_name(self, name):
         if name.endswith('dn') or name.endswith('ac'):

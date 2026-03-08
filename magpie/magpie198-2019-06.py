@@ -1,10 +1,16 @@
 import collections
 import itertools
-from enum import Enum
 from collections.abc import Iterable, Sequence
+from enum import Enum
 
-from solver import Clue, ClueValueGenerator, KnownClueDict, Location,  ConstraintSolver
-from solver import generators
+from solver import (
+    Clue,
+    ClueValueGenerator,
+    ConstraintSolver,
+    KnownClueDict,
+    Location,
+    generators,
+)
 
 
 class AnswerType(Enum):
@@ -99,7 +105,7 @@ class MySolver(ConstraintSolver):
 
     def show_solution(self, known_clues: KnownClueDict) -> None:
         super().show_solution(known_clues)
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             value = known_clues[clue]
             print(f'{clue.name:<3} {value:>3} {TO_TYPE_DICT[value].name}')
 

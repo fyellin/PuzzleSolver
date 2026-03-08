@@ -1,10 +1,20 @@
 import math
 import re
 from itertools import combinations, pairwise
+from typing import Unpack
 
-from misc.factors import prime_factors
-from solver import Clue, ConstraintSolver, EquationSolver, Evaluator, Location, generators
-from solver import KnownClueDict, KnownLetterDict
+from misc import prime_factors
+from solver import (
+    Clue,
+    ConstraintSolver,
+    DrawGridKwargs,
+    EquationSolver,
+    Evaluator,
+    KnownClueDict,
+    KnownLetterDict,
+    Location,
+    generators,
+)
 
 GRID = [
     (112, 132, 153, 213, 242, 262, 312, 332, 353, 417, 513, 542, 562, 612, 632, 653, 713,
@@ -88,7 +98,7 @@ class Solver1(EquationSolver):
                       known_letters: KnownLetterDict) -> None:
         self.show_letter_values(known_letters)
         acrosses, downs = [], []
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             result = (int(known_clues[clue]), clue.length)
             (acrosses if clue.context else downs).append(result)
         temp = {value: letter for letter, value in known_letters.items()}
@@ -169,9 +179,9 @@ class Solver2(ConstraintSolver):
                 result.append(value)
                 self.encoding_to_plain[value] = value
             else:
-                values = { value }
+                values = {value}
                 for _ in range(len(value) - length):
-                    values = {x for v in values for x in self.shorten(v) }
+                    values = {x for v in values for x in self.shorten(v)}
                 if not values:
                     raise ArithmeticError(f'Cannot reduce {value} to length {length}')
                 result.extend(values)
@@ -181,44 +191,41 @@ class Solver2(ConstraintSolver):
     def shorten(self, value):
         for i, (a, b) in enumerate(pairwise(value)):
             if a == '1' and '0' <= b <= '6':
-                yield value[0:i] + chr(ord(b) - ord('0') + ord('a')) + value[i+2:]
+                yield value[0:i] + chr(ord(b) - ord('0') + ord('a')) + value[i + 2:]
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        location_to_digit = {location : digit for clue, value in known_clues.items()
-                             for location, digit in zip(clue.locations, value)}
-        location_to_digit[4,4] = 'X'
+        location_to_digit = self.get_board(known_clues)
+        location_to_digit[4, 4] = 'X'
         special_clues = [self.clue_named('14D'), self.clue_named('41A')]
         special_values = [''.join(location_to_digit[location] for location in clue.locations)
                           for clue in special_clues]
         self.result_digits = []
         for digit in '0123456789abcdefg':
-            real_values = [value.replace('X', digit).replace('a', '10').replace('b', '11').replace('c', '12') \
+            real_values = [value.replace('X', digit).replace('a', '10').replace('b', '11').replace('c', '12')
                                 .replace('d', '13').replace('e', '14').replace('f', '15').replace('g', '16')
                            for value in special_values]
             if all(self.is_prime_square(int(x[::-1])) for x in real_values):
                 self.result_digits.append(digit)
         return bool(self.result_digits)
 
-    def draw_grid(self, location_to_entry, location_to_clue_numbers, **more_args):
+    def draw_grid(self, **kwargs: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = kwargs['location_to_entry']
+        location_to_clue_numbers = kwargs['location_to_clue_numbers']
         my_dict = dict(zip("0123456789abcdefg", self.letters))
         location_to_clue_numbers.clear()
         for digit in self.result_digits:
-            location_to_entry[4,4] = digit
+            location_to_entry[4, 4] = digit
 
             for location, value in location_to_entry.items():
                 location_to_entry[location] = my_dict[value]
-            super().draw_grid(location_to_entry=location_to_entry,
-                              location_to_clue_numbers=location_to_clue_numbers,
-                              subtext="JIMMY",
-                              **more_args)
-            super().draw_grid(location_to_entry=location_to_entry,
-                              location_to_clue_numbers=location_to_clue_numbers,
-                              subtext="ROGER",
-                              **more_args)
-
+            super().draw_grid(subtext="JIMMY",
+                              **kwargs)
+            super().draw_grid(subtext="ROGER",
+                              **kwargs)
 
     @staticmethod
     def is_prime_square(x):
+        """True if the value is prime * square"""
         factors = prime_factors(x)
         evens = [count for _prime, count in factors if count % 2 == 0]
         odds = [count for _prime, count in factors if count % 2 == 1]

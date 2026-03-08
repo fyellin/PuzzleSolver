@@ -56,7 +56,7 @@ class Listener4764(ConstraintSolver):
     def solve(self):
         dictionary = self.get_letter_values()
         self.dictionary = dictionary
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             clue.generator = self.generator
             if clue.length == 4:
                 value = clue.evaluators[0](dictionary)[0]
@@ -94,7 +94,7 @@ class Listener4764(ConstraintSolver):
         self.show_off(known_clues)
         self.plot_board(known_clues, subtext=''.join(result),
                         blacken_unused=False, file="/tmp/stuff.jpg")
-        EquationSolver(self._clue_list).show_letter_values(self.get_letter_values())
+        EquationSolver(self.clue_list).show_letter_values(self.get_letter_values())
 
     def get_clues(self):
         locations = {'a': (1, 2), 'b': (1, 3), 'c': (1, 3), 'd': (1, 4), 'e': (1, 5), 'f': (1, 6), 'g': (1, 7),
@@ -135,7 +135,7 @@ class Listener4764(ConstraintSolver):
 
         for clue in self.real_clues:
             value1 = clue.evaluators[0](letter_values)[0]
-            expression = eq.parse(clue.expression)[0].to_string(simple=True)
+            expression = eq.parse(clue.expression)[0].to_string()
             value2 = eval(expression, letter_values)
             assert str(int(value2)) == value1
             entry = known_clues[clue]

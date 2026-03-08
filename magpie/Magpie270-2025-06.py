@@ -1,6 +1,6 @@
-from typing import Any
+from typing import Unpack
 
-from solver import Clues, EquationSolver, Location
+from solver import Clues, DrawGridKwargs, EquationSolver, Location
 
 ACROSS_LENGTHS = "324/243/13131/342/423"
 DOWN_LENGTHS = "41/32/32/23/212/32/23/23/14"
@@ -62,8 +62,7 @@ class Magpie270 (EquationSolver):
         result = '\n'.join(new_lines) + '\n'
         return result
 
-    def draw_grid(self, **args: Any) -> None:
-        # super().draw_grid(**args, font_multiplier=.8)
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         info = [[] for _ in range(10)]
         known_letters = args['known_letters']
         for letter, value in known_letters.items():

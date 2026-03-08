@@ -1,5 +1,6 @@
 import functools
 import itertools
+import string
 from collections.abc import Iterable, Sequence
 
 from matplotlib import pyplot as plt
@@ -96,12 +97,12 @@ class Solver204(ConstraintSolver):
     def __init__(self, grid: str, clue_list: Sequence[Clue]):
         super().__init__(clue_list)
         self.grid = grid
-        for x, y in itertools.combinations(self._clue_list, 2):
+        for x, y in itertools.combinations(self.clue_list, 2):
             if Intersection.get_intersections(x, y):
                 self.add_constraint((x, y), self.mutual_constraint_intersects)
             else:
                 self.add_constraint((x, y), self.mutual_constraint_no_intersect)
-        self.add_constraint(self._clue_list, self.constraint_3d)
+        self.add_constraint(self.clue_list, self.constraint_3d)
 
     @staticmethod
     @functools.cache
@@ -135,18 +136,18 @@ class Solver204(ConstraintSolver):
         return super().get_allowed_regexp(location)
 
     def show_solution(self, known_clues: KnownClueDict) -> None:
-        values = tuple(known_clues[clue] for clue in self._clue_list)
+        values = tuple(known_clues[clue] for clue in self.clue_list)
         location_dict = {location: digit
                          for clue, clue_value in known_clues.items()
                          for location, digit in zip(clue.locations, clue_value)}
         if (3, 3) not in location_dict:
             location_dict[3, 3] = (set("123456789") - set(location_dict.values())).pop()
         grid_fill = ''.join(location_dict[row, column] for row in range(1, 4) for column in range(1, 4))
-        missing = next(x for x in "0123456789" if x not in grid_fill)
+        missing = next(x for x in string.digits if x not in grid_fill)
         self._answers.append((values, grid_fill, missing))
 
     def values_to_known_clue_dict(self, values: tuple[str, ...]) -> KnownClueDict:
-        return {clue: ClueValue(value) for clue, value in zip(self._clue_list, values)}
+        return dict(zip(self.clue_list, values))
 
     def get_answers(self) -> list[tuple[tuple[str, ...], str, str]]:
         return self._answers

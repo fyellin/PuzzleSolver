@@ -4,13 +4,13 @@ import math
 import re
 from collections import Counter, defaultdict
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import Unpack, cast
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 from more_itertools import sieve
 
-from solver import Clue, Clues, ClueValue, ConstraintSolver, Location, generators
+from solver import Clue, Clues, ConstraintSolver, DrawGridKwargs
 
 
 def make_min_max_factor_table() -> Sequence[tuple[int, int]]:
@@ -106,7 +106,7 @@ class Solver213(ConstraintSolver):
                    '7h': 9385, '1i': 82585, '2p': 58339, '11h': 2933, '8i': 7291, '9h': 9246, '3i': 8640, '22i': 8619,
                    '24p': 9666, '26i': 16667, '27h': 82661, '25p': 1764, '4p': 6889}
         solver = Solver213()
-        known_clues = {solver.clue_named(clue): ClueValue(str(value)) for clue, value in answers.items()}
+        known_clues = {solver.clue_named(clue): str(value) for clue, value in answers.items()}
         solver.plot_board(known_clues)
 
     def __init__(self) -> None:
@@ -148,9 +148,9 @@ class Solver213(ConstraintSolver):
                 clues.append(clue)
         return clues
 
-    def draw_grid(self, *,
-                  location_to_entry: dict[Location, str],
-                  location_to_clue_numbers: dict[Location, Sequence[str]], **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = args['location_to_entry']
+        location_to_clue_numbers = args['location_to_clue_numbers']
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
         # Set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
         axes.axis([1, 9, 9, 1])
@@ -202,7 +202,7 @@ class Solver213(ConstraintSolver):
         axes.add_patch(Ellipse((7.5, 2), radius, radius / aspect_ratio, color="#fde2c8"))
         axes.add_patch(Ellipse((5.0, 7), radius, radius / aspect_ratio, color="#fde2c8"))
 
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             if clue.name.endswith("i"):
                 draw_heavy(*clue.locations[0], 'left')
                 draw_heavy(*clue.locations[-1], 'right')

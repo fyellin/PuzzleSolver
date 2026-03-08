@@ -1,10 +1,11 @@
 import collections
 import itertools
+import pathlib
 import re
 from functools import cache
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, Clues, ConstraintSolver
+from solver import Clue, Clues, ConstraintSolver, DrawGridKwargs
 
 GRID = """
 XXX.X.X.XX
@@ -216,7 +217,8 @@ class Magpie243b(ConstraintSolver):
 
         return done
 
-    def draw_grid(self, plotter=None, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        plotter = args.get('plotter', None)
         if plotter:
             args |= {'location_to_entry': plotter}
         super().draw_grid(**args, font_multiplier=.5)
@@ -264,7 +266,7 @@ def foo():
     info = [''.join(items[i] for i in permutation) for permutation in permutations]
     info = re.compile('|'.join(info))
     print(info)
-    with open("../misc/words.txt") as file:
+    with pathlib.Path("../misc/words.txt").open() as file:
         for real_word in file:
             real_word = real_word.strip()
             word = real_word.replace('-', '').lower()

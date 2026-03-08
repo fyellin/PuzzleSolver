@@ -1,22 +1,19 @@
-from __future__ import annotations
+from collections.abc import Callable, Iterable, Sequence
 
-from typing import Any
-from collections.abc import Callable, Sequence, Iterable
-
-from .clue_types import Location
+from .clue_types import ClueValue, Location
 from .evaluator import Evaluator
 
-ClueValueGenerator = Callable[['Clue'], Iterable[str | int]]
+ClueValueGenerator = Callable[['Clue'], Iterable[str | int | ClueValue]]
 
 
-class Clue:
+class Clue[T]:
     name: str
     is_across: bool
     base_location: Location
     length: int
     evaluators: Sequence[Evaluator]
     generator: ClueValueGenerator | None
-    context: Any
+    context: T
     locations: Sequence[Location]
     location_set:  frozenset[Location]
     expression: str
@@ -25,9 +22,9 @@ class Clue:
     def __init__(self, name: str, is_across: bool, base_location: Location, length: int, *,
                  expression: str = '',
                  generator: ClueValueGenerator | None = None,
-                 context: Any = None,
+                 context: T = None,
                  locations: Iterable[Location] | None = None,
-                 priority = 0):
+                 priority=0):
         self.name = name
         self.is_across = is_across
         if locations:
@@ -55,6 +52,18 @@ class Clue:
     def location(self, i: int) -> Location:
         return self.locations[i]
 
+    def dancing_links_rc_constraints(
+            self, value: ClueValue | int | str) -> Sequence[tuple[str, str]]:
+        """
+        Provides a map from the encoding location to its current value. The key is
+        either the tuple (r, c) or the string "r{row}c{column}" depending on the value
+        of dancing_links.
+        """
+        return [
+            (f'r{r}c{c}', ch)
+            for ch, (r, c) in zip(str(value), self.locations, strict=True)
+        ]
+
     __hash__ = object.__hash__
 
     __eq__ = object.__eq__
@@ -72,7 +81,7 @@ class Clue:
         return Clue._pickle_get_named, (self.name,)
 
     @staticmethod
-    def set_pickle_solver(solver: Any):
+    def set_pickle_solver(solver):
         Clue._pickle_solver = solver
 
     @staticmethod

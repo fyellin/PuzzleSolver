@@ -2,9 +2,17 @@ import itertools
 import re
 import string
 from collections import Counter, defaultdict
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, Clues, ConstraintSolver, Location, generators, KnownClueDict
+from solver import (
+    Clue,
+    Clues,
+    ConstraintSolver,
+    DrawGridKwargs,
+    KnownClueDict,
+    Location,
+    generators,
+)
 
 ACROSS = """
 9 Present song losing essential character in transmission down line (8;2,5) HERE,DITY
@@ -119,23 +127,22 @@ class Magpie263b(ConstraintSolver):
     def get_allowed_regexp(self, location: Location) -> str:
         return self.fixed.get(location, '.')
 
-    def draw_grid(self, location_to_entry, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = args['location_to_entry']
         location_to_entries = defaultdict(set)
         for solution in self.solutions:
             for clue, value in solution.items():
                 for location, letter in zip(clue.locations, value):
                     location_to_entries[location].add(letter)
 
-        location_to_entry = {}
+        location_to_entry.clear()
 
         for location, entries in location_to_entries.items():
             if len(entries) == 1:
                 location_to_entry[location] = entries.pop()
             else:
                 location_to_entry[location] = ''.join(sorted(entries)).lower()
-        super().draw_grid(location_to_entry=location_to_entry,
-                          font_multiplier=.5,
-                          **args)
+        super().draw_grid(font_multiplier=.5, **args)
 
 
 if __name__ == '__main__':

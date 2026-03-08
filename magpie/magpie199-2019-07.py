@@ -1,10 +1,11 @@
 import collections
 import itertools
 import math
+import pathlib
 import pickle
+from collections.abc import Iterable, Sequence
 from enum import Enum
 from typing import NamedTuple, cast
-from collections.abc import Iterable, Sequence
 
 import numpy as np
 from matplotlib import patches as mpatches
@@ -181,7 +182,7 @@ class MySolver(ConstraintSolver):
         self.clue_map = clue_map
 
     def check_and_show_solution(self, known_clues: KnownClueDict) -> None:
-        all_clues = collections.deque(self._clue_list)
+        all_clues = collections.deque(self.clue_list)
         with PdfPages(PDF_FILE_NAME) as pdf:
             figure, axis = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
             self.plot_board(known_clues, axes=axis)
@@ -210,7 +211,7 @@ class MySolver(ConstraintSolver):
 
 
 def get_dumped_map() -> ClueMap:
-    with open(VALUE_MAP_PICKLE_FILE, "rb") as file:
+    with pathlib.Path(VALUE_MAP_PICKLE_FILE).open("rb") as file:
         return cast(ClueMap, pickle.load(file))
 
 
@@ -225,7 +226,7 @@ def run(clue_map: ClueMap | None = None) -> None:
 def build(dump: bool = False) -> None:
     value_map = generate_map()
     if dump:
-        with open(VALUE_MAP_PICKLE_FILE, "wb") as file:
+        with pathlib.Path(VALUE_MAP_PICKLE_FILE).open("wb") as file:
             pickle.dump(value_map, file)
     else:
         assert value_map == get_dumped_map()

@@ -1,6 +1,6 @@
-from collections.abc import Sequence, Mapping
+from collections.abc import Mapping, Sequence
 
-from solver.playfair_constraints import ConstraintsGenerator, ConstraintRow
+from .playfair_constraints import ConstraintRow, ConstraintsGenerator
 
 
 class PlayfairSolver:
@@ -11,8 +11,8 @@ class PlayfairSolver:
     @staticmethod
     def test(*, debug: bool = False) -> None:
         solver = PlayfairSolver(
-            plain_text='TOPSYTURVY' 'INVERTED' 'UPSIDEDOWN',
-            cipher_text='WK..A.YVRU' 'SMI..HFE' 'PBWSEF..SO',
+            plain_text='TOPSYTURVY' 'INVERTED' 'UPSIDEDOWN',  # noqa
+            cipher_text='WK..A.YVRU' 'SMI..HFE' 'PBWSEF..SO',  # noqa
             tail=16)
         results = solver.solve(debug=debug)
         for result in results:
@@ -81,13 +81,14 @@ class PlayfairSolver:
                     # If this item was forced, we format it a little bit differently, and don't increase the indent.
                     print(f"{indent}• \"{min_constraint_name}\" {current_row} -> {temp} : {sizes}")
                 else:
-                    print(f"{indent}{i  + 1}/{min_count} \"{min_constraint_name}\" {current_row} -> {temp} : {sizes}")
+                    print(f"{indent}{i + 1}/{min_count} \"{min_constraint_name}\" {current_row} -> {temp} : {sizes}")
 
             self.__solve(depth + 1 if min_count > 1 else depth, next_pending_constraints, next_rows_so_far)
 
+
 if __name__ == '__main__':
-    solver = PlayfairSolver(cipher_text=".P..EA" "O.IB.." "..NT.L" "IM..G." "..RI.K" "SI..E." ".T..ED" "U.TO..",
-                            plain_text ="BONERS" "MENDED" "SIRING" "RUMPLE" "AGENTS" "DENNIS" "KERMIS" "PIECER",
+    solver = PlayfairSolver(cipher_text=".P..EA" "O.IB.." "..NT.L" "IM..G." "..RI.K" "SI..E." ".T..ED" "U.TO..",  # noqa
+                            plain_text="BONERS" "MENDED" "SIRING" "RUMPLE" "AGENTS" "DENNIS" "KERMIS" "PIECER",  # noqa
                             tail=12)
 
     results = solver.solve(debug=False)

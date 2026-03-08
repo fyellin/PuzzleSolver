@@ -1,11 +1,19 @@
 import random
 import re
-from datetime import datetime
 from collections.abc import Sequence
+from datetime import datetime
 
-from solver import BaseSolver, KnownClueDict, KnownLetterDict
-from solver import Clue, Clues, ClueValue, Letter
-from solver import EquationSolver, Intersection
+from solver import (
+    BaseSolver,
+    Clue,
+    Clues,
+    ClueValue,
+    EquationSolver,
+    Intersection,
+    KnownClueDict,
+    KnownLetterDict,
+    Letter,
+)
 
 primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101]
 
@@ -84,17 +92,6 @@ def make_clue_list() -> Sequence[Clue]:
     return clues
 
 
-def make_expressions() -> Sequence[Clue]:
-    clues = []
-    for line in CLUES.splitlines():
-        name = line[0]
-        expression = line[2:]
-        expression = re.sub(r"([A-Z])(\d)", r"(\1**\2)", expression)
-        clue = Clue(name, True, (0, 0), 1, expression=expression)
-        clues.append(clue)
-    return tuple(clues)
-
-
 class Magpie017Solver(BaseSolver):
     expressions: Sequence[Clue]
     missing_variables: dict[Clue, set[Letter]]
@@ -134,15 +131,15 @@ class Magpie017Solver(BaseSolver):
         expressions_to_try = [expression for expression in self.expressions
                               if expression.name not in known_letters_set
                               if self.missing_variables[expression].issubset(known_letters_set)]
-        clues_to_try = [clue for clue in self._clue_list if clue not in known_clues]
+        clues_to_try = [clue for clue in self.clue_list if clue not in known_clues]
         clue_to_pattern = {clue: self.make_runtime_pattern(clue, known_clues)
                            for clue in clues_to_try}
 
         def get_value_if_fits(expression: Clue, clue: Clue) -> ClueValue | None:
-            known_letters[Letter(expression.name)] = int(clue.name)
+            known_letters[expression.name] = int(clue.name)
             evaluator = expression.evaluators[0]
             value = evaluator(known_letters)
-            del known_letters[Letter(expression.name)]
+            del known_letters[expression.name]
             if value and clue_to_pattern[clue].fullmatch(value):
                 return value
             return None
@@ -162,14 +159,14 @@ class Magpie017Solver(BaseSolver):
         for i, (clue, value) in enumerate(clue_value_pairs):
             if self.debug:
                 print(f'{" | " * depth}{expression.name} {i + 1}/{len(clue_value_pairs)}: {clue.name}:{value} -->')
-            known_letters[Letter(expression.name)] = int(clue.name)
+            known_letters[expression.name] = int(clue.name)
             known_clues[clue] = value
             self.__solve(known_clues, known_letters)
-            del known_letters[Letter(expression.name)]
+            del known_letters[expression.name]
             del known_clues[clue]
 
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
-        EquationSolver(self._clue_list).show_solution(known_clues, known_letters)
+        EquationSolver(self.clue_list).show_solution(known_clues, known_letters)
 
     def make_runtime_pattern(self, clue: Clue, known_clues: KnownClueDict) -> re.Pattern[str]:
         pattern_list = [self.get_allowed_regexp(location) for location in clue.locations]

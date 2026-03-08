@@ -1,9 +1,17 @@
 import itertools
 from collections.abc import Iterable
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator
-from solver import KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    DrawGridKwargs,
+    EquationSolver,
+    Evaluator,
+    KnownClueDict,
+    KnownLetterDict,
+)
 
 GRID = """
 X.XXX.XX
@@ -122,9 +130,15 @@ class Magpie239(EquationSolver):
         self.show_letter_values(known_letters)
         self.plot_board(known_clues, known_letters=known_letters)
 
-    def draw_grid(self, max_column, clue_values, left_bars, top_bars, location_to_entry,
-                  clued_locations, **args: Any) -> None:
-        max_column += 1
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        clue_values = args['clue_values']
+        left_bars = args['left_bars']
+        top_bars = args['top_bars']
+        location_to_entry = args['location_to_entry']
+        clued_locations = args['clued_locations']
+
+        args['max_column'] += 1
+
         clued_locations |= {(row, column) for row in range(1, 11) for column in (1, 10)}
         left_bars |= {(i, 10) for i in range(1, 11)}
         top_bars -=  {(i, 1) for i in range(2, 11)}
@@ -135,7 +149,7 @@ class Magpie239(EquationSolver):
 
         value_to_letter = {value: letter for letter, value in args['known_letters'].items()}
         for row in range(1, 11):
-            clues = [clue for clue in self._clue_list
+            clues = [clue for clue in self.clue_list
                      if clue.is_across and clue.location(0)[0] == row]
             assert len(clues) == 2
             clues.sort(key=lambda clue: clue.location(0)[0])
@@ -143,13 +157,7 @@ class Magpie239(EquationSolver):
                 total = sum(int(digit) for digit in clue_values[clue])
                 location_to_entry[row, column] = value_to_letter[total]
 
-        super().draw_grid(clue_values=clue_values, left_bars=left_bars, top_bars=top_bars,
-                          location_to_entry=location_to_entry,
-                          clued_locations=clued_locations,
-                          max_column=max_column,
-                          subtext=subtext,
-                          shading=shading,
-                          **args)
+        super().draw_grid(subtext=subtext, shading=shading, **args)
 
 
 if __name__ == '__main__':

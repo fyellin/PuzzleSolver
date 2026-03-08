@@ -3,7 +3,7 @@ import multiprocessing
 import pickle
 import re
 from collections import Counter
-from collections.abc import Iterable, Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime
 from operator import itemgetter
 from typing import Any, NamedTuple
@@ -59,7 +59,7 @@ class EquationSolver(BaseSolver):
         if not name:
             name = '_'.join(clue.name for clue in actual_clues)
 
-        def check_relationship(known_clues = None) -> bool:
+        def check_relationship(known_clues=None) -> bool:
             if known_clues is None:
                 known_clues = self._known_clues
             return predicate(*(known_clues[clue] for clue in actual_clues))
@@ -103,7 +103,7 @@ class EquationSolver(BaseSolver):
         try:
             for next_letter_values in self.get_letter_values(self._known_letters, clue_letters):
                 self._step_count += 1
-                for letter, value in zip(clue_letters, next_letter_values):
+                for letter, value in zip(clue_letters, next_letter_values, strict=True):
                     self._known_letters[letter] = value
                 clue_values = evaluator(self._known_letters)
                 if twin_value:
@@ -115,16 +115,13 @@ class EquationSolver(BaseSolver):
                     self._solve(current_index + 1)
                     continue
                 for clue_value in clue_values:
-                    if not (clue_value and pattern.fullmatch(clue_value)):
+                    if not (clue_value and pattern.fullmatch(str(clue_value))):
                         continue
                     self._known_clues.pop(clue, None)
                     if not self._allow_duplicates and clue_value in self._known_clues.values():
                         continue
                     self._known_clues[clue] = clue_value
-                    bad_constraint = next((constraint for constraint in constraints if not constraint()), None)
-                    if bad_constraint:
-                        # print(f'{" | " * current_index} {clue.name} {"".join(clue_letters)} '
-                        #       f'{next_letter_values} {clue_value} ({clue.length}): --> X {bad_constraint.__name__}')
+                    if not all(constraint() for constraint in constraints):
                         continue
                     if current_index <= self._max_debug_depth:
                         print(f'{" | " * current_index} {clue.name} {"".join(clue_letters)} '
@@ -148,10 +145,10 @@ class EquationSolver(BaseSolver):
 
         items = []
         for next_letter_values in self.get_letter_values(self._known_letters, clue_letters):
-            self._known_letters.update(zip(clue_letters, next_letter_values))
+            self._known_letters.update(zip(clue_letters, next_letter_values, strict=True))
             clue_values = evaluator(self._known_letters)
             for clue_value in clue_values:
-                if not (clue_value and pattern.fullmatch(clue_value)):
+                if not (clue_value and pattern.fullmatch(str(clue_value))):
                     continue
                 self._known_clues.pop(clue, None)
                 if not self._allow_duplicates and clue_value in self._known_clues.values():
@@ -172,13 +169,13 @@ class EquationSolver(BaseSolver):
             known_letters = self._known_letters
             args = [(id, type(self), current_index,
                      pickle.dumps(known_clues | {clue: clue_value}),
-                     known_letters | dict(zip(clue_letters, letter_values)))
+                     known_letters | dict(zip(clue_letters, letter_values, strict=True)))
                     for id, (clue_value, *letter_values) in enumerate(items)]
             seen = {id for id, *_ in args}
             print(f'There are {len(args)} processes')
             max_id = 0
             with multiprocessing.Pool() as pool:
-                results =  pool.imap_unordered(self._mp_bridge, args)
+                results = pool.imap_unordered(self._mp_bridge, args)
                 for (id, solutions) in results:
                     seen.remove(id)
                     max_id = max(max_id, id)
@@ -212,8 +209,7 @@ class EquationSolver(BaseSolver):
             clue, *_ = self._solving_order[i]
             assert clue in self._known_clues
         self._solve(current_index + 1)
-        return id, [(known_clues, known_letters)
-                    for known_clues, known_letters in self._solutions]
+        return id, list(self._solutions)
 
     def _get_solving_order(self) -> Sequence[SolvingStep]:
         """Figures out the best order to solve the various clues."""
@@ -240,24 +236,10 @@ class EquationSolver(BaseSolver):
         while not_yet_ordered:
             unbound_letters_to_clue_count = Counter(frozenset(clueinfo.unbound_letters)
                                                     for clueinfo in not_yet_ordered.values())
-            # unbound_letters_to_clue_infos = defaultdict(list)
-            # for clue_info in not_yet_ordered.values():
-            #     unbound_letters_to_clue_infos[frozenset(clue_info.unbound_letters)].append(clue_info)
-            # unbound_letters_to_clue_count = {
-            #     letters: len(clue_infos) for letters, clue_infos in unbound_letters_to_clue_infos.items()
-            # }
             unbound_letters_to_letter_count = {
                 letters: sum(letter_count[letter] for letter in letters)
                 for letters in unbound_letters_to_clue_count
             }
-            # unbound_letters_to_clue_locations = {
-            #     letters: len({location for clue_info in clue_infos for location in clue_info.clue.locations })
-            #     for letters, clue_infos in unbound_letters_to_clue_infos.items()
-            # }
-            # unbound_letters_to_known_clue_locations = {
-            #     letters: len({location for clue_info in clue_infos for location in clue_info.known_locations })
-            #     for letters, clue_infos in unbound_letters_to_clue_infos.items()
-            # }
 
             # For each set of not-yet-bound letters, determine the total number of letters in those clues
             clue, evaluator, unknown_letters, intersections, _ = max(not_yet_ordered.values(), key=grading_function)
@@ -281,7 +263,6 @@ class EquationSolver(BaseSolver):
             for item in result:
                 print(item.clue, item.letters)
         return tuple(result)
-
 
     def make_pattern_generator(self, clue: Clue, intersections: Sequence[Intersection]) -> \
             Callable[[KnownClueDict], re.Pattern[str]]:
@@ -342,7 +323,7 @@ class EquationSolver(BaseSolver):
     def show_letter_values(self, known_letters: KnownLetterDict) -> None:
         max_length = max(len(str(i)) for i in known_letters.values())
         print()
-        pairs = [(letter, value) for letter, value in known_letters.items()]
+        pairs = list(known_letters.items())
         pairs.sort()
         print(' '.join(f'{letter:<{max_length}}' for letter, _ in pairs))
         print(' '.join(f'{value:<{max_length}}' for _, value in pairs))

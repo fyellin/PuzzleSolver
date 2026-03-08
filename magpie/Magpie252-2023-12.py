@@ -2,8 +2,9 @@ from collections import Counter, defaultdict
 from collections.abc import Sequence
 from datetime import datetime
 from itertools import permutations
+from typing import Unpack
 
-from solver import Clue, Clues, DancingLinks, DLConstraint, EquationSolver
+from solver import Clue, Clues, DancingLinks, DLConstraint, DrawGridKwargs, EquationSolver
 
 GRID = """
 XXXXXXXX
@@ -82,7 +83,6 @@ class Magpie252 (EquationSolver):
         grid = Clues.get_locations_from_grid(GRID)
         clues = Clues.create_from_text(ACROSSES, DOWNS, grid)
         for clue in clues:
-
             clue.evaluators[0].set_wrapper(self.my_wrapper)
         return clues
 
@@ -101,13 +101,13 @@ class Magpie252 (EquationSolver):
             for delta in set(deltas):
                 y = x + delta
                 if 10 <= x * y <= 9999:
-                    result[2 * (2 * x + y - 1)].append((x*y, x, y, delta))
+                    result[2 * (2 * x + y - 1)].append((x * y, x, y, delta))
                     if delta != 0:
-                        result[2 * (2 * y + x - 1)].append((x*y, y, x, delta))
+                        result[2 * (2 * y + x - 1)].append((x * y, y, x, delta))
         return result
 
     def step1_old(self):
-        clues = self._clue_list
+        clues = self.clue_list
         evaluators = [clue.evaluators[0] for clue in clues]
         time1 = datetime.now()
         for count, values in enumerate(permutations(range(10))):
@@ -167,7 +167,7 @@ class Magpie252 (EquationSolver):
         # self.show_letter_values(dict(zip(self.vars, values)))
 
         double_delta_clues = defaultdict(set)
-        for clue, result in zip(self._clue_list, results):
+        for clue, result in zip(self.clue_list, results):
             for xy, x, y, delta in self.ok_values[result]:
                 if counter[delta] > 1:
                     double_delta_clues[delta].add(clue)
@@ -179,27 +179,26 @@ class Magpie252 (EquationSolver):
                                 for f in range(counter[delta])}
         optional_constraints |= {f'r{r}c{c}' for r in range(1, 9) for c in range(1, 9)}
 
-        for clue_index, (clue, result) in enumerate(zip(self._clue_list, results)):
+        for clue_index, (clue, result) in enumerate(zip(self.clue_list, results)):
             if self.ok_values[result]:
                 for xy, x, y, delta in self.ok_values[result]:
                     if len(str(xy)) == clue.length:
                         for f in range(counter[delta]):
                             row: list[DLConstraint]
-                            row = [f'C-{clue.name}', f'D{delta}-{f}']
-                            row.extend((f'r{r}c{c}', digit)
-                                       for (r, c), digit in zip(clue.locations, str(xy), strict=True))
+                            row = [f'C-{clue.name}', f'D{delta}-{f}',
+                                   *clue.dancing_links_rc_constraints(xy)
+                                   ]
                             if delta in double_delta_clues:
                                 row.append(f'X-{clue.name}-{delta}-{f}')
                                 if f > 0:
                                     row.extend(f'X-{clue2.name}-{delta}-{f - 1}'
-                                               for clue2 in self._clue_list[clue_index + 1:]
+                                               for clue2 in self.clue_list[clue_index + 1:]
                                                if clue2 in double_delta_clues[delta])
                             constraints[clue.name, xy, x, y, f] = row
             else:
                 assert len(str(result)) == clue.length
-                row = [f'C-{clue.name}']
-                row.extend((f'r{r}c{c}', digit)
-                           for (r, c), digit in zip(clue.locations, str(result), strict=True))
+                row = [f'C-{clue.name}',
+                       *clue.dancing_links_rc_constraints(result)]
                 constraints[clue.name, result, 0, 0, 0] = row
 
         def my_row_printer(solution):
@@ -210,17 +209,17 @@ class Magpie252 (EquationSolver):
                               row_printer=my_row_printer)
         solver.solve(debug=False)
 
-    def draw_grid(self, location_to_entry, values, **args) -> None:
-        number_to_letter = {str(digit): var for var, digit in zip(self.VARIABLES, values)}
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = args['location_to_entry']
+        values = args['values']
+        number_to_letter = {str(digit): var
+                            for var, digit in zip(self.VARIABLES, values, strict=True)}
         for x, y in ((1, 2), (2, 1), (3, 3), (4, 4)):
             for location in ((x, y), (9 - y, x), (9 - x, 9 - y), (y, 9 - x)):
                 old = location_to_entry[location]
                 location_to_entry[location] = number_to_letter[old]
         rotation = {(5, 4): 90}
-        super().draw_grid(location_to_entry=location_to_entry,
-                          font_multiplier=.75,
-                          rotation=rotation,
-                          **args)
+        super().draw_grid(font_multiplier=.75, rotation=rotation, **args)
 
 
 if __name__ == '__main__':

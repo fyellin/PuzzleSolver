@@ -1,12 +1,18 @@
-from __future__ import annotations
-
 import itertools
 from collections.abc import Iterable, Sequence
 from functools import cache
-from typing import Any
+from typing import Unpack
 
-from solver import Clue, ClueValue, Evaluator, Location, \
-    MultiEquationSolver, KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    ClueValue,
+    DrawGridKwargs,
+    Evaluator,
+    KnownClueDict,
+    KnownLetterDict,
+    Location,
+    MultiEquationSolver,
+)
 
 ACROSS_LENGTHS = "413/332/44/44/233/314"
 DOWN_LENGTHS = "222/33/24/33/33/42/33/222"
@@ -44,6 +50,7 @@ def wrapper(self, value_dict: KnownLetterDict) -> Iterable[ClueValue]:
         pass
     return ()
 
+
 @cache
 def wrapper_encode(value: str) -> Sequence[ClueValue]:
     value = list(value)
@@ -64,6 +71,7 @@ def wrapper_encode(value: str) -> Sequence[ClueValue]:
             result.append(letter + temp[::-1])
     return result
 
+
 class Magpie275 (MultiEquationSolver):
     @classmethod
     def run(cls) -> None:
@@ -76,7 +84,7 @@ class Magpie275 (MultiEquationSolver):
         values = [i * i for i in range(1, 10)]
         super().__init__(clues, items=values)
 
-    def get_clues(self):
+    def get_clues(self) -> Sequence[Clue]:
         equations = []
         for counter, line in enumerate(EQUATIONS.strip().splitlines(), start=1):
             number, equation = line.split(' ', 1)
@@ -97,19 +105,18 @@ class Magpie275 (MultiEquationSolver):
 
     def show_solution(self, known_clues: KnownClueDict,
                       known_letters: KnownLetterDict) -> None:
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             evaluator, = clue.evaluators
             result = evaluator.raw_call(known_letters)
             int_result = int(result)
             print(clue.name, int_result * int_result)
         super().show_solution(known_clues, known_letters)
 
-    def draw_grid(self, left_bars, top_bars, location_to_clue_numbers, **args: Any) -> None:
-        left_bars = [(r, c + delta) for r, c in location_to_clue_numbers for delta in (0, 1)]
-        top_bars = [(r + delta, c) for r, c in location_to_clue_numbers for delta in (0, 1)]
-        super().draw_grid(location_to_clue_numbers=location_to_clue_numbers,
-                          left_bars=left_bars, top_bars=top_bars,
-                          **args)
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_clue_numbers = args['location_to_clue_numbers']
+        args['left_bars'] = [(r, c + delta) for r, c in location_to_clue_numbers for delta in (0, 1)]
+        args['top_bars'] = [(r + delta, c) for r, c in location_to_clue_numbers for delta in (0, 1)]
+        super().draw_grid(**args)
 
 def is_okay(value):
     if (ivalue := int(value)) == value:
@@ -119,6 +126,7 @@ def is_okay(value):
             if len(set(value)) == 8:
                 return True
     return False
+
 
 def test1():
     """
@@ -159,7 +167,7 @@ def test1():
     """
     import math
     solver = Magpie275()
-    clue_list = solver._clue_list
+    clue_list = solver.clue_list
     evaluators = {int(clue.name): clue.evaluators[0] for clue in clue_list}
 
     letters = "AEHINORST"
@@ -169,7 +177,6 @@ def test1():
     for number, evaluator in evaluators.items():
         x = sum(bool(evaluator(permutation)) for permutation in permutations)
         print(number, x, len(evaluator.vars),  x // math.factorial(9 - len(evaluator.vars)))
-
 
 
 if __name__ == '__main__':

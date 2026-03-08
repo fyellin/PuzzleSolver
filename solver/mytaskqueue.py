@@ -3,7 +3,6 @@ import io
 import pickle
 import queue
 import struct
-from collections import deque
 from multiprocessing import Condition, Lock, RLock, shared_memory
 
 # These are protected by state_lock
@@ -24,8 +23,9 @@ TOTAL_SIZE_OFFSET = 13
 
 NORMAL_SIZE = 0
 WRITING_IN_PROGRESS = 1  # a PUT has allocated this spot, but not written to it yet
-READER_WAITING = 2  # a GET wants this spot, and is waiting for a PUT to finish.
-WAITING_FOR_GC = 4  # a GET has read this data, and it can be gc'ed when possible.
+READER_WAITING = 2  # a GET wants this spot and is waiting for a PUT to finish.
+WAITING_FOR_GC = 4  # a GET has read this data, and it can be gc-ed when possible.
+
 
 class MyTaskQueue:
     def __init__(self, *, size, debug=False):
@@ -55,11 +55,11 @@ class MyTaskQueue:
                 else:
                     state[GET_WAIT_COUNT_OFFSET] += 1
                     self.is_not_empty.wait()
-                    state[GET_WAIT_COUNT_OFFSET] -=1
+                    state[GET_WAIT_COUNT_OFFSET] -= 1
             read_start = self.state[NEXT_GET_OFFSET]
             size, flags = struct.unpack_from("II", data, read_start)
             pickle_start = (read_start + 8) % data_size
-            pickle_end = pickle_start + size # may be larger than data_size
+            pickle_end = pickle_start + size  # it may be larger than data_size
 
             state[GET_COUNT_OFFSET] = get_count = state[GET_COUNT_OFFSET] + 1
             state[QSIZE_OFFSET] = qsize - 1
@@ -88,8 +88,9 @@ class MyTaskQueue:
             result = pickle.loads(pickled_result)
         except pickle.UnpicklingError:
             with self.print_lock:
-                print(f"GET ERROR #{get_count}: {pickle_start - 8:,} - {pickle_end:,} (size={size:,}) "
-                    f"{self.hasher(pickled_result).hexdigest()}")
+                print(f"GET ERROR #{get_count}: "
+                      f"{pickle_start - 8:,} - {pickle_end:,} (size={size:,}) "
+                      f"{self.hasher(pickled_result).hexdigest()}")
             raise
 
         with self.state_lock:
@@ -118,7 +119,6 @@ class MyTaskQueue:
         state = self.state
         data = self.data
         data_size = len(data)
-
 
         pickled_value = pickle.dumps(value)
         size = len(pickled_value)
@@ -219,10 +219,9 @@ class MyTaskQueue:
         return state, data
 
     def __str__(self):
-        globals = self.state
+        state = self.state
         count, start, end, not_done = [
-            globals[i] for i in (QSIZE_OFFSET, START_OFFSET,
-                                 END_OFFSET, TASK_NOT_DONE_OFFSET)]
+            state[i] for i in (QSIZE_OFFSET, START_OFFSET, END_OFFSET, TASK_NOT_DONE_OFFSET)]
         return f"<Queue {count=:,} {not_done=:,} range = {start:,} - {end:,}>"
 
     def __enter__(self):
@@ -231,13 +230,14 @@ class MyTaskQueue:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close(True)
 
+
 class ConcatenatedStream(io.RawIOBase):
     def __init__(self, data):
         self.data = data
         self.length = len(data)
         self.pos = 0
 
-    def readinto(self, buffer:bytearray):
+    def readinto(self, buffer: bytearray):
         total_read = 0
 
         while total_read < len(buffer):
@@ -266,45 +266,3 @@ class ConcatenatedStream(io.RawIOBase):
 
     def close(self):
         self.data = None
-
-
-def run_test():
-    my_queue = deque()
-    task_queue = MyTaskQueue(size=1000,)
-
-    count = 0
-    def get_item():
-        nonlocal count
-        count -= 1
-        return [count] * 200
-
-    try:
-        while True:
-            temp = get_item()
-            task_queue.put(temp, False)
-            my_queue.append(temp)
-    except queue.Full:
-        print(f"Pushed {len(my_queue)} items")
-    count = len(my_queue)
-    for i in range(5000 * count):
-        assert task_queue.get() == my_queue.popleft()
-        temp = get_item()
-        task_queue.put(temp, False)
-        my_queue.append(temp)
-    while my_queue:
-        assert task_queue.get() == my_queue.popleft()
-    try:
-        task_queue.get(False)
-        assert True, "Expected to fail"
-    except queue.Empty:
-        pass
-
-    task_queue.close(True)
-
-
-if __name__ == '__main__':
-    from datetime import datetime
-    start = datetime.now()
-    run_test()
-    end = datetime.now()
-    print(end - start)

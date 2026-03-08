@@ -1,15 +1,9 @@
-from __future__ import annotations
-
 import collections
 import copy
-import itertools
-import string
 import sys
 from collections.abc import Hashable, Iterator, Sequence
 from datetime import datetime
-from functools import cache
-from itertools import combinations, count, islice
-from typing import Any, Callable, Generic, Literal, Optional, Protocol, TextIO, TypeVar
+from typing import Any, Callable, Generic, Literal, Optional, TextIO, TypeVar
 
 import math
 

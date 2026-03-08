@@ -1,9 +1,9 @@
 import itertools
 import re
-from typing import Any
+from typing import Unpack
 
-from misc.factors import factor_list
-from solver import Clue, Clues, ConstraintSolver, generators
+from misc import factor_list
+from solver import Clue, Clues, ConstraintSolver, DrawGridKwargs, generators
 
 GRID = """
 XXXXX.XX
@@ -124,7 +124,7 @@ class Magpie241(ConstraintSolver):
 
     def handle_playground(self):
         X, Y, Z = (276, 403, 1964)
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             clue.generator = generators.allvalues
 
         def is_multiple(x, y):
@@ -157,7 +157,8 @@ class Magpie241(ConstraintSolver):
         self.add_constraint(('13d', '14d'), lambda r, a: int(r) == X + Y + int(a))
 
 
-    def draw_grid(self, location_to_entry, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = args.pop('location_to_entry')
         temp = ["JT", "AKV", "BLW", "CMX", "DNY", "EOZ", "FP", "GQ", "HR", "IS"]
         locations = [(2, i) for i in range(3, 9)] + [(6, i) for i in range(1, 9)]
         values = "DONALDCAMPBELL"
@@ -168,7 +169,7 @@ class Magpie241(ConstraintSolver):
         X, Y, Z = (276, 403, 1964)
         subtext = f'{X=}, {Y=}, {Z=}'
         super().draw_grid(location_to_entry=location_to_entry,
-                          font_multiplier = .8,
+                          font_multiplier=.8,
                           subtext=subtext,
                           **args)
         # location_to_entry = {loc: temp[int(x)] for loc, x in location_to_entry.items()}

@@ -1,10 +1,9 @@
-from collections import defaultdict
-
 import itertools
 import time
+from collections import defaultdict
+from collections.abc import Callable, Sequence
 from operator import itemgetter
 from typing import Any
-from collections.abc import Sequence, Callable
 
 from solver import Clue, Clues, ConstraintSolver
 
@@ -63,7 +62,7 @@ class Magpie257(ConstraintSolver):
         steps = 0
         solutions = 0
         clue_locations = {clue: [r * 8 + c - 9 for (r, c) in clue.locations]
-                          for clue in self._clue_list}
+                          for clue in self.clue_list}
         zero_locations = {r * 8 + c - 9 for r in range(1, 9) for c in range(1, 9)
                           if self.is_start_location((r, c))}
 
@@ -109,7 +108,7 @@ class Magpie257(ConstraintSolver):
                            637, 5632, 1225, 924, 845, None, 540, 792, 80, 2366, 63]
             clue_values = [str(value) if value else None for value in clue_values]
             known_clues |= {clue: value for clue, value in
-                            zip(self._clue_list, clue_values) if value}
+                            zip(self.clue_list, clue_values) if value}
             for clue, value in known_clues.items():
                 for (x, y), letter in zip(clue.locations, value):
                     board[x][y] = letter
@@ -117,7 +116,7 @@ class Magpie257(ConstraintSolver):
         def finish_puzzle(*_args):
             if not known_clues:
                 init_finish_puzzle()
-            clues = [clue for clue in self._clue_list if clue not in known_clues]
+            clues = [clue for clue in self.clue_list if clue not in known_clues]
             assert len(clues) == 3
             range4 = range(1793, 2366)   #19, 20
             range5 = range(10000, 73947)
@@ -150,10 +149,10 @@ class Magpie257(ConstraintSolver):
 
         def get_runner():
             clue_by_length = defaultdict(list)
-            for clue in self._clue_list:
+            for clue in self.clue_list:
                 clue_by_length[clue.length].append(clue)
 
-            sorted_lengths = sorted(clue.length for clue in self._clue_list)
+            sorted_lengths = sorted(clue.length for clue in self.clue_list)
             clue_triples = [(clue, length, get_possible_values(clue, length))
                             for clue, length in zip(CLUES, sorted_lengths)
                             if clue is not Unclued]

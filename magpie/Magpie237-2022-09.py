@@ -4,7 +4,7 @@ import re
 from collections import Counter
 from collections.abc import Iterable, Iterator, Sequence
 from enum import Enum, auto
-from typing import Any
+from typing import Unpack
 
 from matplotlib.patches import Arc
 from more_itertools import is_prime
@@ -14,6 +14,7 @@ from solver import (
     Clues,
     ClueValue,
     ConstraintSolver,
+    DrawGridKwargs,
     EquationSolver,
     Evaluator,
     KnownClueDict,
@@ -162,7 +163,7 @@ class Solver237(ConstraintSolver):
             clue.generator = lambda clue, evaluator=evaluator: itertools.takewhile(
                 lambda x: len(x) <= clue.length, evaluator(values))
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         converter = {"0": Picture.ACROSS, "4": Picture.ACROSS,
                      "1": Picture.NW_SE, "2": Picture.NW_SE,
                      "3": Picture.NE_SW, "5": Picture.NE_SW,
@@ -221,7 +222,7 @@ class Solver237(ConstraintSolver):
                   va='top', ha='center')
 
     def get_letter_values(self) -> KnownLetterDict:
-        clues = [clue for clue in self._clue_list if clue.context]
+        clues = [clue for clue in self.clue_list if clue.context]
         result = {}
 
         class Solver2(EquationSolver):
@@ -244,11 +245,11 @@ class Solver237(ConstraintSolver):
             result = evaluator.raw_call(value_dict)
             if isinstance(result, MyIterator):
                 for value in result:
-                    yield(ClueValue(octal(value)))
+                    yield(octal(value))
                 return
             int_result = int(result)
             if result == int_result > 0:
-                yield ClueValue(octal(int_result))
+                yield octal(int_result)
         except ArithmeticError:
             pass
 

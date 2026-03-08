@@ -1,8 +1,10 @@
 import itertools
+import string
 import time
 from collections.abc import Sequence
 
-from misc import PRIMES
+from more_itertools import sieve
+
 from solver import Clues, EquationSolver, KnownClueDict, KnownLetterDict
 
 GRID = """
@@ -65,7 +67,7 @@ class Magpie260 (EquationSolver):
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
         permutation = get_permutation(known_clues.values())
         print(known_letters)
-        translation = str.maketrans("0123456789", ''.join(permutation))
+        translation = str.maketrans(string.digits, ''.join(permutation))
         known_clues2 = {clue: value.translate(translation) for clue, value in known_clues.items()}
         super().show_solution(known_clues, known_letters)
         super().show_solution(known_clues2, known_letters)
@@ -75,7 +77,7 @@ VALUES = tuple(str(x) for x in [50653, 74, 34, 39304, 74088, 13824, 851, 13, 221
                                 19683, 646, 405, 1934, 298760, 10648, 1958, 619, 85184,
                                 275264, 831, 325248, 385, 331, 14, 623, 6264, 32768, 2735])
 
-PRIME_SET = {tuple(str(x)) for x in PRIMES}
+PRIME_SET = {tuple(str(x)) for x in sieve(1_000_000)}
 
 
 def get_permutation(values: Sequence[str] = VALUES):
@@ -96,7 +98,7 @@ def get_permutation(values: Sequence[str] = VALUES):
         permutations = [p for p in permutations
                         if (tuple(p[offset] for offset in offsets) in PRIME_SET) == is_prime]
         print(value, len(permutations), time.time() - start)
-    permutations = [p for p in permutations if all(x != y for x, y in zip(p, "0123456789"))]
+    permutations = [p for p in permutations if all(x != y for x, y in zip(p, string.digits))]
     assert len(permutations) == 1
     print(permutations[0])
     return permutations[0]

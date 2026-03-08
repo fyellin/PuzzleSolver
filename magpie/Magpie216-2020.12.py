@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 
-from solver import Clue, ClueValue, Clues, EquationSolver, Evaluator, KnownLetterDict
+from solver import Clue, Clues, ClueValue, EquationSolver, Evaluator, KnownLetterDict
 
 GRID = """
 X.XXXX

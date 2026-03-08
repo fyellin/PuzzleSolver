@@ -6,6 +6,17 @@ from collections import deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import total_ordering
 
+__all__ = [
+    'Dijkstra',
+    'DijkstraExtended',
+    'FastDijkstra',
+    'FakeArray',
+    'MaxHeap',
+    'MinHeap',
+    'Trie',
+    'number_to_words',
+]
+
 
 class FakeArray[S](Sequence):
     def __init__(self, length: int, getter: Callable[[int], S]):
@@ -450,7 +461,7 @@ def number_to_words(n: int) -> str:
             remainder = num % 100
             if remainder == 0:
                 return hundred_part
-            return hundred_part + " " + convert_below_thousand(remainder)
+            return hundred_part + " and " + convert_below_thousand(remainder)
 
     # Handle thousands
     thousands = n // 1000
@@ -460,6 +471,9 @@ def number_to_words(n: int) -> str:
     if thousands > 0:
         result.append(convert_below_thousand(thousands) + " thousand")
     if remainder > 0:
-        result.append(convert_below_thousand(remainder))
+        if thousands > 0 and remainder < 100:
+            result.append("and " + convert_below_thousand(remainder))
+        else:
+            result.append(convert_below_thousand(remainder))
 
     return " ".join(result)

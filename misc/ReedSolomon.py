@@ -1,7 +1,8 @@
 import math
-from typing import Optional, Literal
-from galois import GF, Poly, berlekamp_massey, Field, FieldArray, ReedSolomon
+from typing import Literal
+
 import numpy as np
+from galois import GF, FieldArray, Poly, ReedSolomon, berlekamp_massey
 
 
 class MyReedSolomon:

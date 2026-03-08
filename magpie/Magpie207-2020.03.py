@@ -1,8 +1,8 @@
 import itertools
-from collections import defaultdict, Counter
-from collections.abc import Sequence, Iterator, Callable
+from collections import Counter, defaultdict
+from collections.abc import Callable, Iterator, Sequence
 
-from solver import Clues, ConstraintSolver, Clue, generators, ClueValue, KnownClueDict
+from solver import Clue, Clues, ClueValue, ConstraintSolver, KnownClueDict, generators
 
 
 def is_harshad(value: int) -> bool:
@@ -121,9 +121,7 @@ class Solver207(ConstraintSolver):
         d5 = int(known_clues[self.clue_named('5d')])
         d6 = int(known_clues[self.clue_named('6d')])
         product = d5 * d6
-        locations = {location: letter
-                     for clue in self._clue_list
-                     for location, letter in zip(clue.locations, known_clues[clue])}
+        locations = self.get_board(known_clues)
         middle_eight = Counter(locations[x, y] for x in (2, 3) for y in (2, 3, 4, 5))
 
         for harshads in itertools.product(*self.start_to_harshards[a1, d4]):

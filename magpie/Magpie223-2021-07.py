@@ -1,55 +1,69 @@
 import itertools
 import operator
 from collections import defaultdict
-from collections.abc import Sequence, Iterator, Iterable, Callable
+from collections.abc import Callable, Iterator, Sequence
+from typing import Unpack
 
-from typing import Any
+from misc import prime_factors
+from solver import (
+    AbstractClueValue,
+    Clue,
+    Clues,
+    ClueValue,
+    ClueValueGenerator,
+    ConstraintSolver,
+    DrawGridKwargs,
+    KnownClueDict,
+)
 
-from sortedcontainers import SortedDict, SortedSet
 
-from misc import PRIMES
-from solver import Clue, Clues, ConstraintSolver, ClueValueGenerator, KnownClueDict
+class MyString(AbstractClueValue):
+    """Across clue value: product digits plus run metadata; subtype of ``AbstractClueValue``."""
 
-
-class MyString(str):
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def __str__(self) -> str:
-        return f'{self.value}[{self.start}-{self.end}]'
-
-    def __new__(cls, value: int, start: int, end: int) -> Any:
-        return super().__new__(cls, value)  # type: ignore
+    __slots__ = ('value', 'start', 'end')
 
     def __init__(self, value: int, start: int, end: int) -> None:
-        super().__init__()
+        super().__init__(str(value))
         self.value = value
         self.start = start
         self.end = end
 
-    def delta(self):
+    def __int__(self) -> int:
+        return self.value
+
+    def __repr__(self) -> str:
+        return f'{self.value}[{self.start}-{self.end}]'
+
+    def delta(self) -> int:
         return self.end - self.start + 1
 
-    def __eq__(self, other) -> bool:
-        return other is not None and (self.value, self.start) == (other.value, other.start)
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, MyString):
+            return NotImplemented
+        return (self.value, self.start, self.end) == (other.value, other.start, other.end)
 
     def __hash__(self) -> int:
         return hash((self.value, self.start, self.end))
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, MyString):
+            return NotImplemented
         return (self.value, self.start) < (other.value, other.start)
 
 
-def build_sequence_list(op: Callable[[int, int], int]) -> SortedDict:
-    result = defaultdict(list)
-    for start in range(1, 100_000):
+def build_sequence_list(op: Callable[[int, int], int]
+                        ) -> dict[int, dict[int, list[tuple[int, int]]]]:
+    result = defaultdict(lambda: defaultdict(list))
+    for start in itertools.count(1):
+        if op(start, start + 1) >= 100_000:
+            break
         value = start
         for end in itertools.count(start + 1):
             value = op(value, end)
             if value >= 100_000:
                 break
-            result[value].append((start, end))
-    return SortedDict(result)
+            result[len(str(value))][value].append((start, end))
+    return result
 
 
 PRODUCT_LIST = build_sequence_list(operator.mul)
@@ -58,67 +72,25 @@ SUM_LIST = build_sequence_list(operator.add)
 
 def get_down_generator(brackets: int | None = None, item: int | None = None
                        ) -> ClueValueGenerator:
-    def generator(clue: Clue) -> Iterator[str]:
-        length = clue.length
-        for value in SUM_LIST.irange(10 ** (length - 1), 10 ** length - 1):
-            sums = SUM_LIST[value]
+    def generator(clue: Clue) -> Iterator[int]:
+        for value, sums in SUM_LIST[clue.length].items():
             if brackets is not None and len(sums) != brackets:
                 continue
-            if item is not None and not any(end - start + 1 == item for start, end in sums):
+            if item is not None and not any(
+                    end - start + 1 == item for start, end in sums):
                 continue
             yield value
     return generator
 
 
 def across_generator(clue: Clue):
-    length = clue.length
-    for value in PRODUCT_LIST.irange(10 ** (length - 1), 10 ** length - 1):
-        for start, end in PRODUCT_LIST[value]:
+    for value, products in PRODUCT_LIST[clue.length].items():
+        for start, end in products:
             yield MyString(value, start, end)
 
 
-def across_generator_7a(_clue: Clue) -> Iterator[MyString]:
-    def inner(start_index: int, product: int, count: int) -> Iterable[int]:
-        if count == 0:
-            if product >= 10_000 and product in PRODUCT_LIST:
-                yield product
-            return
-        for index in itertools.count(start_index):
-            value = product * PRIMES[index]
-            if value >= 100_000:
-                break
-            yield from inner(index + 1, value, count - 1)
-
-    return (MyString(value, start, end)
-            for value in SortedSet(inner(0, 1, 5))
-            for start, end in PRODUCT_LIST[value])
-
-
-GRID = """
-XXXX.
-.X..X
-X..X.
-XX...
-X....
-"""
-
-ACROSSES = [
-    (1, 5, across_generator),
-    (5, 4, across_generator),
-    (7, 5, across_generator_7a),
-    (9, 4, across_generator),
-    (11, 5, across_generator),
-]
-
-DOWNS = [
-    (1, 4, get_down_generator(7, 61)),
-    (2, 3, get_down_generator()),
-    (3, 5, get_down_generator()),
-    (4, 2, get_down_generator(3, None)),
-    (6, 4, get_down_generator(15, 4)),
-    (8, 3, get_down_generator(1, 32)),
-    (10, 2, get_down_generator(1, None))
-]
+ACROSS_LENGTHS = "5/14/5/41/5"
+DOWN_LENGTHS = "41/32/5/23/14"
 
 
 class Magpie223 (ConstraintSolver):
@@ -135,31 +107,47 @@ class Magpie223 (ConstraintSolver):
 
     @staticmethod
     def get_clues() -> Sequence[Clue]:
-        grid = Clues.get_locations_from_grid(GRID)
-        clues = []
-        for information, is_across in ((ACROSSES, True), (DOWNS, False)):
-            letter = 'a' if is_across else 'd'
-            for number, length, generator in information:
-                clue = Clue(f'{number}{letter}', is_across,
-                            grid[number - 1], length, generator=generator)
-                clues.append(clue)
-        return clues
+        clue_map = Clues.clue_map_from_clue_sizes(ACROSS_LENGTHS, DOWN_LENGTHS)
+        for (number, is_across), clue in clue_map.items():
+            match number, is_across:
+                case (1, False):
+                    generator = get_down_generator(7, 61)
+                case (4, False):
+                    generator = get_down_generator(3, None)
+                case (6, False):
+                    generator = get_down_generator(15, 4)
+                case (8, False):
+                    generator = get_down_generator(1, 32)
+                case (10, False):
+                    generator = get_down_generator(1, None)
+                case _:
+                    generator = across_generator if is_across else get_down_generator()
+
+            clue.generator = generator
+        return list(clue_map.values())
 
     def add_all_constraints(self) -> None:
-        def different_length(a: MyString, b: MyString):
-            return a.end - a.start != b.end - b.start
-
-        for clue1, clue2 in itertools.combinations(self._clue_list, 2):
+        for clue1, clue2 in itertools.combinations(self.clue_list, 2):
             if clue1.is_across and clue2.is_across:
-                self.add_constraint((clue1, clue2), different_length)
+                self.add_constraint((clue1, clue2), lambda a, b: a.delta() != b.delta())
 
-    def plot_board(self, clue_values: KnownClueDict | None = None, **more_args: Any
-                   ) -> None:
+        self.add_constraint("7a", self.has_five_prime_factors)
+
+    def has_five_prime_factors(self, value: ClueValue) -> bool:
+        value = int(value)
+        if value % 4 == 0 or value % 9 == 9 or value % 25 == 0:
+            return False
+        f = prime_factors(value)
+        return len(f) == 5 and all(p[1] == 1 for p in f)
+
+    def plot_board(self,
+                   clue_values: KnownClueDict | None = None,
+                   **more_args: Unpack[DrawGridKwargs]) -> None:
         if clue_values is not None:
-            special = int(clue_values[self.clue_named('3d')])
-            sequences = len(SUM_LIST[special])
-            subtext = f'[{sequences}]'
-            more_args['subtext'] = subtext
+            d3 = self.clue_named('3d')
+            special = int(clue_values[d3])
+            sequences = len(SUM_LIST[d3.length][special])
+            more_args['subtext'] = f'[{sequences}]'
         super().plot_board(clue_values, **more_args)
 
 

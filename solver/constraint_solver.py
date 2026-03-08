@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import abc
 import itertools
 from collections import Counter, defaultdict
@@ -8,15 +6,16 @@ from datetime import datetime
 from heapq import nlargest, nsmallest
 from typing import Any, NamedTuple, Protocol, cast
 
-from .base_solver import BaseSolver, KnownClueDict
-from .clue import Clue, ClueValueGenerator
+from .base_solver import KnownClueDict
+from .clue import Clue
 from .clue_types import ClueValue
+from .generator_based_solver import GeneratorBasedSolver
 from .intersection import Intersection
 
 type UnknownClueDict = dict[Clue, Sequence[ClueValue]]
 
 
-class ConstraintSolver(BaseSolver):
+class ConstraintSolver(GeneratorBasedSolver):
     _step_count: int
     _solution_count: int
     _known_clues: KnownClueDict
@@ -24,7 +23,6 @@ class ConstraintSolver(BaseSolver):
     _start_clues: Sequence[Clue]
     _max_debug_depth: int
     _multi_constraints: dict[Clue, list[Callable[..., bool]]]
-    _singleton_constraint: dict[Clue, list[Callable[..., bool]]]
     _letter_handler: AbstractLetterCountHandler | None
 
     def __init__(self, clue_list: Sequence[Clue], constraints: Sequence[Constraint] = (),
@@ -32,8 +30,9 @@ class ConstraintSolver(BaseSolver):
                  **kwargs: Any) -> None:
         super().__init__(clue_list, **kwargs)
         self._multi_constraints = defaultdict(list)
-        self._singleton_constraint = defaultdict(list)
         self._letter_handler = letter_handler
+        self._debug = False
+        self._max_debug_depth = -1
 
         for clue, clue2 in itertools.permutations(self._clue_list, 2):
             for intersection in Intersection.get_intersections(clue, clue2):
@@ -43,30 +42,20 @@ class ConstraintSolver(BaseSolver):
             clues, predicate, name = constraint
             self.add_constraint(clues, predicate, name=name)
 
-    def add_constraint(self, clues: Sequence[Clue | str] | str,
-                       predicate: Callable[..., bool],
-                       *, name: str | None = None) -> None:
-        if isinstance(clues, str):
-            clues = clues.split()
-        actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue)
-                             for clue in clues)
-        actual_name = name or '-'.join(clue.name for clue in actual_clues)
-
-        if len(actual_clues) == 1:
-            self._singleton_constraint[actual_clues[0]].append(predicate)
-            return
-
+    def _add_multi_constraint(self, actual_clues: tuple[Clue, ...],
+                              predicate: Callable[*tuple[ClueValue, ...], bool],
+                              name: str) -> None:
         if len(actual_clues) == 2:
-            # This is just an optimization, since the two-clue case in the most common
+            # This is just an optimization, since the two-clue case is the most common
             clue1, clue2 = actual_clues
 
             def check_relationship(unknown_clues: UnknownClueDict) -> bool:
                 return self.__check_2_clue_constraint(clue1, clue2, unknown_clues,
-                                                      predicate, actual_name)
+                                                      predicate, name)
         else:
             def check_relationship(unknown_clues: UnknownClueDict) -> bool:
                 return self.__check_n_clue_constraint(actual_clues, unknown_clues,
-                                                      predicate, actual_name)
+                                                      predicate, name)
         for clue in actual_clues:
             self._multi_constraints[clue].append(check_relationship)
 
@@ -116,12 +105,14 @@ class ConstraintSolver(BaseSolver):
                              for x in start_clues]
         self._max_debug_depth = -1 if not debug else (max_debug_depth or 1000)
         time1 = datetime.now()
-        initial_unknown_clues = {clue: self.__get_initial_values_for_clue(clue)
+        initial_unknown_clues = {clue: self.get_initial_values_for_clue(clue)
                                  for clue in self._clue_list if clue.generator}
-        self._letter_handler and self._letter_handler.start()
+        if self._letter_handler:
+            self._letter_handler.start()
         time2 = datetime.now()
         self.__solve(initial_unknown_clues)
-        self._letter_handler and self._letter_handler.close()
+        if self._letter_handler:
+            self._letter_handler.close()
         time3 = datetime.now()
         if show_time:
             print(f'Solutions {self._solution_count}; Steps: {self._step_count}; '
@@ -136,7 +127,7 @@ class ConstraintSolver(BaseSolver):
                 self._solution_count += 1
                 self.show_solution(self._known_clues)
                 if depth < self._max_debug_depth:
-                    print(f'{"***" * depth}***SOLVED***"')
+                    print(f'{"***" * depth}***SOLVED***')
             return
 
         if depth < len(self._start_clues):
@@ -161,11 +152,12 @@ class ConstraintSolver(BaseSolver):
                 self._step_count += 1
                 is_duplicate = (not self._allow_duplicates and value in seen_values
                                 and len(value) > 1)
-                fails_letter_handler = letter_handler and \
-                    not letter_handler.checking_value(value, lh_clue_info)
+                fails_letter_handler = (
+                        letter_handler and
+                        not letter_handler.checking_value(value, lh_clue_info))
                 if depth < self._max_debug_depth:
                     print(f'{" | " * depth}{clue.name} {i + 1}/{len(values)}: '
-                          f'{value.__repr__()} -->'
+                          f'{value!r} -->'
                           f'{" dup" if is_duplicate else ""}'
                           f'{" letter-handling-fail" if fails_letter_handler else ""}'
                           f' [{self._step_count}]')
@@ -188,26 +180,11 @@ class ConstraintSolver(BaseSolver):
         finally:
             self._known_clues.pop(clue, None)
 
-    def get_initial_values_for_clue(self, clue):
-        return self.__get_initial_values_for_clue(clue)
-
-    def __get_initial_values_for_clue(self, clue: Clue) -> Sequence[ClueValue]:
-        """
-        Generates all the possible values for the clue, but tosses out those that have a
-        zero in a bad location, or otherwise don't find the expected pattern.
-        """
-        pattern_generator = Intersection.make_pattern_generator(clue, (), self)
-        pattern = pattern_generator({})
-        clue_generator = cast(ClueValueGenerator, clue.generator)
-        string_values = [(str(x) if isinstance(x, int) else x)
-                         for x in clue_generator(clue)]
-        predicates = self._singleton_constraint[clue]
-        result = sorted([x for x in string_values
-                         if pattern.fullmatch(x)
-                         if all(predicate(x) for predicate in predicates)])
+    def get_initial_values_for_clue(self, clue: Clue) -> Sequence[ClueValue]:
+        result = super().get_initial_values_for_clue(clue)
         if self._max_debug_depth > 0:
             def show_full(x):
-                return [item.__repr__() for item in x]
+                return [repr(item) for item in x]
 
             if len(result) <= 20:
                 print(f'{clue.name}: ({", ".join(show_full(result))})')
@@ -218,13 +195,6 @@ class ConstraintSolver(BaseSolver):
                 print(f'{clue.name}: ({", ".join(show_full(smallest))} '
                       f'[{len(result) - 16} skipped] {", ".join(show_full(largest))})')
         return cast(Sequence[ClueValue], result)
-
-    def check_solution(self, known_clues: KnownClueDict) -> bool:
-        return True
-
-    def show_solution(self, known_clues: KnownClueDict) -> None:
-        """Overridden by subclasses that want to do more than show a plot."""
-        self.plot_board(known_clues)
 
     def __check_2_clue_constraint(
             self, clue1: Clue, clue2: Clue,
@@ -250,7 +220,7 @@ class ConstraintSolver(BaseSolver):
                 unknown_clue = clue1
                 start_value = unknown_clues[clue1]
                 end_value = unknown_clues[clue1] = [
-                    x for x in start_value if clue_filter(x, cast(ClueValue, value2))]
+                    x for x in start_value if clue_filter(x, value2)]
             if len(self._known_clues) < self._max_debug_depth:
                 self.__debug_show_constraint(unknown_clue, name, start_value, end_value)
             return bool(end_value)
@@ -258,7 +228,7 @@ class ConstraintSolver(BaseSolver):
 
     def __check_n_clue_constraint(self, clues: tuple[Clue, ...],
                                   unknown_clues: UnknownClueDict,
-                                  clue_filter: Callable[..., bool],
+                                  clue_filter: Callable[*tuple[ClueValue, ...], bool],
                                   name: str) -> bool:
         """
         Used by constraints with more than two variables.
@@ -321,12 +291,12 @@ class Constraint(NamedTuple):
 type LCH_Info = tuple[Sequence[int], set[tuple[int, int]]]
 
 
-class AbstractLetterCountHandler(Protocol):
+class AbstractLetterCountHandler[T](Protocol):
     def start(self) -> None: ...
-    def get_clue_info(self, clue: Clue) -> Any: ...
-    def checking_value(self, value: ClueValue, info: Any) -> bool: ...
-    def adding_value(self, value: ClueValue, info: Any) -> None: ...
-    def removing_value(self, value: ClueValue, info: Any) -> None: ...
+    def get_clue_info(self, clue: Clue) -> T: ...
+    def checking_value(self, value: ClueValue, info: T) -> bool: ...
+    def adding_value(self, value: ClueValue, info: T) -> None: ...
+    def removing_value(self, value: ClueValue, info: T) -> None: ...
     def close(self) -> None: ...
 
 
@@ -334,8 +304,12 @@ class LetterCountHandler(AbstractLetterCountHandler):
     _locations: set[tuple[int, int]]
     _counter: Counter[str]
 
+    @property
+    def counter(self):
+        return self._counter
+
     @abc.abstractmethod
-    def real_checking_value(self, value: ClueValue, info: Any) -> bool:
+    def real_checking_value(self, value: ClueValue, info: LCH_Info) -> bool:
         ...
 
     def start(self):
@@ -343,10 +317,10 @@ class LetterCountHandler(AbstractLetterCountHandler):
         self._counter = Counter()
 
     def get_clue_info(self, clue: Clue) -> LCH_Info:
-        temp = [(index, location) for index, location in enumerate(clue.locations)
+        changed = [(index, location) for index, location in enumerate(clue.locations)
                 if location not in self._locations]
-        new_locations = {location for _, location in temp}
-        new_indices = [index for index, _ in temp]
+        new_locations = {location for _, location in changed}
+        new_indices = [index for index, _ in changed]
         return new_indices, new_locations
 
     def checking_value(self, value: ClueValue, info: LCH_Info) -> bool:

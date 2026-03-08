@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 from collections.abc import Sequence
 
-from solver import ClueValue, Clues, EquationSolver, Evaluator, Letter
+from solver import Clues, EquationSolver, Evaluator, Letter
 
 CLUES = """
 A TH(E + T) + A
@@ -61,7 +61,7 @@ class Magpie256(EquationSolver):
                                itertools.pairwise(self.expressions) if key1 == key2}
 
     def parse_expressions(self) -> Sequence[tuple[Letter, Evaluator]]:
-        return [(Letter(key), evaluator)
+        return [(key, evaluator)
                 for line in CLUES.strip().splitlines()
                 for key in [line[0]]
                 for evaluator in [Evaluator.create_evaluator(line[1:].strip())]]
@@ -130,8 +130,8 @@ class Magpie256(EquationSolver):
             nonlocal solutions
             solutions += 1
             known_clues = {
-                clue: ClueValue(''.join(board[location] for location in clue.locations))
-                for clue in self._clue_list}
+                clue: ''.join(board[location] for location in clue.locations)
+                for clue in self.clue_list}
             self.show_solution(known_clues, known_letters)
             for key, expression in self.expressions:
                 print(f'{key}={known_letters[key]:2}: '

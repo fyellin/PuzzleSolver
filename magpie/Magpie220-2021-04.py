@@ -1,11 +1,11 @@
 import collections
 import itertools
 import math
+from collections.abc import Iterator, Sequence
 from typing import Any
-from collections.abc import Sequence, Iterator
 
 import solver
-from solver import generators, ConstraintSolver, Clues, Clue, ClueValue, KnownClueDict
+from solver import Clue, Clues, ClueValue, ConstraintSolver, KnownClueDict, generators
 
 GRID = """
 XXX.
@@ -109,15 +109,14 @@ class Solver220(ConstraintSolver):
         return result
 
     def add_all_constraints(self) -> None:
-        clues = set(self._clue_list)
+        clues = set(self.clue_list)
         clues.remove(self.A10)
         for four in itertools.combinations(clues, 4):
             self.add_constraint(four, self.not_all_same(*four))
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        locations = {location: int(letter)
-                     for clue in self._clue_list
-                     for location, letter in zip(clue.locations, known_clues[clue])}
+        locations = self.get_board(known_clues)
+        locations = {x : int(y) for x, y in locations.items()}
         counter = collections.Counter()
         for clue, value in known_clues.items():
             if clue != self.A10:
@@ -145,7 +144,7 @@ class Solver220(ConstraintSolver):
             if clue != self.A10:
                 print(clue.name, ALL_INFO[clue, value])
         locations = {location: int(letter)
-                     for clue in self._clue_list
+                     for clue in self.clue_list
                      for location, letter in zip(clue.locations, known_clues[clue])}
         total1 = sum(locations.values())
         total2 = locations[4, 3] * 10 + locations[4, 4]

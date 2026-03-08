@@ -2,12 +2,18 @@ import itertools
 import math
 import re
 from collections import Counter, defaultdict
-from fractions import Fraction
 from collections.abc import Callable, Sequence
+from fractions import Fraction
 
+from solver import (
+    Clue,
+    EquationSolver,
+    Evaluator,
+    Intersection,
+    KnownClueDict,
+    KnownLetterDict,
+)
 from solver.fill_in_crossword_grid import FillInCrosswordGrid
-from solver import Clue, EquationSolver, Evaluator, Intersection, KnownClueDict
-from solver import KnownLetterDict
 
 A_NUMBERS = """
 H+ A − W 
@@ -186,7 +192,7 @@ class Listener4725(EquationSolver):
             clue = Clue(f'{self.clue_count}a', True, (1, 1), 1)
             if is_special:
                 clue.evaluators = Evaluator.create_evaluators(
-                    line, mapping=dict(fact=self.factorial), wrapper=self.my_wrapper)
+                    line, mapping={'fact': self.factorial}, wrapper=self.my_wrapper)
             else:
                 clue.evaluators = Evaluator.create_evaluators(line)
             result.append(clue)
@@ -248,9 +254,7 @@ class Listener4725(EquationSolver):
         if any(values1[0] != values2[0] for values1, values2 in doubled_clues):
             return False
         # The clue numbers must run for 1 .. max(checker.keys())
-        if any(i not in checker for i in range(1, max(checker.keys()))):
-            return False
-        return True
+        return all(i in checker for i in range(1, max(checker.keys())))
 
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict
                       ) -> None:

@@ -1,10 +1,9 @@
-from time import time
+from collections.abc import Callable
 from itertools import combinations, groupby, product
 from math import comb
-from collections.abc import Callable
+from time import time
 
 from matplotlib import pyplot as plt
-
 
 C_LINE = ('DE', 'EZ', 'DZ', 'DG', 'KZ', 'AG', 'EG', ('BE', 'BK'), 'BD', 'EK',
           ('BZ', 100), 'GZ', 'DK', 'AD', 'AE', 'AZ', 'BG', 'GK', 'AK', 'AB')
@@ -13,7 +12,7 @@ R_LINE = ('DE', 'EZ', 'KZ', 'DZ', 'DG', 'AG', 'BK', 'EG', 'AK', 'EK', 'AZ',
           'BG', 'DK', 'BD', 'BE', 'GZ', ('AE', 'BZ'), 'AD', 'GK', 'AB')
 
 
-def parse_one_constraint(item: str|int|tuple[str,str], func:Callable[[int, int], int]):
+def parse_one_constraint(item: str | int | tuple[str, str], func: Callable[[int, int], int]):
     if isinstance(item, str):
         name1, name2 = item
 
@@ -35,7 +34,7 @@ def parse_one_constraint(item: str|int|tuple[str,str], func:Callable[[int, int],
                 return -1
             return value1 or value2
         return result
-    assert False
+    raise AssertionError
 
 
 C_LINE_COMPILED = [parse_one_constraint(x, lambda x, y: x * x + y * y) for x in C_LINE]
@@ -93,8 +92,8 @@ def draw_grid(annotate=1, **args):
     for column in range(1, max_column + 1):
         axes.plot([column, column], [1, max_row], color='black', lw=.5)
 
-    greek_map = dict(A="alpha", B="beta", D="delta", G="gamma",
-                     E="epsilon", K="kappa", Z="zeta")
+    greek_map = {'A': "alpha", 'B': "beta", 'D': "delta", 'G': "gamma",
+                 'E': "epsilon", 'K': "kappa", 'Z': "zeta"}
     for key, (row, column) in args.items():
         axes.add_patch(plt.Circle((column, row),
                                   radius=.3, linewidth=2, fill=True, fc='red'))
@@ -121,6 +120,7 @@ def draw_grid(annotate=1, **args):
 
     plt.show()
 
+
 def verifier():
     values = {'A': (1, 1), 'B': (18, 12), 'Z': (12, 4), 'E': (11, 6), 'G': (3, 9), 'K': (20, 3), 'D': (10, 7)}
     keys = sorted(values.keys())
@@ -134,7 +134,7 @@ def verifier():
         b.append((key1 + key2, comb(dx + dy, dx)))
 
     for values in (a, b):
-        values.sort(key = lambda x: x[1])
+        values.sort(key=lambda x: x[1])
         for value, items in groupby(values, lambda x: x[1]):
             print(value, [x for x, _ in items])
 

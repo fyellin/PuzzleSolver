@@ -1,18 +1,22 @@
 import itertools
+import math
 import multiprocessing
+import pathlib
 from collections import defaultdict, deque
 from collections.abc import Sequence
 from contextlib import nullcontext
 from datetime import datetime
 
-import math
+from more_itertools import sieve
 
 from misc import Pentomino
 from misc.Pentomino import get_graph_colors
 from solver import Clues, DancingLinks, EquationSolver
+from solver.dancing_links import get_row_column_optional_constraints
 
 ACROSS_LENGTHS = "213/411/312/213/114/312"
 DOWN_LENGTHS = "321/24/213/312/42/123"
+
 
 class Magpie276(EquationSolver):
     @classmethod
@@ -30,12 +34,13 @@ PENTOMINOS = {
     "L4": "XXX/X", "O4": 'XX/XX', "S4": ".XX/XX.", "T4": "XXX/.X."
 }
 
+
 class MyPentominos:
     def __init__(self, solver: Magpie276 = None) -> None:
         self.pentominos = Pentomino.Pentomino.all_pentominos(PENTOMINOS)
         self.solver = solver or Magpie276()
         self.my_clue_list = sorted(
-            self.solver._clue_list,
+            self.solver.clue_list,
             key=lambda x: (-x.is_across, x.length, x.base_location))
 
     def solve(self, do_check=True, write_file=False, debug=False, **args):
@@ -53,11 +58,7 @@ class MyPentominos:
                         constraints[name, *pixels] = constraint
 
         # Don't require non-start squares to be tiled. These are the holes filled by 0s
-        optional_constraints = {
-            f'r{row}c{col}'
-            for row in range(1, 7) for col in range(1, 7)
-            if not self.solver.is_start_location((row, col))
-        }
+        optional_constraints = get_row_column_optional_constraints(7, 7)
 
         my_threes = [
             {f'r{r}c{c}' for (r, c) in [clue.locations[0], clue.locations[-1]]}
@@ -75,7 +76,7 @@ class MyPentominos:
             if any(x <= items for x in my_threes) and name[0] != 'I4':
                 constraint.append(f"pal3-{name[0]}")
         # We've created three primary constraints pal3-I3, pal3-T4, and pal3-L4.
-        # We need at least two of them to be true.  To handle this we create a new
+        # We need at least two of them to be true.  To handle this, we create a new
         # primary constraint pal3-all-but that takes 0 or 1 of the aforementioned
         # constraints.
         for count in (0, 1):
@@ -130,7 +131,7 @@ class MyPentominos:
         print(f'non-duplicate good={len(good_solutions)}')
 
         if write_file:
-            with open("/tmp/file1", "w") as file:
+            with pathlib.Path("/tmp/file1").open("w") as file:
                 for solution in good_solutions:
                     print('.'.join(solution), file=file)
             print("File is written")
@@ -139,7 +140,7 @@ class MyPentominos:
 
     def draw_solution(self, solution, numbers=None):
         if numbers:
-            for digit, letter in zip(numbers, 'ABCDEFGHI'):
+            for digit, letter in zip(numbers, 'ABCDEFGHI', strict=True):
                 solution = solution.replace(letter, str(digit))
         clue_values = dict(zip(self.my_clue_list, solution.split('.'), strict=True))
         tiles = defaultdict(set)
@@ -158,7 +159,7 @@ class MyPentominos:
 
     def check_everything(self, good_tilings=None, *, multitasking=True, draw=False):
         if not good_tilings:
-            with open("/tmp/file1") as file:
+            with pathlib.Path("/tmp/file1").open() as file:
                 good_tilings = [line.strip().split('.') for line in file]
         count = 0
         solutions = []
@@ -185,10 +186,7 @@ SMALL_FIBO = {13, 21, 34, 55, 89, 144, 233, 377, 610, 987}
 SMALL_TRIANGLE = {10, 15, 21, 28, 36, 45, 55, 66, 78, 91}
 PALINDROMES = {int(x) for i in range(10, 100)
                for j in [str(i)] for x in (j + j[1] + j[0], j + j[0])}
-PRIMES = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73,
-          79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157,
-          163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239,
-          241, 251, 257, 263, 269, 271, 277, 281, 283, 293}
+PRIMES = set(sieve(300))
 
 
 def check_all_number_assignments(items) -> \
@@ -197,7 +195,7 @@ def check_all_number_assignments(items) -> \
     results = []
     for numbers in itertools.permutations(range(1, 10)):
         result = formula(*numbers)
-        # result is None if j isn't a palindrome. So we don't need to test that.
+        # The result is None if j isn't a palindrome. So we don't need to test that.
         if result is None: continue
         a2, a3, a4, d2, d3, d4 = result
 
@@ -245,14 +243,12 @@ def compile_line(items):
 
     # The first letter of the palindrome has to be less than the first letter of the
     # other 4-letter across.  Otherwise, we can fail quickly. "comparison" should be
-    # the fail quickly case.
+    # the case that fails quickly.
     comparator = '>' if len(set(items[8])) == 1 else '<'
     comparison = f'{items[8][0]} {comparator} {items[9][0]}'
 
     equations = deque(convert_to_math(item) for item in items)
-    equation2 = []
-    for i in (4, 4, 2, 6, 4, 2):
-        equation2.append('(' + ", ".join(equations.popleft() for _ in range(i)) + ')')
+    equation2 = ['(' + ", ".join(equations.popleft() for _ in range(i)) + ')' for i in (4, 4, 2, 6, 4, 2)]
     equation3 = "(" + ", ".join(equation2) + ")"
     equation4 = f"None if {comparison} else {equation3}"
     return eval(f"lambda A,B,C,D,E,F,G,H,I: {equation4}")

@@ -20,16 +20,16 @@ DOWN_LENGTHS = [9, 9, 11, 10, 8, 7, 7, 8, 12, 10, 11, 12]
 
 class Solver:
     def __init__(self):
-        for word, length in zip(ACROSS, ACROSS_LENGTHS):
+        for word, length in zip(ACROSS, ACROSS_LENGTHS, strict=True):
             assert len(word) == length, f"{word} has wrong length {length}"
-        for word, length in zip(DOWNS, DOWN_LENGTHS):
+        for word, length in zip(DOWNS, DOWN_LENGTHS, strict=True):
             assert len(word) == length, f"{word} has wrong length {length}"
         self.results = set()
 
     def handle_solution(self, solution):
         locations = {}
         for (aa, is_across, word, indices) in solution:
-            for bb, letter in zip(indices, word):
+            for bb, letter in zip(indices, word, strict=True):
                 row, col = (aa, bb) if is_across else (bb, aa)
                 if (row, col) in locations:
                     assert locations[row, col] == letter
@@ -48,7 +48,7 @@ class Solver:
                 for indices in itertools.combinations(range(1, 13), len(word)):
                     for aa in [word_index] if is_across else range(1, 13):
                         constraint = [word, f'{"A" if is_across else "D"}-{aa}']
-                        for bb, letter in zip(indices, word):
+                        for bb, letter in zip(indices, word, strict=True, strict=True):
                             name = f'r{aa}c{bb}' if is_across else f'r{bb}c{aa}'
                             constraint.append((name, letter))
                         # for bb in range(1, 13):
@@ -64,7 +64,7 @@ class Solver:
 
     def draw_grid(self, solution=None):
         # solution = solution or "POTCATOTPITTRDHARMSHALHAEARRORIULSITCREPEHANGINGANOESRMDTRGIITENTEPEEGALDILTHAYRRAMBPTERODAPCTYLIRAIMBILANJACAFESASULAITEGENERIMTGGCDIDSTEMPERSK"
-        locations = dict(zip(itertools.product(range(1, 13), repeat=2), solution))
+        locations = dict(zip(itertools.product(range(1, 13), repeat=2), solution, strict=True))
         clue_numbers = {(i, 1): [i] for i in range(1, 13)}
         draw_grid(max_row=13, max_column=13, location_to_entry=locations,
                   location_to_clue_numbers=clue_numbers, font_multiplier=.6)

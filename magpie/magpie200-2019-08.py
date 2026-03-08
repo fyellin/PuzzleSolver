@@ -1,10 +1,14 @@
 import itertools
 import re
-from typing import cast, Any
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 
-from solver import Clue, ClueValueGenerator, ClueValue, ConstraintSolver, KnownClueDict
-from solver import generators
+from solver import (
+    Clue,
+    ClueValue,
+    ConstraintSolver,
+    generators,
+)
+from solver.dancing_links import DancingLinks, get_row_column_optional_constraints
 
 ACROSS = """
 a 159 56 165 67 5      4
@@ -44,47 +48,6 @@ u..v...w...
 """
 
 
-class MyString(str):
-    def __repr__(self) -> str:
-        return '<' + str(self) + '>'
-
-    def __new__(cls, value: int, operators: tuple[str, ...], parentheses: tuple[int, int] | None, expression: str
-                ) -> Any:
-        return super().__new__(cls, value)  # type: ignore
-
-    def __init__(self, _value: int, operators: tuple[str, ...], parentheses: tuple[int, int] | None, expression: str
-                 ) -> None:
-        super().__init__()
-        self.operators = operators
-        self.parentheses = parentheses
-        self.expression = expression
-
-
-def generator(values: Sequence[int]) -> ClueValueGenerator:
-    def result(clue: Clue) -> Iterable[MyString]:
-        min_value, max_value = generators.get_min_max(clue)
-        for ops in itertools.permutations("+*-/"):
-            def get_value(lparen: int, rparen: int) -> tuple[str, int | None]:
-                def q(i: int) -> str:
-                    return f"{'(' if i == lparen else ''}{values[i]}{')' if i == rparen else ''}"
-                equation = f"{q(0)} {ops[0]} {q(1)} {ops[1]} {q(2)} {ops[2]} {q(3)} {ops[3]} {q(4)}"
-                real_value = eval(equation)
-                int_value = int(real_value)
-                if int_value == real_value and min_value <= int_value < max_value:
-                    return equation, int_value
-                else:
-                    return equation, None
-            expression, base_value = get_value(-1, -1)
-            if base_value:
-                yield MyString(base_value, ops, None, expression)
-            for start_paren in range(0, 4):
-                for end_paren in range(4, start_paren, -1):
-                    expression, value = get_value(start_paren, end_paren)
-                    if value and value != base_value:
-                        yield MyString(value, ops, (start_paren, end_paren), expression)
-    return result
-
-
 def make_clue_list() -> Sequence[Clue]:
     locations = {}
     for row, line in enumerate(MAP.split()):
@@ -102,38 +65,75 @@ def make_clue_list() -> Sequence[Clue]:
             values = [int(match.group(i))for i in range(2, 7)]
             length = int(match.group(7))
             location = locations[letter]
-            clue = Clue(f'{letter}{suffix}', is_across, location, length, generator=generator(values))
+            clue = Clue(f'{letter}{suffix}', is_across, location, length, context=values)
             clues.append(clue)
     return clues
 
 
 class MySolver(ConstraintSolver):
-    def __init__(self, clue_list: Sequence[Clue]) -> None:
+    def __init__(self) -> None:
+        clue_list = make_clue_list()
         super().__init__(clue_list)
-        for clue1, clue2 in itertools.combinations(clue_list, 2):
-            self.add_constraint((clue1, clue2), MySolver.must_be_different)
 
-    @staticmethod
-    def must_be_different(aa: ClueValue, bb: ClueValue) -> bool:
-        a = cast(MyString, aa)
-        b = cast(MyString, bb)
-        if a.operators == b.operators:
-            return False
-        if a.parentheses and a.parentheses == b.parentheses:
-            return False
-        return True
+    def solve(self, debug: bool = False) -> None:
+        constraints = {}
+        optional_constraints = get_row_column_optional_constraints(5, 11)
 
-    def show_solution(self, known_clues: KnownClueDict) -> None:
-        super().show_solution(known_clues)
-        for clue in self._clue_list:
-            value = cast(MyString, known_clues[clue])
-            print(f'{clue.name} {value:<5} = {value.expression}')
+        for clue in self.clue_list:
+            values = clue.context
+            min_value, max_value = generators.get_min_max(clue)
+
+            def evaluate(operators: tuple[str, ...], lparen: int, rparen: int) -> tuple[str, int | None]:
+                parts = []
+                for i in range(5):
+                    parts.append('(' if i == lparen else '')
+                    parts.append(str(values[i]))
+                    parts.append(')' if i == rparen else '')
+                    if i < 4:
+                        parts.append(operators[i])
+                expression = ''.join(parts)
+                real_value = eval(expression)
+                int_value = int(real_value)
+                if min_value <= int_value == real_value < max_value:
+                    return expression, int_value
+                return expression, None
+
+            def add_constraint(
+                value: int, operators: tuple[str, ...], parentheses: tuple[int, int] | None, expression: str,
+            ) -> None:
+                value_tag = f'Value-{value}'
+                operators_tag = ''.join(operators)
+                constraint = [f'Clue-{clue.name}', value_tag, operators_tag,
+                              *clue.dancing_links_rc_constraints(value),]
+                optional_constraints.update((value_tag, operators_tag))
+                if parentheses is not None:
+                    lparen, rparen = parentheses
+                    parentheses_tag = f'Parentheses-{lparen}-{rparen}'
+                    constraint.append(parentheses_tag)
+                    optional_constraints.add(parentheses_tag)
+                constraints[clue, value, operators, parentheses or (-1, -1), expression] = constraint
+
+            for ops in itertools.permutations("+*-/"):
+                expression, base_value = evaluate(ops, -1, -1)
+                if base_value is not None:
+                    add_constraint(base_value, ops, None, expression)
+                for start_paren in range(0, 4):
+                    for end_paren in range(4, start_paren, -1):
+                        expression, value = evaluate(ops, start_paren, end_paren)
+                        if value is not None and value != base_value:
+                            add_constraint(value, ops, (start_paren, end_paren), expression)
+
+        solver = DancingLinks(constraints, optional_constraints=optional_constraints, row_printer=self.my_row_printer)
+        solver.solve(debug=debug)
+
+    def my_row_printer(self, rows: Sequence[tuple[Clue, int, tuple, tuple, str]]) -> None:
+        known_values = {clue: str(value)
+                        for clue, value, operators, parentheses, expression in rows}
+        self.plot_board(known_values)
 
 
 def run() -> None:
-    clue_list = make_clue_list()
-    solver = MySolver(clue_list)
-    solver.verify_is_180_symmetric()
+    solver = MySolver()
     solver.solve(debug=False)
 
 

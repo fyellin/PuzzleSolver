@@ -1,34 +1,19 @@
-import math
-from typing import Any
+from typing import Any, Unpack
 
 from misc.Pentomino import PentominoSolver, get_graph_shading
-from solver import Clue, Clues, ClueValue, ConstraintSolver, KnownClueDict, LetterCountHandler
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    ConstraintSolver,
+    DrawGridKwargs,
+    KnownClueDict,
+    LetterCountHandler,
+)
 from solver.generators import allvalues, fibonacci, known, palindrome, prime, triangular
-
-
-def dp(x):
-    return math.prod(int(i) for i in str(x))
-
-
-def ds(x):
-    return sum(int(i) for i in str(x))
-
-
-def is_cube(x):
-    return round(x ** (1 / 3)) ** 3 == x
-
-
-def is_square(x):
-    return math.isqrt(x) ** 2 == x
-
-
-def is_prime(x):
-    return all(x % i for i in range(2, math.isqrt(x) + 1))
-
-
-def is_harshad(x):
-    return x % ds(x) == 0
-
+from solver.helpers import digit_product as dp
+from solver.helpers import digit_sum as ds
+from solver.helpers import is_cube, is_harshad, is_square
 
 GRID = """
 XX.XXX.X
@@ -73,7 +58,8 @@ class Magpie253 (ConstraintSolver):
             clue.generator = allvalues
         return clues
 
-    def draw_grid(self, location_to_entry, **more_args: Any) -> None:
+    def draw_grid(self, **more_args: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = more_args['location_to_entry']
         shading = {}
         if location_to_entry:
             # Figure out how to divide the graph into pentominos
@@ -87,18 +73,17 @@ class Magpie253 (ConstraintSolver):
             if solutions:
                 solution, = solutions
                 shading = get_graph_shading(solution)
-        super().draw_grid(location_to_entry=location_to_entry,
-                          shading=shading, **more_args)
+        super().draw_grid(shading=shading, **more_args)
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
         value = dp(known_clues[self.clue_named('17d')])
-        counter = self._letter_handler._counter
+        counter = self._letter_handler.counter
         expected_value = sum(int(key) for key, value in counter.items() if value) * 12
         return value == expected_value
 
     class MyLetterHandler(LetterCountHandler):
         def real_checking_value(self, value: ClueValue, _info: Any) -> bool:
-            counter = self._counter
+            counter = self.counter
             return sum(x > 0 for x in counter.values()) <= 5 and max(counter.values()) <= 12
 
     def __get_constraints(self):

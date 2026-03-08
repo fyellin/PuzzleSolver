@@ -1,5 +1,4 @@
-import math
-from typing import Any
+from typing import Any, Unpack
 
 from more_itertools import is_prime
 
@@ -10,6 +9,7 @@ from solver import (
     ClueValue,
     ConstraintSolver,
     DancingLinks,
+    DrawGridKwargs,
     LetterCountHandler,
     Location,
 )
@@ -73,11 +73,16 @@ class Magpie253 (ConstraintSolver):
 
     class MyLetterHandler(LetterCountHandler):
         def real_checking_value(self, value: ClueValue, _info: Any) -> bool:
-            counter = self._counter
+            counter = self.counter
             return all(x <= 8 for x in counter.values())
 
-    def draw_grid(self, location_to_entry, location_to_clue_numbers,
-                  top_bars, left_bars, max_row, max_column, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = args.pop('location_to_entry')
+        location_to_clue_numbers = args.pop('location_to_clue_numbers')
+        top_bars = args.pop('top_bars')
+        left_bars = args.pop('left_bars')
+        max_row = args.pop('max_row')
+        max_column = args.pop('max_column')
         constraints = {}
         for row in range(1, max_row):
             for column in range(1, max_column):

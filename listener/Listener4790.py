@@ -132,7 +132,7 @@ def draw_me():
     right = (5, 1, 5, 6, 4, 3, 5, 5, 5, 3, 4, 4, 2, 1, 1, 6)
 
     for x in (top, front, right):
-        entries = dict(zip(product(range(1, 5), repeat=2), x))
+        entries = dict(zip(product(range(1, 5), repeat=2), x, strict=True))
         draw_grid(max_row=5, max_column=5,
                   clued_locations=set(product(range(1, 5), repeat=2)),
                   clue_values=entries,

@@ -1,7 +1,7 @@
 import itertools
 import math
-from typing import Any
 from collections.abc import Sequence
+from typing import Any
 
 from solver import Clue, Clues, ConstraintSolver, generators
 
@@ -87,7 +87,7 @@ class Magpie258(ConstraintSolver):
         super().plot_board(clue_values, shading=shading, **more_args)
 
         count1 = count2 = 0
-        for clue, target in zip(self._clue_list, TARGETS):
+        for clue, target in zip(self.clue_list, TARGETS):
             if isinstance(target, str):
                 continue
             value = int(clue_values[clue])

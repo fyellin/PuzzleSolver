@@ -1,10 +1,19 @@
 import functools
 import re
-from typing import Any
-from collections.abc import Sequence, Callable
+from collections.abc import Callable, Sequence
+from typing import Unpack
 
-from solver import Clue, Location, Clues, ConstraintSolver, Intersection, Letter
-from solver import EquationSolver, KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    ConstraintSolver,
+    DrawGridKwargs,
+    EquationSolver,
+    Intersection,
+    KnownClueDict,
+    KnownLetterDict,
+    Location,
+)
 
 GRID = """
 X.XXXXXXXX
@@ -148,7 +157,7 @@ class OuterSolver(EquationSolver):
         print(tuple((letter, value) for letter, value in known_letters.items()))
         print(tuple((clue.name, value) for clue, value in known_clues.items()))
         self.show_letter_values(known_letters)
-        InnerSolver.run(self._clue_list, known_clues, known_letters)
+        InnerSolver.run(self.clue_list, known_clues, known_letters)
 
 
 class InnerSolver(ConstraintSolver):
@@ -166,7 +175,7 @@ class InnerSolver(ConstraintSolver):
                    ('E', 6), ('S', 1), ('I', 8), ('W', 13), ('G', 4), ('D', 15), ('C', 2), ('O', 14), ('U', 16),
                    ('H', 12))
         print(', '.join(x for x, _ in letters), '=', ', '.join(str(x) for _, x in letters))
-        letter_values = {Letter(letter): value for letter, value in letters}
+        letter_values = {letter: value for letter, value in letters}
         grid = Clues.get_locations_from_grid(GRID)
         clues = OuterSolver.create_from_text(ACROSS, DOWN, grid)
         clue_values: KnownClueDict = {clue: clue.evaluators[0](letter_values) for clue in clues}
@@ -187,7 +196,7 @@ class InnerSolver(ConstraintSolver):
             result = [chr(int(digit) + 48) for digit in parsing]
             yield ''.join(result)
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         location_to_entry: dict[Location, str] = args['location_to_entry']
         args['location_to_entry'] = {location : str(ord(code) - 48) for location, code in location_to_entry.items()}
         super().draw_grid(**args)

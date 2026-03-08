@@ -1,7 +1,8 @@
 import itertools
+
 import numpy as np
 
-from misc.factors import factor_count
+from misc import factor_count
 from solver import Clue, EquationSolver, Evaluator, Location
 
 

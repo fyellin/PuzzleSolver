@@ -1,52 +1,73 @@
 import itertools
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
 from collections.abc import Sequence
-from typing import Any, cast
+from itertools import permutations
+from typing import Unpack, cast
 
 from more_itertools import sieve
 
-from solver import Clue, generators
-from solver import ConstraintSolver
-from solver import Location, KnownClueDict
+from solver import (
+    AbstractClueValue,
+    Clue,
+    ConstraintSolver,
+    DrawGridKwargs,
+    KnownClueDict,
+    Location,
+)
 
 
-def roman_numeral_for(n: int) -> [str]:
-    (a, b, c, d) = cast(tuple, f'{n:04}')
-    result = ["", "M", "MM", "MMM"][int(a)] + \
-             ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"][int(b)] + \
-             ["", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"][int(c)] + \
-             ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"][int(d)]
-    if len(result) <= 3 and ('M' in result or 'D' in result):
-        return []
-    return [RomanString(result, n)]
+class RomanString(AbstractClueValue):
+    """Roman clue answer"""
 
-
-class RomanString(str):
-    def __repr__(self) -> str:
-        return f'RomanString("{str(self)}",{self.as_int})'
-
-    def __new__(cls, value: str, as_int: int) -> Any:
-        return super().__new__(cls, value)  # type: ignore
+    __slots__ = ('as_int', 'has_special')
 
     def __init__(self, value: str, as_int: int) -> None:
-        super().__init__()
+        super().__init__(value)
         self.as_int = as_int
         self.has_special = 'M' in value or 'D' in value
 
+    def __int__(self) -> int:
+        return self.as_int
 
-def build_table() -> tuple[dict[int, Sequence[str]], dict[str, int]]:
+    def __repr__(self) -> str:
+        return f'RomanString("{self._text}",{self.as_int})'
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, RomanString):
+            return self.as_int == other.as_int
+        return NotImplemented
+
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, RomanString):
+            return self.as_int < other.as_int
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        return hash(self._text)
+
+    @staticmethod
+    def from_int(n: int) -> RomanString:
+        # noinspection PyTupleAssignmentBalance
+        (a, b, c, d) = f'{n:04}'  # pycharm is confused
+        result = ["", "M", "MM", "MMM"][int(a)] + \
+                 ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"][int(b)] + \
+                 ["", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"][int(c)] + \
+                 ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"][int(d)]
+        return RomanString(result, n)
+
+
+def build_table() -> dict[int, list[RomanString]]:
     result = defaultdict(list)
-    result2: [str, int] = {}
     for prime in sieve(4000):  # all primes <= 4000
-        romans = roman_numeral_for(prime)
-        for roman in romans:
-            result[len(roman)].append(roman)
-            assert roman not in result2
-            result2[roman] = prime
-    return result, result2
+        romans = RomanString.from_int(prime)
+        string = str(romans)
+        if len(string) <= 3 and ('M' in string or 'D' in string):
+            continue
+        result[len(string)].append(romans)
+    return result
 
 
-PRIME_TO_ROMAN_TABLE, ROMAN_TO_INT_TABLE = build_table()
+PRIME_TO_ROMAN_TABLE = build_table()
 
 
 class Listener4634(ConstraintSolver):
@@ -60,13 +81,14 @@ class Listener4634(ConstraintSolver):
         super().__init__(self.make_clue_list())
         self.add_my_constraints()
 
-    def make_clue_list(self) -> [Clue]:
+    def make_clue_list(self) -> Sequence[Clue]:
         counter = 0
 
         def make(name: str, length: int, base_location: Location) -> Clue:
             nonlocal counter
             counter += 1
-            return Clue(str(counter), name.isupper(), base_location, length, generator=self.my_generator)
+            return Clue(str(counter), name.isupper(), base_location, length,
+                        generator=self.my_generator)
 
         return (
             make('A', 5, (1, 1)),
@@ -101,31 +123,33 @@ class Listener4634(ConstraintSolver):
         )
 
     @staticmethod
-    def my_generator(clue: Clue) -> Sequence[str]:
+    def my_generator(clue: Clue) -> Sequence[RomanString]:
         return PRIME_TO_ROMAN_TABLE[clue.length]
 
     def add_my_constraints(self) -> None:
         def clues_of_length(n: int) -> Sequence[Clue]:
-            result = [clue for clue in self._clue_list if clue.length == n]
+            result = [clue for clue in self.clue_list if clue.length == n]
             assert len(result) == 2
             return result
 
-        def test9922(nine1: RomanString, nine2: RomanString, two1: RomanString, two2: RomanString) -> bool:
-            for a, b in itertools.permutations((two1.as_int, two2.as_int)):
-                for s, t in itertools.permutations((nine1.as_int, nine2.as_int)):
+        def test9922(nine1: RomanString, nine2: RomanString,
+                     two1: RomanString, two2: RomanString) -> bool:
+            for a, b in permutations((two1.as_int, two2.as_int)):
+                for s, t in permutations((nine1.as_int, nine2.as_int)):
                     if s + b == t + a:
                         return True
             return False
 
         def test77(seven1: RomanString, seven2: RomanString) -> bool:
-            for q, r in itertools.permutations((seven1.as_int, seven2.as_int)):
+            for q, r in permutations((seven1.as_int, seven2.as_int)):
                 if q + 15 == 4 * r:
                     return True
             return False
 
-        def test2266(two1: RomanString, two2: RomanString, six1: RomanString, six2: RomanString) -> bool:
+        def test2266(two1: RomanString, two2: RomanString,
+                     six1: RomanString, six2: RomanString) -> bool:
             for a in (two1.as_int, two2.as_int):
-                for (n, p) in itertools.permutations((six1.as_int, six2.as_int)):
+                for (n, p) in permutations((six1.as_int, six2.as_int)):
                     if 2 * n == 2 * p + a + 3:
                         return True
             return False
@@ -135,12 +159,11 @@ class Listener4634(ConstraintSolver):
         self.add_constraint((*clues_of_length(2), *clues_of_length(6)), test2266)
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        special_count = sum(1 for value in known_clues.values() if cast(RomanString, value).has_special)
+        special_count = sum(1 for value in known_clues.values()
+                            if cast(RomanString, value).has_special)
         if special_count != 3:
             return False
-        location_to_value = {location: char
-                             for clue, value in known_clues.items()
-                             for location, char in zip(clue.locations, value)}
+        location_to_value = self.get_board(known_clues)
         temp = Counter(location_to_value.values())
         if temp['M'] != 1 or temp['D'] != 2:
             return False
@@ -151,7 +174,8 @@ class Listener4634(ConstraintSolver):
     def check_all_constraints(known_clues: KnownClueDict) -> dict[str, int] | None:
         """
         In the equations below, lower-case letters stand for distinct grid entries, of the
-        following lengths: a, b (2); c (3); d, e, f, g, h, k (4); m (5); n, p (6); q, r (7); s, t (9).
+        following lengths:
+            a, b (2); c (3); d, e, f, g, h, k (4); m (5); n, p (6); q, r (7); s, t (9).
         Apart from the grouping by length, this list is in no particular order.
         d = Vt + c + n
         e + f + g + h + k + VII = s + m
@@ -171,30 +195,29 @@ class Listener4634(ConstraintSolver):
                if e.as_int + f.as_int + g.as_int + h.as_int + k.as_int + 7 == s.as_int + m.as_int]
         msa = [(m, s, a) for m, s, a in itertools.product(answers[5], answers[9], answers[2])
                if m.as_int + 4 == s.as_int + 2 * a.as_int]
-        npa = [(n, p, a) for (n, p), a in itertools.product(itertools.permutations(answers[6], 2), answers[2])
+        npa = [(n, p, a) for (n, p), a in itertools.product(permutations(answers[6], 2), answers[2])
                if 2 * n.as_int == 2 * p.as_int + a.as_int + 3]
-        qr = [(q, r) for q, r in itertools.permutations(answers[7], 2)
+        qr = [(q, r) for q, r in permutations(answers[7], 2)
               if q.as_int + 15 == 4 * r.as_int]
         sbta = [(s, b, t, a)
-                for s, t in itertools.permutations(answers[9], 2)
-                for a, b in itertools.permutations(answers[2], 2)
+                for s, t in permutations(answers[9], 2)
+                for a, b in permutations(answers[2], 2)
                 if s.as_int + b.as_int == t.as_int + a.as_int]
 
         for (d, t, c, n), (d2, s, m), (m2, s2, a), (n, p, a2), (q, r), (s3, b, t, a3) \
                 in itertools.product(dtcn, dsm, msa, npa, qr, sbta):
             if d == d2 and a == a2 == a3 and m == m2 and s == s2 == s3:
                 e, f, g, h, k = sorted(set(answers[4]) - {d})
-                my_dict = dict(zip("abcdefghkmnpqrst",
-                                   (a, b, c, d, e, f, g, h, k, m, n, p, q, r, s, t)))
-                return my_dict
+                return dict(zip("abcdefghkmnpqrst",
+                                (a, b, c, d, e, f, g, h, k, m, n, p, q, r, s, t), strict=True))
 
         return None
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         location_to_clue_numbers = defaultdict(list)
         clue_values: KnownClueDict = args['clue_values']
         for letter, value in self.check_all_constraints(clue_values).items():
-            clue = next(clue for clue in self._clue_list if clue_values[clue] == value)
+            clue = next(clue for clue in self.clue_list if clue_values[clue] == value)
             pointer = '→' if clue.is_across else '↓'
             location_to_clue_numbers[clue.location(0)].append(letter + pointer)
         args['location_to_clue_numbers'] = location_to_clue_numbers

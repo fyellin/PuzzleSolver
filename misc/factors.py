@@ -2,8 +2,22 @@ import functools
 import math
 from collections.abc import Sequence
 
-from more_itertools import factor, run_length
+from more_itertools import factor, run_length, totient
 
+__all__ = [
+    'divisor_count',
+    'even_factor_count',
+    'factor_count',
+    'factor_list',
+    'factor_sum',
+    'odd_factor_count',
+    'phi',
+    'prime_factors',
+    'prime_factors_as_string',
+    'shared_factor_count',
+    # 'subscript_mapping',
+    # 'superscript_mapping',
+]
 
 @functools.cache
 def prime_factors(value: int) -> list[tuple[int, int]]:
@@ -19,11 +33,7 @@ def divisor_count(value: int) -> int:
 
 @functools.cache
 def phi(value: int) -> int:
-    # number of values that mutually prime
-    current = value
-    for prime, _ in prime_factors(value):
-        current = (current // prime) * (prime - 1)
-    return current
+    return totient(value);
 
 
 @functools.cache

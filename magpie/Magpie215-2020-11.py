@@ -72,7 +72,7 @@ class Solver215(ConstraintSolver):
         self.add_constraint(('16a', '3d'), self.is_factor)
         self.add_constraint(('6d', '15d'), lambda d6, d15: self.is_square(int(d15) - int(d6)))
         clue1 = self.clue_named("1a")
-        others = [clue for clue in self._clue_list if clue.length == clue1.length and clue != clue1]
+        others = [clue for clue in self.clue_list if clue.length == clue1.length and clue != clue1]
         others.insert(0, clue1)
         self.add_constraint(others, lambda *args: self.first_is_jumble(args))
 
@@ -106,9 +106,7 @@ class Solver215(ConstraintSolver):
         return False
 
     def check_solution(self, known_clues: KnownClueDict) -> bool:
-        location_to_value = {location : char
-                             for clue, value in known_clues.items()
-                             for location, char in zip(clue.locations, value)}
+        location_to_value = self.get_board(known_clues)
         counter = collections.Counter(location_to_value.values())
         if '0' in counter:
             return False

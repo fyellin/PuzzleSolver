@@ -1,9 +1,16 @@
 import re
+import string
+from collections.abc import Iterable, Sequence
 from typing import cast
-from collections.abc import Sequence, Iterable
 
-from solver import Clue, Clues, EquationSolver, Letter, ClueValue
-from solver import KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    EquationSolver,
+    KnownClueDict,
+    KnownLetterDict,
+)
 
 GRID = """
 X.X..XXX..XXX
@@ -150,7 +157,7 @@ def run() -> None:
 
 def run2() -> None:
     clue_list = create_clue_list(True)
-    letters = [Letter(x) for x in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
+    letters = list(string.ascii_uppercase)
     values = (98, 30, 19, 17, 6, 57, 39, 24, 27, 32, 13, 2, 7, 84, 3, 43, 71, 53, 5, 9, 40, 4, 21, 15, 10, 31)
     assert len(letters) == len(values) == 26
     solver = MySolver(clue_list, items=list(range(2, 100)))

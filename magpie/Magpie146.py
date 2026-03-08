@@ -9,17 +9,23 @@ The first solver is needed just to generate a list of numbers.  It has two speci
 import functools
 import itertools
 import re
-from collections.abc import Sequence, Iterable, Callable
+from collections.abc import Callable, Iterable, Sequence
 
 from more_itertools import sieve
 
-from solver import Clue, ClueValue, ConstraintSolver, EquationSolver, Intersection
-from solver import generators
 # 6  4s
 # 14 5s
 # 6  6s
 # 4  7s
-from solver import KnownClueDict, KnownLetterDict
+from solver import (
+    Clue,
+    ClueValue,
+    ConstraintSolver,
+    EquationSolver,
+    Intersection,
+    KnownClueDict,
+    KnownLetterDict,
+)
 
 CLUE_DATA = """
 1 4 DDS

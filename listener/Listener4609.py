@@ -1,8 +1,8 @@
 import itertools
-from typing import Any
 from collections.abc import Sequence
+from typing import Unpack
 
-from solver import Clue, EquationSolver, Clues, Location
+from solver import Clue, Clues, DrawGridKwargs, EquationSolver, Location
 
 GRID = """
 XX.X.XX.X.XX
@@ -89,7 +89,7 @@ class Listener4609(EquationSolver):
         locations = Clues.get_locations_from_grid(GRID)
         return Clues.create_from_text(ACROSS, DOWN, locations)
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         location_to_entry: dict[Location, str] = args['location_to_entry']
         for letter, (row, column) in zip(self.array, itertools.product(range(1, 13), repeat=2)):
             location_to_entry[row, column] = letter

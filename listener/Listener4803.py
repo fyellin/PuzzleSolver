@@ -1,11 +1,11 @@
-from collections.abc import Iterator, Sequence, Callable
-
 import itertools
 from collections import defaultdict
+from collections.abc import Callable, Iterator, Sequence
 from itertools import product
 
 from misc.UnionFind import UnionFind
-from solver import Clue, ClueValue, Clues, ConstraintSolver
+from solver import Clue, Clues, ConstraintSolver
+from solver.helpers import digit_sum, is_cube, is_fibonacci, is_square, is_triangular
 
 GRID = """
 XX.XXXXX
@@ -25,29 +25,28 @@ def fibonacci_generator(max_val):
         i, j = j, i + j
 
 
-SQUARES = {x * x for x in range(1, 1000)}
-CUBES = {x * x * x for x in range(1, 100)}
-TRIANGLES = {x * (x + 1) // 2 for x in range(2000)}
-FIBONACCIS = set(fibonacci_generator(1_000_000))
-SUM_OF_SQUARES = {x + y for x, y in itertools.combinations(SQUARES, 2) if x + y <= 10_000}
+SUM_OF_SQUARES = {
+    x + y for x, y in itertools.combinations((x * x for x in range(100)), 2)
+    if x + y <= 10_000
+}
 
 CLUES = [
     (1, 17,  4, lambda x: str(x) != str(x)[::-1]),   # not palindrome
-    (5, 22,  3, lambda x: x in SQUARES),   # square
+    (5, 22,  3, lambda x: is_square),   # square
     (8, 2,   3, lambda x: True),    # multiple of 15
-    (9, 15,  2, lambda x: x in TRIANGLES),   # triangular
+    (9, 15,  2, lambda x: is_triangular),   # triangular
     (10, 19, 3, lambda x: True),  # 2/3 of 23ac
-    (11, 12, 5, lambda x: x in CUBES),  # cube of 16ac
-    (13, 16, 4, lambda x: x in FIBONACCIS),  # fibonacci
-    (15, 25, 2, lambda x: x in SQUARES),  # square
-    (16, 3,  2, lambda x: x in FIBONACCIS),   # fibonacci
+    (11, 12, 5, lambda x: is_cube),  # cube of 16ac
+    (13, 16, 4, lambda x: is_fibonacci),  # fibonacci
+    (15, 25, 2, lambda x: is_square),  # square
+    (16, 3,  2, lambda x: is_fibonacci),   # fibonacci
     (18, 7,  4, lambda x: True),   # same ds as 26
-    (20, 10, 5, lambda x: x in TRIANGLES),  # triangle
+    (20, 10, 5, lambda x: is_triangular),  # triangle
     (23, 6,  3, lambda x: True),   # see above
-    (24, 14, 2, lambda x: x % 2 == 0 and x // 2 in TRIANGLES),  # two times triangular
+    (24, 14, 2, lambda x: (x % 2 == 0 and is_triangular(x // 2))),  # two times triangular
     (26, 21, 3, lambda x: True),  # see above
     (27, 1,  3, lambda x: x in SUM_OF_SQUARES),   # sum of two squares
-    (28, 4,  4, lambda x: x in TRIANGLES),   # triangular number
+    (28, 4,  4, lambda x: is_triangular),   # triangular number
 ]
 
 
@@ -105,9 +104,6 @@ class Listener4803(ConstraintSolver):
                                     predicate(int(a1) + int(d1), int(a2) + int(d2)),
                                 name=f"{across1}a-{across2}a")
 
-        def digit_sum(x):
-            return sum(int(c) for c in str(x))
-
         d_constraint(8,  15, lambda x, y: x % y == 0)
         d_constraint(10, 23, lambda x, y: y % 3 == 0 and x == y * 2 // 3)
         d_constraint(11, 16, lambda x, y: x == y ** 3)
@@ -124,7 +120,7 @@ class Listener4803(ConstraintSolver):
             for location in equivalence}
 
         id_to_clues = defaultdict(list)
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             for i, location in enumerate(clue.locations):
                 id_to_clues[location_to_id[location]].append((location, clue, i))
 
@@ -137,7 +133,7 @@ class Listener4803(ConstraintSolver):
                                         name=f"{location1}={location2}")
 
     def get_equivalences(self, clues: Sequence[Clue] | None = None):
-        clues = clues or self._clue_list
+        clues = clues or self.clue_list
         uf = UnionFind[tuple[int, int]]()
         for (across, down) in itertools.batched(clues, 2):
             for location1, location2 in zip(across.locations, reversed(down.locations)):
@@ -154,9 +150,9 @@ class Listener4803(ConstraintSolver):
             for locations, letter in zip(equivalences, "ABCDEFGHJKLMNPRSTUVWXYZ")
             for location in locations
         }
-        clue_values = {clue: ClueValue(''.join(loc_to_letter[loc]
-                                               for loc in clue.locations))
-                       for clue in self._clue_list}
+        clue_values = {clue: ''.join(loc_to_letter[loc]
+                                     for loc in clue.locations)
+                       for clue in self.clue_list}
         self.plot_board(clue_values)
 
     def print_arrows(self):

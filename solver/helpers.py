@@ -3,32 +3,37 @@ import math
 from solver import ClueValue
 
 
-def is_square(n):
+def is_square(n: int) -> bool:
     return 0 <= n == math.isqrt(n) ** 2
 
 
-def is_cube(x):
+def is_cube(x: int) -> bool:
     return round(x ** (1 / 3)) ** 3 == x
 
 
-def is_triangular(n):
+def is_triangular(n: int) -> bool:
     if n < 0:
         return False
     discriminant = 8 * n + 1
     return is_square(discriminant)
 
 
-def is_fibonacci(n):
+def is_fibonacci(n: int) -> bool:
     if n < 0:
         return False
     return is_square(5 * n * n + 4) or is_square(5 * n * n - 4)
 
 
-def digit_product(x):
+def is_harshad(value: int) -> bool:
+    digits = map(int, list(str(value)))
+    return value % sum(digits) == 0
+
+
+def digit_product(x: ClueValue | str | int) -> int:
     return math.prod(int(i) for i in str(x))
 
 
-def digit_sum(x):
+def digit_sum(x: ClueValue | str | int) -> int:
     return sum(int(i) for i in str(x))
 
 

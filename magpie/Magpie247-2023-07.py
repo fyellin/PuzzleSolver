@@ -1,4 +1,6 @@
-from solver import Clues, EquationSolver, KnownClueDict, KnownLetterDict
+from typing import Unpack
+
+from solver import Clues, DrawGridKwargs, EquationSolver
 
 GRID = """
 XXXXXXXX
@@ -78,7 +80,7 @@ class Listener4764(EquationSolver):
         clue_list = Clues.create_from_text(ACROSS, DOWN, locations)
         return clue_list
 
-    def draw_grid(self, **args) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         super().draw_grid(subtext="YOU JUST GET USED TO THEM", **args)
 
 if __name__ == '__main__':

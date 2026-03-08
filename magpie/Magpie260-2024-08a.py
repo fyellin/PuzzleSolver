@@ -1,5 +1,7 @@
-import numpy as np
+import pathlib
 from itertools import product
+
+import numpy as np
 
 WORDS = """
 ROOTSYPSHOOLE
@@ -25,7 +27,7 @@ def get_grid():
     return info
 
 def get_words():
-    with open("/users/fy/Pycharm/MagpieSolver/misc/words.txt") as file:
+    with pathlib.Path("/users/fy/Pycharm/MagpieSolver/misc/words.txt").open() as file:
         words = file.readlines()
         words = {word.strip().upper().replace(" ", "") for word in words}
     return words
@@ -47,7 +49,6 @@ def main():
         print(rotations)
         print(temp)
         print(possibles)
-
 
 
 if __name__ == '__main__':

@@ -57,7 +57,7 @@ class Magpie238(EquationSolver):
 
     def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
         result = [(known_letters[clue.context], known_clues[clue])
-                  for clue in self._clue_list]
+                  for clue in self.clue_list]
         result.sort()
         filler = FillInCrosswordGridMushed(result, width=6, height=5)
         results = filler.run(debug=3, square_type=SquareType.FILLED)

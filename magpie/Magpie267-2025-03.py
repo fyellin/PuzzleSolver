@@ -1,18 +1,13 @@
-from itertools import combinations, pairwise, chain
-import math
 from collections import Counter, defaultdict
 from functools import cache
+from itertools import chain, combinations, pairwise
 
-from misc import PRIMES
-from solver import ClueValue, Clues, DancingLinks, EquationSolver
+from more_itertools import is_prime
 
-
-def DS(number: int | str) -> int:
-    return sum(int(x) for x in str(number))
-
-
-def DP(number: int | str) -> int:
-    return math.prod(int(x) for x in str(number))
+from solver import Clues, DancingLinks, EquationSolver
+from solver.dancing_links import get_row_column_optional_constraints
+from solver.helpers import digit_product as DP
+from solver.helpers import digit_sum as DS
 
 
 class Magpie267 (EquationSolver):
@@ -39,7 +34,7 @@ class Magpie267 (EquationSolver):
 
     def solve(self):
         constraints = {}
-        optional_constraints = {f'r{r}c{c}' for r in range(1, 6) for c in range(1, 6)}
+        optional_constraints = get_row_column_optional_constraints(6, 6)
         by_number_and_alt = defaultdict(list)
         by_number_and_location = defaultdict(list)
         all_numbers = [value for value in range(10, 1000) if DP(value) in self.OK_DPS]
@@ -56,13 +51,12 @@ class Magpie267 (EquationSolver):
             optional_constraints.add(f'#{number}')
             alternatives = self.ok_dp_counter[dp]
             assert 1 <= alternatives <= 2
-            for clue in self._clue_list:
+            for clue in self.clue_list:
                 for alt in range(alternatives):
                     if clue.length == len(str(number)):
                         optional_constraints.add(temp := f'{clue.name}-{number}')
-                        constraint = [clue.name, f"DP-{dp}-{alt}", f"#{number}", temp]
-                        constraint.extend((f'r{r}c{c}', letter)
-                                          for (r, c), letter in zip(clue.locations, str(number)))
+                        constraint = [clue.name, f"DP-{dp}-{alt}", f"#{number}", temp,
+                                      *clue.dancing_links_rc_constraints(number)]
                         constraints[(clue.name, number, dp, alt)] = constraint
                         by_number_and_alt[number, alt].append(constraint)
                         by_number_and_location[number, clue].append(constraint)
@@ -90,7 +84,7 @@ class Magpie267 (EquationSolver):
             ]
 
         # Make sure that the two squares that *do* end up in the grid intersect.
-        three_clues = [clue for clue in self._clue_list if clue.length == 3]
+        three_clues = [clue for clue in self.clue_list if clue.length == 3]
         for (clue1, clue2) in combinations(three_clues, 2):
             if not clue1.location_set.isdisjoint(clue2.location_set):
                 continue
@@ -110,7 +104,7 @@ class Magpie267 (EquationSolver):
                         if clue != 'EXTRA'}
             if self.verify_solution(solution):
                 print('***', solution)
-                clue_values = {self.clue_named(name): ClueValue(str(value))
+                clue_values = {self.clue_named(name): str(value)
                                for name, value in self.SOLUTION.items()}
                 self.plot_board(clue_values, subtext=1.2)
 
@@ -129,7 +123,7 @@ class Magpie267 (EquationSolver):
         for e, f in combinations(x1, 2):
             if f % e != 0:
                 continue
-            x2 = [x for x in x1 if x not in (e, f) and x not in PRIMES]
+            x2 = [x for x in x1 if x not in (e, f) and not is_prime(x)]
             for g, h in combinations(x2, 2):
                 if tuple(sorted((DP(g), DP(h)))) not in self.pairwise:
                     continue
@@ -141,7 +135,7 @@ class Magpie267 (EquationSolver):
                         possibilities.append((values, cube_sums))
 
         summed_small_clues = ['2d', '5a', '13a', '12d']  # must contain the sums
-        unsummed_small_clues = [clue.name for clue in self._clue_list
+        unsummed_small_clues = [clue.name for clue in self.clue_list
                                 if clue.length == 2 and clue.name not in summed_small_clues]
         for values, cube_sums in possibilities:
             unused = [x for x in small if x not in values]
@@ -174,14 +168,14 @@ class Magpie267 (EquationSolver):
         for (a, b, c, d) in combinations(ds_set, 4):
             if set(str(a)) & set(str(b)) & set(str(c)) & set(str(d)):
                 e, f, g = list(x1 - {a, b, c, d})
-                if e not in PRIMES and f not in PRIMES and g not in PRIMES:
-                    if DS(e) in PRIMES and DS(f) in PRIMES and DS(g) in PRIMES:
+                if not is_prime(e) and not is_prime(f) and not is_prime(g):
+                    if is_prime(DS(e)) and is_prime(DS(f)) and is_prime(DS(g)):
                         if tuple(sorted([DP(e), DP(f), DP(g)])) in self.triplewise:
                             return True
         return False
 
     def solve3(self):
-        clues = {self.clue_named(name): ClueValue(str(value))
+        clues = {self.clue_named(name): str(value)
                  for name, value in self.SOLUTION.items()}
         locations = {location: int(letter) for clue, value in clues.items()
                      for location, letter in zip(clue.locations, value)}

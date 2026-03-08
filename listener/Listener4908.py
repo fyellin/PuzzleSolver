@@ -1,11 +1,13 @@
 import functools
 import itertools
+from typing import Unpack
 
 from solver import (
     Clue,
     Clues,
     ClueValue,
     ConstraintSolver,
+    DrawGridKwargs,
     generators,
 )
 from solver.generators import (
@@ -88,8 +90,8 @@ class Listener4908(ConstraintSolver):
     def add_left_right_constraints(self, clue_map, name1, name2, generator1, generator2):
         clue1, clue2 = clue_map[name1], clue_map[name2]
         assert clue1.length == clue2.length
-        values1 = frozenset(ClueValue(str(x)) for x in generator1(clue1))
-        values2 = frozenset(ClueValue(str(x)) for x in generator2(clue2))
+        values1 = frozenset(str(x) for x in generator1(clue1))
+        values2 = frozenset(str(x) for x in generator2(clue2))
         values = values1 | values2
         clue1.generator = clue2.generator = generators.known(*values)
 
@@ -149,13 +151,13 @@ class Listener4908(ConstraintSolver):
             return [item[::-1] for item in items if item[-1] != '0']
         return new_generator
 
-    def draw_grid(self, location_to_clue_numbers, **args) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_clue_numbers = args['location_to_clue_numbers']
         for location, values in location_to_clue_numbers.items():
             for index, value in enumerate(values):
                 if int(value) > 10:
                     values[index] = int(value) - 10
-        super().draw_grid(location_to_clue_numbers=location_to_clue_numbers,
-                          blacken_unused=False, **args)
+        super().draw_grid(blacken_unused=False, **args)
 
 
 def extended_multiply_constraint(values, a, b, c) -> list[ClueValue]:

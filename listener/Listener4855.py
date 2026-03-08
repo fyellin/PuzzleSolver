@@ -1,8 +1,8 @@
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
+from typing import Unpack
 
-from solver import Clues, EquationSolver
-from solver import KnownClueDict, KnownLetterDict
+from solver import Clues, DrawGridKwargs, EquationSolver, KnownClueDict, KnownLetterDict
 
 ACROSS = """
 1 (BR + A)(N − DN + EW) 
@@ -76,10 +76,12 @@ class Listener4855(EquationSolver):
                                                                  len(letters), 2)
         return self.duplicates
 
-    def draw_grid(self, *, known_letters=None, location_to_entry, **args):
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        known_letters = args.get('known_letters', None)
         if not known_letters:
-            super().draw_grid(location_to_entry=location_to_entry, **args)
+            super().draw_grid(**args)
             return
+        location_to_entry = args['location_to_entry']
         digit_to_letters = defaultdict(str)
         for letter, value in known_letters.items():
             digit_to_letters[str(value)] += letter
@@ -87,9 +89,8 @@ class Listener4855(EquationSolver):
             if column in (1, 5, 9):
                 location_to_entry[row, column] = "TWODIGITPERFECTNUMBER"[(column - 1) // 4 * 7 + (row - 1)]
         shaded_squares = [location for location, value in location_to_entry.items() if value in ('2', '8')]
-        super().draw_grid(known_letters=known_letters,
-                          shading=dict.fromkeys(shaded_squares, 'red'),
-                          location_to_entry=location_to_entry, font_multiplier=0.8, **args)
+        super().draw_grid(shading=dict.fromkeys(shaded_squares, 'red'),
+                          font_multiplier=0.8, **args)
 
 
     # self.draw_grid(max_row=max_row, max_column=max_column,

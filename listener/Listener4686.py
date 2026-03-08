@@ -1,14 +1,18 @@
 import itertools
-import math
-from typing import Any
-from collections.abc import Sequence, Iterator
+from collections.abc import Iterator, Sequence
+from typing import Unpack
 
-from misc.factors import prime_factors
-from solver import Clue, ClueValue, Clues, ConstraintSolver, DancingLinks, generators
-
-
-def digit_sum(number: int) -> int:
-    return sum(int(x) for x in str(number))
+from misc import prime_factors
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    ConstraintSolver,
+    DancingLinks,
+    DrawGridKwargs,
+    generators,
+)
+from solver.helpers import is_square, is_triangular
 
 
 def generate_power(clue: Clue) -> Iterator[int]:
@@ -39,21 +43,6 @@ def is_multiple(big: ClueValue, little: ClueValue):
 def is_product_of_three_distinct_primes(value: ClueValue):
     factors = prime_factors(int(value))
     return len(factors) == 3 and all(count == 1 for _, count in factors)
-
-
-TRIANGULARS = {i * (i + 1) // 2 for i in range(1000)}
-
-
-def is_triangular(x: int | ClueValue) -> bool:
-    return int(x) in TRIANGULARS
-
-
-def is_square(x: int | ClueValue) -> bool:
-    x = int(x)
-    if x < 0:
-        return False
-    y = math.isqrt(x)
-    return y * y == x
 
 
 def generate_24a(clue: Clue):
@@ -153,7 +142,7 @@ class Solver4686 (ConstraintSolver):
         def is_anagram(x: ClueValue, y: ClueValue):
             return sorted(x) == sorted(y)
 
-        for clue in self._clue_list:
+        for clue in self.clue_list:
             self.add_constraint((clue,), is_dice)
         self.add_constraint(("8a", "18a"), sum_is_triangular)
         self.add_constraint(("10a", "34d"), is_multiple)
@@ -163,7 +152,7 @@ class Solver4686 (ConstraintSolver):
         self.add_constraint(("19a",  "29a"), sum_is_triangular)
         self.add_constraint(("23a", "32d"), is_multiple)
         self.add_constraint(("27a", "16a"), sum_is_square)
-        self.add_constraint(("29a",), lambda x: int(x) % 8 == 0 or int(x) % 27 == 0 and int(x) != 27)
+        self.add_constraint(("29a",), lambda x: int(x) % 8 == 0 or (int(x) % 27 == 0 and int(x) != 27))
         self.add_constraint(("30a", "24d"), lambda x, y: is_square(int(x) - int(y)))
         self.add_constraint(("31a", "16a"), sum_is_square)
         self.add_constraint(("33a", "30a"), is_multiple)
@@ -181,14 +170,16 @@ class Solver4686 (ConstraintSolver):
               '#bfef45', '#fabed4', '#469990', '#dcbeff', '#9A6324', '#fffac8', '#800000', '#aaffc3',
               '#808000', '#ffd8b1', '#000075', '#a9a9a9', '#000000')
 
-    def draw_grid(self, location_to_entry, top_bars, left_bars, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
+        location_to_entry = args['location_to_entry']
+        top_bars = args['top_bars']
+        left_bars = args['left_bars']
         if location_to_entry:
             solution = Part2(location_to_entry, top_bars=top_bars, left_bars=left_bars).solve()
             shading = {square: color for row, color in zip(solution, self.COLORS) for square in row}
         else:
             shading = {}
-        super().draw_grid(location_to_entry=location_to_entry, top_bars=top_bars, left_bars=left_bars,
-                          shading=shading, **args)
+        super().draw_grid(shading=shading, **args)
 
 
 Shape = tuple[tuple[int, int], ...]
@@ -244,7 +235,6 @@ class Part2:
         min_c = min(x for _, x in shape)
         return tuple((x - min_r, y - min_c) for x, y in shape)
 
-
     def solve(self):
         counter = 0
         constraints = {}
@@ -268,7 +258,7 @@ class Part2:
         optional_constraints = {f"R{r}C{c}" for r in range(1, 11) for c in range(1, 9)}
         dl = DancingLinks(constraints, optional_constraints=optional_constraints,
                           row_printer=lambda x: results.append(x))
-        dl.solve(debug=100)
+        dl.solve()
         return results[0]
 
 

@@ -1,9 +1,9 @@
 import itertools
 import re
 from collections.abc import Iterable, Sequence
-from typing import Any
+from typing import Unpack
 
-from solver import ClueValue, EquationSolver, Evaluator, Clue, KnownLetterDict
+from solver import Clue, ClueValue, DrawGridKwargs, EquationSolver, Evaluator, KnownLetterDict
 
 EQUATIONS = """
 1 A – B + BOT                , ((ANY – O)(N + E))**2
@@ -64,11 +64,11 @@ class Magpie217 (EquationSolver):
                 return ()
             digits = v1 + v2
             missing = next(x for x in '123456789' if x not in digits)
-            return [ClueValue(missing + digits[i:] + digits[:i]) for i in range(8)]
+            return [missing + digits[i:] + digits[:i] for i in range(8)]
 
         clue.evaluators[0].set_wrapper(my_evaluator)
 
-    def draw_grid(self, **args: Any) -> None:
+    def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         left_bars = []
         top_bars = []
         shading = {}

@@ -1,39 +1,70 @@
-from collections.abc import Sequence, Callable
-from typing import Any, cast
-from itertools import product
+from __future__ import annotations
 
-from matplotlib import pyplot as plt, patches
+import typing
+from collections.abc import Callable, Sequence
+from itertools import product
+from typing import TypedDict, Unpack
+
+from matplotlib import patches
+from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
-from .clue_types import Location
+from .clue_types import ClueValue, Letter, Location
+
+if typing.TYPE_CHECKING:
+    from clue import Clue
+
+
+class DrawGridKwargs(TypedDict, total=False):
+    max_row: int
+    max_column: int
+    clued_locations: set[Location]
+    clue_values: dict[Clue, ClueValue]
+    location_to_entry: dict[Location, str]
+    location_to_clue_numbers: dict[Location, Sequence[str]]
+    top_bars: set[Location]
+    left_bars: set[Location]
+    shading: dict[Location, str | tuple[float, float, float]]
+    coloring: dict[Location, str]
+    rotation: dict[Location, str | int]
+    circles: set[Location]
+    subtext: str | None
+    font_multiplier: float
+    blacken_unused: bool
+    known_letters: dict[Letter, int]
+    file: str | None
+    grid_drawer: Callable[[plt, Axes], None]
+    extra: Callable[[plt, Axes], None]
+    axes: Axes
 
 
 def draw_grid(*, max_row: int, max_column: int,
               clued_locations: set[Location] | None = None,
-              location_to_entry: dict[Location, str] = None,
-              location_to_clue_numbers: dict[Location, Sequence[str]] = None,
+              location_to_entry: dict[Location, str] | None = None,
+              location_to_clue_numbers: dict[Location, Sequence[str]] | None = None,
               top_bars: set[Location] = frozenset(),
               left_bars: set[Location] = frozenset(),
-              shading: dict[Location, str] = None,
-              coloring: dict[Location, str] = None,
-              rotation: dict[Location, str] = None,
+              shading: dict[Location, str] | None = None,
+              coloring: dict[Location, str] | None = None,
+              rotation: dict[Location, str | int] | None = None,
               circles: set[Location] = frozenset(),
               subtext: str | None = None,
               font_multiplier: float = 1.0,
               blacken_unused: bool = True,
               file: str | None = None,
-              grid_drawer: Callable[[plt, Axes], None] = None,
-              extra: Callable[[plt, Axes], None] = None,
-              **args: Any) -> None:
+              grid_drawer: Callable[[plt, Axes], None] | None = None,
+              extra: Callable[[plt, Axes], None] | None = None,
+              **args: Unpack[DrawGridKwargs]) -> None:
 
-    _axes = args.get('axes')
-    if _axes:
-        axes = cast(Axes, _axes)
-    else:
+    axes = args.get('axes')
+    if not axes:
+        created_axes = True
         _, axes = plt.subplots(1, 1, figsize=(8, 11), dpi=100)
+    else:
+        created_axes = False
 
     # set (1,1) as the top-left corner, and (max_column, max_row) as the bottom right.
-    axes.axis([1, max_column, max_row, 1])
+    axes.axis((1, max_column, max_row, 1))
     axes.axis('equal')
     axes.axis('off')
 
@@ -90,8 +121,10 @@ def draw_grid(*, max_row: int, max_column: int,
         color = coloring.get((row, column), 'black')
         axes.text(column + 1 / 2, row + 1 / 2, entry,
                   color=color,
-                  fontsize=points_per_data / 2, fontweight='bold', fontfamily="SF Pro Text",
-                  va='center', ha='center', rotation=rotation.get((row, column), 0))
+                  fontsize=points_per_data / 2, fontweight='bold',
+                  fontfamily="SF Pro Text",
+                  va='center', ha='center',
+                  rotation=rotation.get((row, column), 0))
 
     if subtext is not None:
         axes.text((max_column + 1) / 2, max_row + .1, subtext,
@@ -100,7 +133,7 @@ def draw_grid(*, max_row: int, max_column: int,
 
     # Fill in the clue numbers
     for (row, column), clue_numbers in location_to_clue_numbers.items():
-        font_info = dict(fontsize=points_per_data / 4, fontfamily="sans-serif")
+        font_info = {'fontsize': points_per_data / 4, 'fontfamily': "sans-serif"}
         for index, text in enumerate(clue_numbers):
             if index == 0:
                 axes.text(column + .05, row + .05, text,
@@ -121,5 +154,5 @@ def draw_grid(*, max_row: int, max_column: int,
     if file is not None:
         plt.savefig(file)
 
-    if not _axes:
+    if created_axes:
         plt.show()

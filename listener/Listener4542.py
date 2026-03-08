@@ -2,21 +2,27 @@ import collections
 from collections.abc import Sequence
 from operator import itemgetter
 
-from solver import Clue, ClueValue, ClueValueGenerator, ConstraintSolver, Evaluator, \
-    KnownClueDict, Location
 from misc import number_to_words
-
+from solver import (
+    Clue,
+    ClueValue,
+    ClueValueGenerator,
+    ConstraintSolver,
+    Evaluator,
+    KnownClueDict,
+    Location,
+)
 
 
 def create_length_to_integer_dict() -> tuple[dict[tuple[int, int], list[int]], dict[ClueValue, ClueValue]]:
     result: dict[tuple[int, int], list[int]] = collections.defaultdict(list)
     word_sums = {}
     for i in range(1, 1000):
-        clue_value = ClueValue(str(i))
+        clue_value = str(i)
         word = ''.join(i for i in number_to_words(i) if i.islower())
         clue_length = len(clue_value)
         num_letters = len(word)
-        word_sums[ClueValue(str(i))] = ClueValue(str(sum(ord(c) - ord('a') + 1 for c in set(word))))
+        word_sums[str(i)] = str(sum(ord(c) - ord('a') + 1 for c in set(word)))
         result[clue_length, num_letters].append(i)
     return result, word_sums
 
@@ -78,10 +84,10 @@ class MySolver(ConstraintSolver):
         def constraint(arg: ClueValue, *args: ClueValue) -> bool:
             # The args are in the same order as the evaluator.vars, so we can create a Letter->value dictionary
             # by zipping them together.
-            evaluator_dictionary = dict(zip(evaluator.vars, map(int, args)))
-            return WORD_SUMS[arg] == evaluator(evaluator_dictionary)
+            evaluator_dictionary = dict(zip(evaluator.vars, map(int, args), strict=True))
+            return (WORD_SUMS[arg],) == evaluator(evaluator_dictionary)
 
-        constraint_vars = [clue.name] + list(evaluator.vars)
+        constraint_vars = [clue.name, *list(evaluator.vars)]
         self.add_constraint(constraint_vars, constraint, name=f'Clue {clue.name}')
 
     def show_solution(self, known_clues: KnownClueDict) -> None:
@@ -104,5 +110,4 @@ def run() -> None:
 
 
 if __name__ == '__main__':
-    # TODO: This doesn't work.  Not sure why.
     run()

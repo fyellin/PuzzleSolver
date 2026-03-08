@@ -1,9 +1,17 @@
 import re
 from itertools import permutations
 
-from solver import Clue, ClueValue, Clues, ConstraintSolver, KnownLetterDict, \
-    Location, generators
-from solver import LCH_Info, LetterCountHandler
+from solver import (
+    Clue,
+    Clues,
+    ClueValue,
+    ConstraintSolver,
+    KnownLetterDict,
+    LCH_Info,
+    LetterCountHandler,
+    Location,
+    generators,
+)
 
 GRID = """
 XXXXXX
@@ -86,21 +94,23 @@ class Magpie288(ConstraintSolver):
         return result
 
     def get_letter_values(self) -> KnownLetterDict:
-        # The evaluation must be < the the second number
+        # The evaluation must be < the second number
         clue_min = [(clue.evaluators[0], 10 ** clue.length, clue.expression)
-                    for clue in self._clue_list if clue.context == 'Min']
+                    for clue in self.clue_list if clue.context == 'Min']
         # The evaluation must be >= the second number.  For say, an 4-digit maximum, the smallest possible
         # maximum is 10,000 leaving space for precisely one answer.  But all answers are prime, so the smallest
         # possible maximum is actually 10,001.
         clue_max = [(clue.evaluators[0], 10 ** (clue.length - 1) + 1, clue.expression)
-                    for clue in self._clue_list if clue.context == 'Max']
+                    for clue in self.clue_list if clue.context == 'Max']
         for (b, d, e, g, l, n, o, r, m, u) in permutations((2, 3, 5, 7, 11, 13, 17, 19, 23, 29)):
             if r < m:
                 continue
-            info: KnownLetterDict = dict(B=b, D=d, E=e, G=g, L=l, M=m, N=n, O=o, R=r, U=u)
-            if all(int(evaluator(info)) < maximum for evaluator, maximum, _ in clue_min):
+            info: KnownLetterDict = {'B': b, 'D': d, 'E': e, 'G': g, 'L': l,
+                                     'M': m, 'N': n, 'O': o, 'R': r, 'U': u}
+            if all(int(evaluator(info)) < maximum for evaluator, maximum, _ in clue_min):  #noqa
                 if all(int(evaluator(info)) >= minimum for evaluator, minimum, _ in clue_max):
                     return info
+        raise RuntimeError('No solution')
 
     def generator(self, clue: Clue):
         if not clue.context:
@@ -119,7 +129,7 @@ class Magpie288(ConstraintSolver):
     def get_allowed_regexp(self, location: Location) -> str:
         if not self.is_start_location(location):
             return '.'
-        clues = [clue for clue in self._clue_list if clue.location(0) == location and clue.context]
+        clues = [clue for clue in self.clue_list if clue.location(0) == location and clue.context]
         if not clues:
             return '.'
         result = set(range(1, 10))
@@ -137,11 +147,11 @@ class Magpie288(ConstraintSolver):
 
     class MyLetterCountHandler(LetterCountHandler):
         def real_checking_value(self, value: ClueValue, _info: LCH_Info) -> bool:
-            count1 = sum(1 for x in self._counter.values() if x > 0)
-            count2 = max(self._counter.values())
-            result = (count1 <= 9 and count2 <= 4) or (count1 <= 6 and count2 <= 6) \
+            count1 = sum(1 for x in self.counter.values() if x > 0)
+            count2 = max(self.counter.values())
+            return (count1 <= 9 and count2 <= 4) or (count1 <= 6 and count2 <= 6) \
                      or (count1 <= 4 and count2 <= 9) or (count1 <= 3 and count2 <= 12)
-            return result
+
 
 if __name__ == '__main__':
     Magpie288.run()
