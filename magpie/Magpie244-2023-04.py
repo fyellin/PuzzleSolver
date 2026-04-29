@@ -1,6 +1,7 @@
 import collections
 import itertools
 import math
+from collections.abc import Sequence
 from functools import cache
 from typing import NamedTuple
 
@@ -54,11 +55,13 @@ class RowName (NamedTuple):
         items -= self.get_squares()
         return {(r, c) for r, c in items if 1 <= r <= 7 and 1 <= c <= 7}
 
-    def get_self_and_penumbra(key) -> set[tuple[int, int]]:
+    @cache
+    def get_full_shadow(self) -> set[tuple[int, int]]:
         items = {(r + dr, c + dc)
-                 for r, c in key.get_squares()
-                 for dr in (-1, 0) for dc in (-1, 0)
+                 for r, c in self.get_squares()
+                 for dr in (-1, 0, 1) for dc in (-1, 0, 1)
                  }
+        items -= self.get_squares()
         return {(r, c) for r, c in items if 1 <= r <= 7 and 1 <= c <= 7}
 
 
@@ -106,15 +109,17 @@ class Magpie244(ConstraintSolver):
     def solve(self, debug=None):
         constraints = {}
         optional_constraints = get_row_column_optional_constraints(7, 7)
-
         for key in RowName.get_all_keys():
+            letter = str(key.length + 4)
             constraints[key] = [f'L-{key.length}',
-                                *(f'r{r}c{c}' for r, c in key.get_self_and_penumbra())]
-        dl = DancingLinks(constraints, optional_constraints=optional_constraints,
-                          row_printer=self.verify_solution)
+                                *((f'r{r}c{c}', letter) for r, c in key.get_squares()),
+                                *((f'r{r}c{c}', '0') for r, c in key.get_full_shadow()),
+                                ]
+        dl = DancingLinks[RowName](constraints, optional_constraints=optional_constraints,
+                                   row_printer=self.verify_solution)
         dl.solve()
 
-    def verify_solution(self, solution: list[RowName]):
+    def verify_solution(self, solution: Sequence[RowName]):
         counts = collections.Counter(x for key in solution for x in key.get_shadow())
         for key in solution:
             for square in key.get_squares():
