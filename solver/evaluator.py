@@ -21,15 +21,19 @@ class Evaluator[C, W]:
     def create_evaluator(cls, expression: str,
                          mapping: Mapping[str, Callable] | None = None,
                          wrapper: WrapperType | None = None,
-                         ) -> Evaluator:
-        result, = cls.create_evaluators(expression, mapping, wrapper)
+                         *, outer_vars: Sequence[Letter] | None = None,
+                         lambda_name: str | None = None) -> Evaluator:
+        result, = cls.create_evaluators(expression, mapping, wrapper,
+                                        outer_vars=outer_vars,
+                                        lambda_name=lambda_name)
         return result
 
     @classmethod
     def create_evaluators(cls, expression: str,
                           mapping: Mapping[str, Callable] | None = None,
                           wrapper: WrapperType | None = None,
-                          ) -> Sequence[Evaluator]:
+                          *, outer_vars: Sequence[Letter] | None = None,
+                          lambda_name: str | None = None) -> Sequence[Evaluator]:
         if cls._equation_parser is None:
             cls._equation_parser = EquationParser()
         if mapping is None:
@@ -40,11 +44,19 @@ class Evaluator[C, W]:
         my_globals = {'fact': cls.factorial, 'sqrt': cls.sqrt, 'math': math, **mapping}
         mapping_vars = set(mapping.keys())
         evaluators = []
+        if outer_vars is not None:
+            outer_vars = sorted(outer_vars)
         for parse in parses:
-            variables = cast(Sequence[Letter], sorted(parse.vars()))
+            if outer_vars is not None:
+                assert set(parse.vars()) <= set(outer_vars)
+                variables = outer_vars
+            else:
+                variables = cast(Sequence[Letter], sorted(parse.vars()))
             expression = parse.to_string(mapping_vars, False)
             code = f"lambda {', '.join(variables)}: {expression}"
             compiled_code = eval(code, my_globals, {})
+            if lambda_name is not None:
+                compiled_code.__name__ = compiled_code.__qual_name__ = lambda_name
             evaluators.append(Evaluator(wrapper, compiled_code, expression, variables))
         return evaluators
 

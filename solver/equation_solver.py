@@ -6,11 +6,12 @@ from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime
 from operator import itemgetter
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Unpack
 
 from .base_solver import BaseSolver, KnownClueDict
 from .clue import Clue
 from .clue_types import Letter, Location
+from .draw_grid import DrawGridKwargs
 from .evaluator import Evaluator
 from .intersection import Intersection
 
@@ -98,7 +99,7 @@ class EquationSolver(BaseSolver):
         clue, evaluator, clue_letters, pattern_maker, constraints = self._solving_order[current_index]
         twin_value = self._known_clues.get(clue, None)  # None if not a twin, twin's value if it is.
         pattern = pattern_maker(self._known_clues)
-        if current_index < self._max_debug_depth:
+        if current_index <= self._max_debug_depth:
             print(f'{" | " * current_index} {clue.name} letters={clue_letters} pattern="{pattern.pattern}"')
         try:
             for next_letter_values in self.get_letter_values(self._known_letters, clue_letters):
@@ -316,9 +317,10 @@ class EquationSolver(BaseSolver):
         return True
 
     # noinspection PyMethodMayBeStatic
-    def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict) -> None:
+    def show_solution(self, known_clues: KnownClueDict, known_letters: KnownLetterDict,
+                      **more_args: Unpack[DrawGridKwargs],) -> None:
         self.show_letter_values(known_letters)
-        self.plot_board(known_clues, known_letters=known_letters)
+        self.plot_board(known_clues, known_letters=known_letters, **more_args)
 
     def show_letter_values(self, known_letters: KnownLetterDict) -> None:
         max_length = max(len(str(i)) for i in known_letters.values())

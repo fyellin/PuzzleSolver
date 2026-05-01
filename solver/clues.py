@@ -37,11 +37,12 @@ class Clues:
 
     @classmethod
     def create_from_text2(
-            cls, across: str, down: str, across_lengths: str, down_lengths: str
+            cls, across: str, down: str, across_lengths: str, down_lengths: str,
+            *, create_unmatched_clues: bool = False
     ) -> Sequence[Clue]:
         all_clue_info = cls.clue_info_from_clue_sizes(across_lengths, down_lengths)
         result: list[Clue] = []
-        for lines, is_across, letter in ((across, True, 'a'), (down, False, 'd')):
+        for lines, is_across in ((across, True), (down, False)):
             for line in lines.splitlines():
                 line = line.strip()
                 if not line:
@@ -51,15 +52,17 @@ class Clues:
                     raise ValueError(f'Cannot create a match from "{line}"')
                 number = int(match.group(1))
                 try:
-                    _name, location, length = all_clue_info.pop((number, is_across))
+                    name, location, length = all_clue_info.pop((number, is_across))
                 except KeyError:
                     print(f'Cannot find a clue {number}{across}')
                     continue
-                clue = Clue(f'{number}{letter}', is_across, location, length,
-                            expression=match.group(2).strip())
+                clue = Clue(name, is_across, location, length, expression=match.group(2).strip())
                 result.append(clue)
-        if all_clue_info:
-            for (number, is_across) in all_clue_info:
+        for (number, is_across), (name, location, length) in all_clue_info.items():
+            if create_unmatched_clues:
+                clue = Clue(name, is_across, location, length)
+                result.append(clue)
+            else:
                 print(f"No information given for clue {number}{"a" if is_across else "d"}")
         return result
 

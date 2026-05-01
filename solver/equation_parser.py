@@ -1,5 +1,6 @@
+# ruff: noqa: RUF001
 import hashlib
-from collections.abc import Sequence
+from collections.abc import Sequence, Set
 from dataclasses import dataclass
 from enum import IntEnum
 from itertools import batched
@@ -48,7 +49,7 @@ POWER: /\*\*|\^/
 FACT: "!"
 PRIME: "'"
 PLUS: "+"
-MINUS: /[-−–]/         # hyphen-minus, Unicode minus \u2212, en dash (\u2013) 
+MINUS: /[-−–]/         # hyphen-minus, Unicode minus \u2212, en dash (\u2013)
 TIMES: /[*×]/          # asterisk, Unicode multiplication (\u00d7)
 
 DIVIDE: "/"
@@ -121,7 +122,7 @@ class EquationParser:
         try:
             return self._parser.parse(text)
         except lark.UnexpectedInput as e:
-            print(f"Syntax error parsing {text}")
+            # print(f"Syntax error parsing {text}")
             raise SyntaxError(str(e)) from e
 
     @staticmethod
@@ -181,7 +182,7 @@ class Parse:
 
     expression: tuple
 
-    def to_string(self, functions: set[str] = frozenset(), concise=False, pure=False
+    def to_string(self, functions: Set[str] = frozenset(), concise=False, pure=False
                   ) -> str:
         """
         :param functions:
