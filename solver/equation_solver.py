@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime
 from operator import itemgetter
-from typing import Any, NamedTuple, Unpack
+from typing import Any, Literal, NamedTuple, Unpack
 
 from .base_solver import BaseSolver, KnownClueDict
 from .clue import Clue
@@ -24,6 +24,7 @@ class ClueInfo(NamedTuple):
     unbound_letters: set[Letter]
     intersections: list[Intersection]
     known_locations: set[Location]
+    clue_type: Literal['Unclued'] | None = None
 
 
 class SolvingStep(NamedTuple):
@@ -225,7 +226,26 @@ class EquationSolver(BaseSolver):
         }
         constraints = [(checker, set(clues)) for clues, checker in self._all_constraints]
 
-        def grading_function(clue_info: ClueInfo) -> Sequence[float]:
+        # We want to look at clues that have a constraint, even if they have no clues. We
+        # create a fake evaluator that just returns the list of possible values.
+        seen_clues = {clue_info.clue for clue_info in not_yet_ordered.values()}
+        constraint_clues = {clue for _, clues in constraints for clue in clues}
+        for clue in constraint_clues - seen_clues:
+            length = clue.length
+
+            def my_wrapper(_evaluator, _vars, length=length):
+                return (str(x) for x in range(10 ** (length - 1), 10 ** length))
+            evaluator = Evaluator(my_wrapper, None, "", ())
+            not_yet_ordered[evaluator] = ClueInfo(clue, evaluator, set(), [], set(), "Unclued")
+
+        def grading_function(evaluator: Evaluator) -> Sequence[float]:
+            clue_info = not_yet_ordered[evaluator]
+            if clue_info.clue_type == "Unclued":
+                # If all letters have been checked, grab it immediately. Otherwise wait until the
+                # end. Perhaps if there are constraints for which this is the only missing clue,
+                # it might we worthwhile to look at this, but we'll worry about that later.
+                priority = 1_000_000_000 if clue_info.known_locations == clue_info.clue.length else -1_000_000_000
+                return (clue_info.clue.priority, priority)
             letters = frozenset(clue_info.unbound_letters)
             clue_length = clue_info.clue.length
             return (clue_info.clue.priority,
@@ -243,23 +263,24 @@ class EquationSolver(BaseSolver):
             }
 
             # For each set of not-yet-bound letters, determine the total number of letters in those clues
-            clue, evaluator, unknown_letters, intersections, _ = max(not_yet_ordered.values(), key=grading_function)
-            not_yet_ordered.pop(evaluator)
-            pattern = self.make_pattern_generator(clue, intersections)
+            evaluator = max(not_yet_ordered, key=grading_function)
+            clue_info = not_yet_ordered.pop(evaluator)
+            clue = clue_info.clue
+            pattern = self.make_pattern_generator(clue, clue_info.intersections)
             for _, clues in constraints:
                 clues.discard(clue)
             # Pull out the constraints for which we've now got solutions to all of its clues
             done_constraints = [checker for checker, clues in constraints if not clues]
             constraints = [(checker, clues) for checker, clues in constraints if clues]
-            result.append(SolvingStep(clue, evaluator, tuple(sorted(unknown_letters)), pattern, done_constraints))
-            for other_clue, _, other_unknown_letters, other_intersections, other_locations in not_yet_ordered.values():
+            result.append(SolvingStep(clue, clue_info.evaluator, tuple(sorted(clue_info.unbound_letters)), pattern, done_constraints))
+            for other_clue_info in not_yet_ordered.values():
                 # Update the remaining not_yet_ordered clues, indicating more known letters and updated intersections
-                other_unknown_letters.difference_update(unknown_letters)
+                other_clue_info.unbound_letters.difference_update(clue_info.unbound_letters)
                 # What intersections does clue create with this new clue?
-                new_intersections = Intersection.get_intersections(other_clue, clue)
-                other_intersections += new_intersections
-                other_locations.update(intersection.get_location() for intersection in new_intersections)
-        assert not constraints
+                new_intersections = Intersection.get_intersections(other_clue_info.clue, clue)
+                other_clue_info.intersections.extend(new_intersections)
+                other_clue_info.known_locations.update(intersection.get_location() for intersection in new_intersections)
+        # assert not constraints
         if self._debug:
             for item in result:
                 print(item.clue, item.letters)

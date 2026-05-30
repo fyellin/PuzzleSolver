@@ -145,7 +145,10 @@ class Magpie281(EquationSolver):
             end_result.append(letters.pop())
         message = ''.join(end_result)
         message = message[0:18] + "\n" + message[18:]
-        super().show_solution(known_clues, known_letters, subtext=message)
+        super().show_solution(known_clues, known_letters,
+                              # subtext="RUDYARD LAKE",
+                              subtext=message
+                              )
 
 
 if __name__ == '__main__':
