@@ -1,15 +1,15 @@
 from itertools import combinations
 from typing import NamedTuple
 
-import matplotlib
+import matplotlib as mpl
 
 from solver import DancingLinks
 
-PENTOMINOS = dict(
-    F='.XX/XX./.X.', I='XXXXX', L="XXXX/X...", N='XX/.XXX', P='XXX/XX',
-    T="XXX/.X/.X", U="X.X/XXX", V="XXX/X/X", W="..X/.XX/XX", X=".X./XXX/.X.",
-    Y="XXXX/.X", Z="XX/.X/.XX"
-)
+PENTOMINOS = {
+    'F': '.XX/XX./.X.', 'I': 'XXXXX', 'L': "XXXX/X...", 'N': 'XX/.XXX', 'P': 'XXX/XX',
+    'T': "XXX/.X/.X", 'U': "X.X/XXX", 'V': "XXX/X/X", 'W': "..X/.XX/XX", 'X': ".X./XXX/.X.",
+    'Y': "XXXX/.X", 'Z': "XX/.X/.XX"
+}
 
 
 class Pentomino(NamedTuple):
@@ -54,6 +54,7 @@ class Pentomino(NamedTuple):
             result[letter] = pictures
         return result
 
+
 class PentominoSolver:
     def solve(self, max_width: int, max_height: int, predicate, *,
               all_pentominos=None,
@@ -73,7 +74,7 @@ class PentominoSolver:
                             count += 1
                             constraint = [letter]
                             constraint.extend(f'r{row}c{col}' for (row, col) in pixels)
-                            constraints[(letter, *pixels)] = constraint
+                            constraints[letter, *pixels] = constraint
             if count == 0:
                 print(f"No location to put letter '{letter}' in grid")
                 return []
@@ -112,15 +113,15 @@ def get_graph_shading(solution, colors=None, white=True):
                for letter, squares in solution.items()
                for color in [colors[color_assignment[letter]]]
                for square in squares}
-    return shading
+    return shading  # noqa
 
 
 def get_graph_colors(color_count: int, white=True):
     if white:
-        colors = [matplotlib.colors.hsv_to_rgb((i / color_count, .6, 1))
+        colors = [mpl.colors.hsv_to_rgb((i / color_count, .6, 1))
                   for i in range(color_count - 2)] + [(1, 1, 1), (.7, .7, .7)]
     else:
-        colors = [matplotlib.colors.hsv_to_rgb((i / color_count, .6, 1))
+        colors = [mpl.colors.hsv_to_rgb((i / color_count, .6, 1))
                   for i in range(color_count - 1)] + [(.7, .7, .7)]
     return colors
 
@@ -130,10 +131,10 @@ def get_hard_bars(solution):
         solution = dict(enumerate(solution))
     location_to_key = {location: key for key, locations in solution.items()
                        for location in locations}
-    min_row = min(x for x, _ in location_to_key.keys())
-    max_row = max(x for x, _ in location_to_key.keys()) + 1
-    min_column = min(y for _, y in location_to_key.keys())
-    max_column = max(y for _, y in location_to_key.keys()) + 1
+    min_row = min(x for x, _ in location_to_key)
+    max_row = max(x for x, _ in location_to_key) + 1
+    min_column = min(y for _, y in location_to_key)
+    max_column = max(y for _, y in location_to_key) + 1
     # Location of squares that have a heavy bar on their left.
     left_bars = {(r, c)
                     for r in range(min_row, max_row)

@@ -89,11 +89,11 @@ class Magpie253 (ConstraintSolver):
                 if column != max_column - 1:
                     pair = location_to_entry[row, column], location_to_entry[row, column + 1]
                     constraints[(row, column), (row, column + 1)] = [
-                        f"R{row}C{column}", f"R{row}C{column + 1}", min(pair)+max(pair)]
+                        f"R{row}C{column}", f"R{row}C{column + 1}", min(pair) + max(pair)]
                 if row != max_row - 1:
                     pair = location_to_entry[row, column], location_to_entry[row + 1, column]
                     constraints[(row, column), (row + 1, column)] = [
-                        f"R{row}C{column}", f"R{row + 1}C{column}", min(pair)+max(pair)]
+                        f"R{row}C{column}", f"R{row + 1}C{column}", min(pair) + max(pair)]
         solutions = []
         solver = DancingLinks(constraints, row_printer=lambda x: solutions.append(x))
         solver.solve(debug=True)
@@ -122,7 +122,7 @@ class Magpie253 (ConstraintSolver):
         self.clue_named("12a").generator = prime
         self.clue_named("13a").generator = prime
         self.add_constraint("13a", lambda x: is_prime(int(x[::-1])))
-        # add that 13a is also a reverse prime
+        # add that 13a is also reverse prime
         self.clue_named("14a").generator = prime
         self.add_constraint("16a 11a 1d", lambda x, y, z: int(x) == int(y) + int(z))
         self.clue_named("17a").generator = sum_of_2_cubes
@@ -155,7 +155,6 @@ class Magpie253 (ConstraintSolver):
         self.clue_named("24d").generator = square
         self.add_constraint("24d 6d", is_factor)
         self.add_constraint("27d 13a 25a", lambda x, y, z: int(x) == int(y) + int(z))
-
 
 
 if __name__ == '__main__':

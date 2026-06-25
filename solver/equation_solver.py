@@ -4,6 +4,7 @@ import pickle
 import re
 from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from operator import itemgetter
 from typing import Any, Literal, NamedTuple, Unpack
@@ -18,7 +19,8 @@ from .intersection import Intersection
 type KnownLetterDict = dict[Letter, int]
 
 
-class ClueInfo(NamedTuple):
+@dataclass
+class ClueInfo:
     clue: Clue
     evaluator: Evaluator
     unbound_letters: set[Letter]
@@ -46,7 +48,8 @@ class EquationSolver(BaseSolver):
     _debug: bool
     _max_debug_depth: int
 
-    def __init__(self, clue_list: Sequence[Clue], *, items: Iterable[int] = (), **args: Any) -> None:
+    def __init__(self, clue_list: Sequence[Clue], *, items: Iterable[int] = (), **args: Any
+                 ) -> None:
         super().__init__(clue_list, **args)
         self._items = tuple(items)
         self._all_constraints = []
@@ -57,7 +60,8 @@ class EquationSolver(BaseSolver):
         if isinstance(clues, str):
             clues = clues.split()
         assert len(clues) >= 1
-        actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue) for clue in clues)
+        actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue)
+                             for clue in clues)
         if not name:
             name = '_'.join(clue.name for clue in actual_clues)
 
@@ -97,11 +101,13 @@ class EquationSolver(BaseSolver):
                 self.show_solution(self._known_clues, self._known_letters)
                 self._solutions.append((self._known_clues.copy(), self._known_letters.copy()))
             return
-        clue, evaluator, clue_letters, pattern_maker, constraints = self._solving_order[current_index]
+        clue, evaluator, clue_letters, pattern_maker, constraints = (
+            self._solving_order[current_index])
         twin_value = self._known_clues.get(clue, None)  # None if not a twin, twin's value if it is.
         pattern = pattern_maker(self._known_clues)
         if current_index <= self._max_debug_depth:
-            print(f'{" | " * current_index} {clue.name} letters={clue_letters} pattern="{pattern.pattern}"')
+            print(f'{" | " * current_index} {clue.name} letters={clue_letters} '
+                  f'pattern="{pattern.pattern}"')
         try:
             for next_letter_values in self.get_letter_values(self._known_letters, clue_letters):
                 self._step_count += 1
@@ -138,12 +144,14 @@ class EquationSolver(BaseSolver):
 
     def _solve_mp(self, current_index: int) -> None:
         assert current_index < len(self._solving_order)
-        clue, evaluator, clue_letters, pattern_maker, constraints = self._solving_order[current_index]
+        clue, evaluator, clue_letters, pattern_maker, constraints = (
+            self._solving_order[current_index])
         twin_value = self._known_clues.get(clue, None)  # None if not a twin, twin's value if it is.
         assert twin_value is None
         pattern = pattern_maker(self._known_clues)
         if current_index < self._max_debug_depth:
-            print(f'{" | " * current_index} {clue.name} letters={clue_letters} pattern="{pattern.pattern}"')
+            print(f'{" | " * current_index} {clue.name} letters={clue_letters} '
+                  f'pattern="{pattern.pattern}"')
 
         items = []
         for next_letter_values in self.get_letter_values(self._known_letters, clue_letters):
@@ -185,14 +193,15 @@ class EquationSolver(BaseSolver):
                     unfinished_ids = sorted(x for x in seen if x < max_id)
                     unfinished_letters = [items[id][1:] for id in unfinished_ids]
                     print(f'{id} {clue.name} {"".join(clue_letters)} '
-                          f'{letter_values} {clue_value} ({clue.length}): --> {len(solutions)} {unfinished_letters} {len(seen)}')
+                          f'{letter_values} {clue_value} ({clue.length}): --> '
+                          f'{len(solutions)} {unfinished_letters} {len(seen)}')
                     for clue_values, letter_values in solutions:
                         self._solutions.append((clue_values, letter_values))
 
     @staticmethod
     def _mp_bridge(arg):
-        id, mytype, current_index, pickled_known_clues, known_letters = arg
-        self = mytype()
+        id, my_type, current_index, pickled_known_clues, known_letters = arg
+        self = my_type()
         # known_clues can't be unpickled until we call Clue.set_pickle_solver.
         Clue.set_pickle_solver(self)
         known_clues = pickle.loads(pickled_known_clues)
@@ -241,11 +250,12 @@ class EquationSolver(BaseSolver):
         def grading_function(evaluator: Evaluator) -> Sequence[float]:
             clue_info = not_yet_ordered[evaluator]
             if clue_info.clue_type == "Unclued":
-                # If all letters have been checked, grab it immediately. Otherwise wait until the
+                # If all letters have been checked, take it immediately. Otherwise, wait until the
                 # end. Perhaps if there are constraints for which this is the only missing clue,
-                # it might we worthwhile to look at this, but we'll worry about that later.
-                priority = 1_000_000_000 if clue_info.known_locations == clue_info.clue.length else -1_000_000_000
-                return (clue_info.clue.priority, priority)
+                # it might be worthwhile to look at this, but we'll worry about that later.
+                fully_known = clue_info.known_locations == clue_info.clue.length
+                priority = 1_000_000_000 if fully_known else -1_000_000_000
+                return clue_info.clue.priority, priority
             letters = frozenset(clue_info.unbound_letters)
             clue_length = clue_info.clue.length
             return (clue_info.clue.priority,
@@ -262,7 +272,8 @@ class EquationSolver(BaseSolver):
                 for letters in unbound_letters_to_clue_count
             }
 
-            # For each set of not-yet-bound letters, determine the total number of letters in those clues
+            # For each set of not-yet-bound letters, determine the total number of letters
+            # in those clues
             evaluator = max(not_yet_ordered, key=grading_function)
             clue_info = not_yet_ordered.pop(evaluator)
             clue = clue_info.clue
@@ -272,14 +283,18 @@ class EquationSolver(BaseSolver):
             # Pull out the constraints for which we've now got solutions to all of its clues
             done_constraints = [checker for checker, clues in constraints if not clues]
             constraints = [(checker, clues) for checker, clues in constraints if clues]
-            result.append(SolvingStep(clue, clue_info.evaluator, tuple(sorted(clue_info.unbound_letters)), pattern, done_constraints))
+            result.append(SolvingStep(clue, clue_info.evaluator,
+                                      tuple(sorted(clue_info.unbound_letters)),
+                                      pattern, done_constraints))
             for other_clue_info in not_yet_ordered.values():
-                # Update the remaining not_yet_ordered clues, indicating more known letters and updated intersections
+                # Update the remaining not_yet_ordered clues, indicating more known letters
+                # and updated intersections
                 other_clue_info.unbound_letters.difference_update(clue_info.unbound_letters)
                 # What intersections does clue create with this new clue?
                 new_intersections = Intersection.get_intersections(other_clue_info.clue, clue)
                 other_clue_info.intersections.extend(new_intersections)
-                other_clue_info.known_locations.update(intersection.get_location() for intersection in new_intersections)
+                other_clue_info.known_locations.update(intersection.get_location()
+                                                       for intersection in new_intersections)
         # assert not constraints
         if self._debug:
             for item in result:

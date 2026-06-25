@@ -12,6 +12,7 @@ def create_factor_grid():
         grid[i, j] = grid[j, i] = factor_count(abs(i * i - j * j))
     return grid
 
+
 TAGS = """AC AD BF
 AH DE DG EH
 BG CH
@@ -25,11 +26,13 @@ all_items = [item for line in lines for item in line]
 
 #                                   A   B  C  D  E    F  G   H
 #    lookup = dict(zip("ABCDEFGH", (6, 15, 5, 7, 10, 16, 12, 3)))
+
+
 class Magpie269 (EquationSolver):
     @classmethod
     def run(cls):
         solver = cls()
-        solver.solve(debug=100)
+        solver.solve(debug=True, max_debug_depth=100)
 
     def __init__(self) -> None:
         clues = self.get_clues()
@@ -59,15 +62,17 @@ class Magpie269 (EquationSolver):
         for clue1, clue2 in itertools.combinations(clues, 2):
             (row1, name1) = clue1.context
             (row2, name2) = clue2.context
-            if row1 == 5 or row2 == 5: continue
+            if row1 == 5 or row2 == 5:
+                continue
             if row1 < row2:
-                self.add_constraint((clue1, clue2), lambda x, y: int(x) < int(y), name=f"{name1}<{name2}")
+                self.add_constraint((clue1, clue2),
+                                    lambda x, y: int(x) < int(y), name=f"{name1}<{name2}")
             elif row1 == row2:
-                self.add_constraint((clue1, clue2), lambda x, y: int(x) == int(y), name=f"{name1}={name2}")
+                self.add_constraint((clue1, clue2),
+                                    lambda x, y: int(x) == int(y), name=f"{name1}={name2}")
             elif row1 > row2:
-                self.add_constraint((clue1, clue2), lambda x, y: int(x) > int(y), name=f"{name1}>{name2}")
-
-
+                self.add_constraint((clue1, clue2),
+                                    lambda x, y: int(x) > int(y), name=f"{name1}>{name2}")
 
     def get_allowed_regexp(self, location: Location) -> str:
         return ".*"
