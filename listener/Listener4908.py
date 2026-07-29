@@ -153,7 +153,7 @@ class Listener4908(ConstraintSolver):
 
     def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         location_to_clue_numbers = args['location_to_clue_numbers']
-        for location, values in location_to_clue_numbers.items():
+        for values in location_to_clue_numbers.values():
             for index, value in enumerate(values):
                 if int(value) > 10:
                     values[index] = int(value) - 10
@@ -169,6 +169,7 @@ def extended_multiply_constraint(values, a, b, c) -> list[ClueValue]:
             return []
     result = str(result)
     return [result] if result in values else []
+
 
 def extended_add_constraint(values, a, b, c) -> list[ClueValue]:
     if a is None:

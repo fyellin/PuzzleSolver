@@ -38,7 +38,7 @@ class Solver210(ConstraintSolver):
         print([(clue.name, value) for clue, value in solver3.solutions[0].items()])
 
     @staticmethod
-    def foobar() -> None:
+    def preemptive_letter_handler() -> None:
         solver = Solver210('abcd', set())
         answers = [
             ('14dA', '37'), ('9aA', '47'), ('13aA', '23'), ('9dA', '425'), ('10aA', '245'), ('16aA', '957'),
@@ -162,4 +162,4 @@ class Solver210(ConstraintSolver):
 
 
 if __name__ == '__main__':
-    Solver210.foobar()
+    Solver210.preemptive_letter_handler()

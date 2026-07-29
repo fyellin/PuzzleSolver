@@ -36,7 +36,7 @@ def get_counts():
             counter[i] += 1
             counter[j] += 1
     result = [counter[i] for i in range(0, 10)]
-    return result
+    return result  # noqa
 
 
 def reverse_square(clue: Clue) -> Iterator[int]:
@@ -164,8 +164,7 @@ class Magpie233 (ConstraintSolver):
         def real_checking_value(self, value: ClueValue, _info: Any) -> bool:
             counter = self.counter
             assert counter['0'] == 0
-            result = all(value <= 0 for value in counter.values())
-            return result
+            return all(value <= 0 for value in counter.values())
 
         @staticmethod
         def get_counts():
@@ -174,8 +173,7 @@ class Magpie233 (ConstraintSolver):
                 if i + j not in {2, 3, 5, 7, 11, 13, 17}:
                     counter[i] += 1
                     counter[j] += 1
-            result = [counter[i] for i in range(0, 10)]
-            return result
+            return [counter[i] for i in range(0, 10)]
 
     def draw_image(self, _plt, axes):
         from matplotlib.offsetbox import AnnotationBbox, OffsetImage
@@ -191,7 +189,6 @@ class Magpie233 (ConstraintSolver):
         image_box = OffsetImage(image, zoom=1.5)
         ab = AnnotationBbox(image_box, (5, 5), frameon=False)
         axes.add_artist(ab)
-
 
     def draw_grid(self, **args: Unpack[DrawGridKwargs]) -> None:
         super().draw_grid(**args, blacken_unused=False)

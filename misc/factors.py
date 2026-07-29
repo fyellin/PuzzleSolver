@@ -15,9 +15,10 @@ __all__ = [
     'prime_factors',
     'prime_factors_as_string',
     'shared_factor_count',
-    # 'subscript_mapping',
-    # 'superscript_mapping',
+    'subscript_digits',
+    'superscript_digits',
 ]
+
 
 @functools.cache
 def prime_factors(value: int) -> list[tuple[int, int]]:
@@ -33,7 +34,7 @@ def divisor_count(value: int) -> int:
 
 @functools.cache
 def phi(value: int) -> int:
-    return totient(value);
+    return totient(value)
 
 
 @functools.cache
@@ -59,8 +60,7 @@ def factor_list(value: int) -> Sequence[int]:
         powers = [prime ** i for i in range(0, count + 1)]
         return [factor * power for factor in sub_factors for power in powers]
 
-    result = sorted(recurse(prime_factors(value)))
-    return result
+    return sorted(recurse(prime_factors(value)))
 
 
 @functools.cache
@@ -85,30 +85,8 @@ def even_factor_count(value: int) -> int:
     return 0 if count == 0 else count * factor_count(value)
 
 
-superscript_mapping = str.maketrans({
-    "0": "⁰",
-    "1": "¹",
-    "2": "²",
-    "3": "³",
-    "4": "⁴",
-    "5": "⁵",
-    "6": "⁶",
-    "7": "⁷",
-    "8": "⁸",
-    "9": "⁹"
-})
-subscript_mapping = str.maketrans({
-    "0": "₀",
-    "1": "₁",
-    "2": "₂",
-    "3": "₃",
-    "4": "₄",
-    "5": "₅",
-    "6": "₆",
-    "7": "₇",
-    "8": "₈",
-    "9": "₉"
-})
+superscript_digits = "⁰¹²³⁴⁵⁶⁷⁸⁹"
+subscript_digits = "₀₁₂₃₄₅₆₇₈₉"
 
 
 def prime_factors_as_string(value: int, show_one=False, separator='·') -> str:
@@ -117,7 +95,8 @@ def prime_factors_as_string(value: int, show_one=False, separator='·') -> str:
         if count == 1 and not show_one:
             results.append(str(prime))
         else:
-            results.append(f"{prime}{str(count).translate(superscript_mapping)}")
+            superscript_digits = ''.join(superscript_digits[int(x)] for x in str(count))
+            results.append(f"{prime}{superscript_digits}")
     return separator.join(results)
 
 

@@ -6,8 +6,8 @@ from datetime import datetime
 from heapq import nlargest, nsmallest
 from typing import Any, NamedTuple, Protocol, cast
 
+from . import Clue
 from .base_solver import KnownClueDict
-from .clue import Clue
 from .clue_types import ClueValue
 from .generator_based_solver import GeneratorBasedSolver
 from .intersection import Intersection
@@ -64,8 +64,8 @@ class ConstraintSolver(GeneratorBasedSolver):
                                 *, name: str | None = None) -> None:
         if isinstance(clues, str):
             clues = clues.split()
-        actual_clues = tuple(clue if isinstance(clue, Clue) else self.clue_named(clue)
-                             for clue in clues)
+        actual_clues = tuple(
+            clue if isinstance(clue, Clue) else self.clue_named(clue) for clue in clues)
         actual_name = name or '-'.join(clue.name for clue in actual_clues)
         assert len(clues) > 1
 
@@ -143,14 +143,14 @@ class ConstraintSolver(GeneratorBasedSolver):
                 print(f'{" | " * depth}{clue.name} XX')
             return
         constraints = self._multi_constraints[clue]
-        seen_values = set(self._known_clues.values())
+        seen_values = {str(x) for x in self._known_clues.values()}
         letter_handler = self._letter_handler
 
         try:
             lh_clue_info = letter_handler and letter_handler.get_clue_info(clue)
             for i, value in enumerate(values):
                 self._step_count += 1
-                is_duplicate = (not self._allow_duplicates and value in seen_values
+                is_duplicate = (not self._allow_duplicates and str(value) in seen_values
                                 and len(value) > 1)
                 fails_letter_handler = (
                         letter_handler and
@@ -173,12 +173,26 @@ class ConstraintSolver(GeneratorBasedSolver):
                     continue
                 if letter_handler:
                     letter_handler.adding_value(value, lh_clue_info)
+                    self.preemptive_letter_handler(next_unknown_clues, str(value))
                 self.__solve(next_unknown_clues)
                 if letter_handler:
                     letter_handler.removing_value(value, lh_clue_info)
 
         finally:
             self._known_clues.pop(clue, None)
+
+    def preemptive_letter_handler(self, unknown_clues: UnknownClueDict, old_value) -> None:
+        letter_handler = self._letter_handler
+        assert letter_handler is not None
+        for clue, values in unknown_clues.items():
+            lh_clue_info = letter_handler.get_clue_info(clue)
+            deleted_values = [i for i, value in enumerate(values)
+                              if not letter_handler.checking_value(value, lh_clue_info)
+                              or str(value) == old_value]
+            if deleted_values:
+                values = list(values)
+                for i in reversed(deleted_values):
+                    values[i:i + 1] = []
 
     def get_initial_values_for_clue(self, clue: Clue) -> Sequence[ClueValue]:
         result = super().get_initial_values_for_clue(clue)
@@ -318,7 +332,7 @@ class LetterCountHandler(AbstractLetterCountHandler):
 
     def get_clue_info(self, clue: Clue) -> LCH_Info:
         changed = [(index, location) for index, location in enumerate(clue.locations)
-                if location not in self._locations]
+                   if location not in self._locations]
         new_locations = {location for _, location in changed}
         new_indices = [index for index, _ in changed]
         return new_indices, new_locations

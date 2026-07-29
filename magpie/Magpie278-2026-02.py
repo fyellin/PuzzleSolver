@@ -17,6 +17,7 @@ from solver.generators import allvalues, prime, square, triangular
 ACROSS_LENGTHS = "33/231/132/33"
 DOWN_LENGTHS = "13/31/22/22/13/31"
 
+
 class Magpie278(ConstraintSolver):
     @classmethod
     def run(cls):
