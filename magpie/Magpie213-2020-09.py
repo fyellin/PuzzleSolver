@@ -175,7 +175,6 @@ class Solver213(ConstraintSolver):
                 if is_point_up or row != 1:
                     axes.plot([center_x - .5, center_x + .5], [flat_row, flat_row], **args)
 
-
         text_args = {'verticalalignment': 'center', 'horizontalalignment': 'center',
                      'fontsize': 20, 'fontfamily': "sans-serif", 'fontweight': 'bold'}
 
@@ -277,6 +276,8 @@ Generator: 0:00:00.055020; list: 0:00:00.092192
 Generator: 0:00:12.039189; list: 0:00:00.363289
 
 """
+
+
 def sum_with_list():
     return sum(i * i for i in range(1, 1_000_000))
 

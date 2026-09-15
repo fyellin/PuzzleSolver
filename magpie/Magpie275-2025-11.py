@@ -55,12 +55,12 @@ def wrapper(self, value_dict: KnownLetterDict) -> Iterable[ClueValue]:
 def wrapper_encode(value: str) -> Sequence[ClueValue]:
     value = list(value)
     seen = set()
-    for index, letter in enumerate(value):
+    for _index, letter in enumerate(value):
         if letter in seen:
             break
         seen.add(letter)
     else:
-        assert False, "should not reach here"
+        raise AssertionError("should not reach here")
     removed = {''.join(value[:i] + value[i + 1:]) for i, ch in enumerate(value) if ch == letter}
 
     result = []
@@ -118,6 +118,7 @@ class Magpie275 (MultiEquationSolver):
         args['top_bars'] = [(r + delta, c) for r, c in location_to_clue_numbers for delta in (0, 1)]
         super().draw_grid(**args)
 
+
 def is_okay(value):
     if (ivalue := int(value)) == value:
         square_value = ivalue * ivalue
@@ -172,7 +173,7 @@ def test1():
 
     letters = "AEHINORST"
     values = [i * i for i in range(1, 10)]
-    permutations = [dict(zip(letters, permutation)) for permutation in itertools.permutations(values)]
+    permutations = [dict(zip(letters, permutation, strict=True)) for permutation in itertools.permutations(values)]
 
     for number, evaluator in evaluators.items():
         x = sum(bool(evaluator(permutation)) for permutation in permutations)

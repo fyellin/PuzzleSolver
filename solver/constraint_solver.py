@@ -186,13 +186,12 @@ class ConstraintSolver(GeneratorBasedSolver):
         assert letter_handler is not None
         for clue, values in unknown_clues.items():
             lh_clue_info = letter_handler.get_clue_info(clue)
-            deleted_values = [i for i, value in enumerate(values)
-                              if not letter_handler.checking_value(value, lh_clue_info)
-                              or str(value) == old_value]
-            if deleted_values:
-                values = list(values)
-                for i in reversed(deleted_values):
-                    values[i:i + 1] = []
+            deleted_indices = {i for i, value in enumerate(values)
+                                if not letter_handler.checking_value(value, lh_clue_info)
+                                or str(value) == old_value}
+            if deleted_indices:
+                unknown_clues[clue] = [value for i, value in enumerate(values)
+                                        if i not in deleted_indices]
 
     def get_initial_values_for_clue(self, clue: Clue) -> Sequence[ClueValue]:
         result = super().get_initial_values_for_clue(clue)

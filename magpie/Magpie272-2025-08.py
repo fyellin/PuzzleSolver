@@ -33,7 +33,7 @@ class Magpie272(ConstraintSolver):
         for clue in self.clue_list:
             clue.generator = generators.allvalues
 
-        for name in "2a 7a 9a 19a 20a 23a".split():
+        for name in ["2a", "7a", "9a", "19a", "20a", "23a"]:
             self.clue_named(name).generator = generators.square
 
         self.add_constraint("5a 22a", lambda x, y: x == y[::-1])
@@ -62,7 +62,7 @@ class Magpie272(ConstraintSolver):
         shading = {}
         for row, col in itertools.product(range(1, 7), repeat=2):
             if ((row - 1) // 2 + (col - 1) // 2) % 2:
-                shading[(row, col)] = 'lightblue'
+                shading[row, col] = 'lightblue'
         super().plot_board(clue_values, shading=shading, **more_args)
 
 
@@ -70,7 +70,7 @@ class MyLetterCountHandler(AbstractLetterCountHandler):
     grid: list[int]
     magic_square: list[int]
 
-    LOCATION_TO_OFFSET = {
+    LOCATION_TO_OFFSET = {  # noqa: RUF012
         (row + 1, column + 1): qr * 12 + qc * 4 + rr * 2 + rc
         for row in range(6) for column in range(6)
         for qr, rr in [divmod(row, 2)]
@@ -88,9 +88,8 @@ class MyLetterCountHandler(AbstractLetterCountHandler):
         # self.all_magics = [m.reshape(9).tolist() for m in magics]
 
     def get_clue_info(self, clue: Clue):
-        update_info = [(index, offset) for index, location in enumerate(clue.locations)
-                       if self.grid[offset := self.LOCATION_TO_OFFSET[location]] < 0]
-        return update_info
+        return [(index, offset) for index, location in enumerate(clue.locations)
+                if self.grid[offset := self.LOCATION_TO_OFFSET[location]] < 0]
 
     ALL_MAGICS = ((2, 9, 4, 7, 5, 3, 6, 1, 8), (4, 3, 8, 9, 5, 1, 2, 7, 6),
                   (8, 1, 6, 3, 5, 7, 4, 9, 2), (6, 7, 2, 1, 5, 9, 8, 3, 4),
@@ -102,7 +101,7 @@ class MyLetterCountHandler(AbstractLetterCountHandler):
         self.adding_value(value, info)
         try:
             all_magics = self.ALL_MAGICS
-            for index, (a, b, c, d) in enumerate(itertools.batched(grid, 4)):
+            for index, (a, b, c, d) in enumerate(itertools.batched(grid, 4, strict=False)):
                 total = a + b + c + d
                 if total >= 0:
                     total = (total % 9) or 9

@@ -50,7 +50,7 @@ def extended_multiply_constraint(values, a, b, c) -> list[ClueValue]:
 
 def extended_add_constraint(values, a, b, c) -> list[ClueValue]:
     if a is None:
-        result = int(b) * int(c)
+        result = int(b) + int(c)
     else:
         result = int(a) - int(b if c is None else c)
         if result < 0:

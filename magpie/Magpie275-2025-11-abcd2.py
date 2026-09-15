@@ -60,6 +60,7 @@ def get_start_grid():
                     assert grid[row, col] == letter
     return grid
 
+
 def set_grid(grid, row, col, letter):
     assert letter in grid[row, col]
     assert grid[row, 0][letter] > 0

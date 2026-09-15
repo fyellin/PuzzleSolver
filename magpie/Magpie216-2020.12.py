@@ -32,7 +32,7 @@ DOWN = """
 3 L – G/H (2)
 4 U + EEEEE – S (5)
 5 MIXT + TO – OO (3)
-7 N – LITT/M (5) 
+7 N – LITT/M (5)
 10 STROON + OP + I  (4)
 12 AO + CT (3)
 14 (T + L) / O (3)
@@ -52,7 +52,6 @@ class Magpie216(EquationSolver):
         for clue in clue_list:
             self.redo_evaluator(clue)
         super().__init__(clue_list, items=(range(-10, 11)))
-
 
     def redo_evaluator(self, clue: Clue):
         original_evaluator, = clue.evaluators

@@ -48,7 +48,7 @@ class Solver:
                 for indices in itertools.combinations(range(1, 13), len(word)):
                     for aa in [word_index] if is_across else range(1, 13):
                         constraint = [word, f'{"A" if is_across else "D"}-{aa}']
-                        for bb, letter in zip(indices, word, strict=True, strict=True):
+                        for bb, letter in zip(indices, word, strict=True):
                             name = f'r{aa}c{bb}' if is_across else f'r{bb}c{aa}'
                             constraint.append((name, letter))
                         # for bb in range(1, 13):

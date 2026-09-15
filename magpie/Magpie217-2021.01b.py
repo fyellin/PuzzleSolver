@@ -132,7 +132,6 @@ class PrettyPrinter (ConstraintSolver):
             y = old_y - word.count('N') + word.count('S')
             axes.plot([old_x / 2 + 0.25, x / 2 + 0.25], [old_y / 2 + 0.25, y / 2 + 0.25], 'red', linewidth=2)
 
-
         plt.plot(())
         plt.show()
 

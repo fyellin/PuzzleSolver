@@ -47,6 +47,7 @@ DOWNS = """
 21 SUE (2)
 """
 
+
 class Magpie273 (EquationSolver):
     @classmethod
     def run(cls) -> None:
@@ -65,4 +66,4 @@ class Magpie273 (EquationSolver):
 
 
 if __name__ == '__main__':
-      Magpie273.run()
+    Magpie273.run()

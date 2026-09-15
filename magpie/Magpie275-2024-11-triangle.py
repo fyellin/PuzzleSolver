@@ -7,6 +7,7 @@ from solver import DancingLinks
 
 Square = tuple[int, int]
 
+
 def next_triangle(square: Square, direction: int) -> Square:
     (row, column) = square
     is_regular = column % 2 == 1
@@ -20,6 +21,7 @@ def next_triangle(square: Square, direction: int) -> Square:
         case (False, 2) | (True, 1):
             result = row, column - 1
     return result
+
 
 def parse_recipe(start: Square, recipe: str, direction: int) -> tuple[Square, ...]:
     result = [start, last := next_triangle(start, direction)]
@@ -46,13 +48,14 @@ RECIPES = [
     "llrr", "rrrr", "*l/r*l/r"
 ]
 
-VALUES = "504230245523 154011310541 235523345430 043021020221 245324513115 053141044230".split()
+VALUES = ["504230245523", "154011310541", "235523345430", "043021020221", "245324513115", "053141044230"]
+
 
 def draw_triangle(squares: Sequence[Square], area) -> None:
-    figure, axis = plt.subplots(1, 1, dpi=300)
+    _figure, axis = plt.subplots(1, 1, dpi=300)
     axis.set_aspect('1.7')
     axis.axis('off')
-    for index, square in enumerate(squares, start=1):
+    for _index, square in enumerate(squares, start=1):
         shape = HEX_MAP[square]
         color = 'lightgreen' if shape in area[0] else 'lightblue' if shape in area[1] else 'yellow'
         color = 'white'
@@ -63,7 +66,7 @@ def draw_triangle(squares: Sequence[Square], area) -> None:
             point, a, b, toff = (x, y), (x - 1, y + 1), (x + 1, y + 1), .6
         else:
             point, a, b, toff = (x, y + 1), (x + 1, y), (x - 1, y), .3
-        xs, ys = zip(point, a, b, point)
+        xs, ys = zip(point, a, b, point, strict=True)
         axis.fill(xs, ys, lw=0.5, color='black', fc=color)
         axis.text(x, y + toff, text, fontsize=15, fontweight='bold',
                   va='center', ha='center')
@@ -76,6 +79,7 @@ def draw_triangle(squares: Sequence[Square], area) -> None:
         # if near_shapes[2] != shape:
         #     axis.plot(*zip(point, a), lw=2, color='black')
     plt.show()
+
 
 def draw_map(area):
     triangles = list(itertools.product(range(1, 7), range(1, 13)))
@@ -103,6 +107,7 @@ def dancing_links(debug=False):
                 constraints[name] = values
 
     result = None
+
     def my_row_printer(info):
         nonlocal result
         assert result is None
@@ -130,12 +135,13 @@ RESULTS = {
 
 HEX_MAP = {square: hex for hex, squares in RESULTS.items() for square in squares}
 
+
 def get_neighbors():
     all_neighbors = set()
-    neighbors = { index: {square for cell in RESULTS[index]
-                          for direction in (0, 1, 2)
-                          for square in [next_triangle(cell, direction)]
-                          if HEX_MAP.get(square, index) != index}
+    neighbors = {index: {square for cell in RESULTS[index]
+                         for direction in (0, 1, 2)
+                         for square in [next_triangle(cell, direction)]
+                         if HEX_MAP.get(square, index) != index}
                   for index in range(1, 13)
                   }
     for index1, index2 in itertools.combinations(range(1, 13), 2):
@@ -166,6 +172,7 @@ def get_neighbors():
             value3 = 0x1FFE - value1 - value2
             if value3 in color_maps2:
                 print(decoder[value1], decoder[value2], decoder[value3])
+
 
 AREA = [(1, 5, 6, 7), (3, 8, 10, 11), (2, 4, 9, 12)]
 

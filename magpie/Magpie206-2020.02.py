@@ -45,11 +45,12 @@ DOWN = """
 20 (GL + AB)(GL – AB) (2)
 """
 
-ACROSS = re.sub("\(\w\w \+ \w\w\)", "", ACROSS)
-DOWN = re.sub("\(\w\w \+ \w\w\)", "", DOWN)
+ACROSS = re.sub(r"\(\w\w \+ \w\w\)", "", ACROSS)
+DOWN = re.sub(r"\(\w\w \+ \w\w\)", "", DOWN)
 
 # A C E H J L
 # B D F G I K
+
 
 class MySolver(EquationSolver):
     @staticmethod
@@ -59,6 +60,7 @@ class MySolver(EquationSolver):
         solver = MySolver(clue_list, items=(2, 3, 5, 7, 11, 13, 4, 9, 25, 49, 121, 169))
         solver.verify_is_180_symmetric()
         solver.solve(debug=False)
+
 
 if __name__ == '__main__':
     MySolver.run()
