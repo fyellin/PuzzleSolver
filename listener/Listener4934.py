@@ -72,7 +72,7 @@ class Listener4934(BaseSolver):
             value15 = value1 * 9 // 5
             value2 = value1 * 14 // 5
             s1, s15, s2 = str(value1), str(value15), str(value2)
-            if '0' not in s1 + s15 + s2 and len(set(s1)) == len(set(s15)) == len(set(s2)) == 3:  # noqa: SIM102
+            if '0' not in s1 + s15 + s2 and len(set(s1)) == len(set(s15)) == len(set(s2)) == 3:
                 if s1[2] == s2[0] and len(set(s1 + s2)) == 5:
                     self.set_value((1, value1), (2, value2), (15, value15))
 

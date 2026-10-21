@@ -91,7 +91,7 @@ class Listener4922 (EquationSolver):
                 clue.expression = expression
                 clue.evaluators = Evaluator.create_evaluators(expression)
             clues_in_order.append(clue)
-        self.square_sets = list(itertools.batched(clues_in_order, 4))  # noqa: B911
+        self.square_sets = list(itertools.batched(clues_in_order, 4))
 
 
 if __name__ == '__main__':

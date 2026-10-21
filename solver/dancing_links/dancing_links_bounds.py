@@ -126,7 +126,7 @@ class DancingLinksBounds[Row: Hashable](DancingLinksBase[Row]):
                             uncommit_row(r, chosen_item)
 
                     # Advance to the next option.
-                    if ft == 0: # noqa
+                    if ft == 0:
                         # Full-cover: follow r's stable original pointer (r was restored).
                         r = down[r]
                     else:
@@ -515,7 +515,7 @@ class DancingLinksBounds[Row: Hashable](DancingLinksBase[Row]):
                     best_theta = lam
                     best_slack_val = slack[c]
                     best_len_val = lengths[c]
-                if lam <= 1 or not constraint_names[c].startswith('#'): # noqa
+                if lam <= 1 or not constraint_names[c].startswith('#'):
                     if (lam < preferred_theta
                             or (lam == preferred_theta and slack[c] < preferred_slack_val)
                             or (lam == preferred_theta and slack[c] == preferred_slack_val

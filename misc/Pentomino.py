@@ -5,11 +5,11 @@ import matplotlib as mpl
 
 from solver import DancingLinks
 
-PENTOMINOS = {
+PENTOMINOS = frozendict({
     'F': '.XX/XX./.X.', 'I': 'XXXXX', 'L': "XXXX/X...", 'N': 'XX/.XXX', 'P': 'XXX/XX',
     'T': "XXX/.X/.X", 'U': "X.X/XXX", 'V': "XXX/X/X", 'W': "..X/.XX/XX", 'X': ".X./XXX/.X.",
     'Y': "XXXX/.X", 'Z': "XX/.X/.XX"
-}
+})
 
 
 class Pentomino(NamedTuple):
@@ -113,7 +113,7 @@ def get_graph_shading(solution, colors=None, white=True):
                for letter, squares in solution.items()
                for color in [colors[color_assignment[letter]]]
                for square in squares}
-    return shading  # noqa
+    return shading
 
 
 def get_graph_colors(color_count: int, white=True):

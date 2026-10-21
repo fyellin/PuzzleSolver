@@ -36,7 +36,7 @@ def get_counts():
             counter[i] += 1
             counter[j] += 1
     result = [counter[i] for i in range(0, 10)]
-    return result  # noqa
+    return result
 
 
 def reverse_square(clue: Clue) -> Iterator[int]:

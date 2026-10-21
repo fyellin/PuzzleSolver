@@ -70,7 +70,7 @@ class MyLetterCountHandler(AbstractLetterCountHandler):
     grid: list[int]
     magic_square: list[int]
 
-    LOCATION_TO_OFFSET = {  # noqa: RUF012
+    LOCATION_TO_OFFSET = {
         (row + 1, column + 1): qr * 12 + qc * 4 + rr * 2 + rc
         for row in range(6) for column in range(6)
         for qr, rr in [divmod(row, 2)]

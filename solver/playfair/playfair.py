@@ -11,8 +11,8 @@ class PlayfairSolver:
     @staticmethod
     def test(*, debug: bool = False) -> None:
         solver = PlayfairSolver(
-            plain_text='TOPSYTURVY' 'INVERTED' 'UPSIDEDOWN',  # noqa
-            cipher_text='WK..A.YVRU' 'SMI..HFE' 'PBWSEF..SO',  # noqa
+            plain_text='TOPSYTURVY' 'INVERTED' 'UPSIDEDOWN',
+            cipher_text='WK..A.YVRU' 'SMI..HFE' 'PBWSEF..SO',
             tail=16)
         results = solver.solve(debug=debug)
         for result in results:
@@ -87,8 +87,8 @@ class PlayfairSolver:
 
 
 if __name__ == '__main__':
-    solver = PlayfairSolver(cipher_text=".P..EA" "O.IB.." "..NT.L" "IM..G." "..RI.K" "SI..E." ".T..ED" "U.TO..",  # noqa
-                            plain_text="BONERS" "MENDED" "SIRING" "RUMPLE" "AGENTS" "DENNIS" "KERMIS" "PIECER",  # noqa
+    solver = PlayfairSolver(cipher_text=".P..EA" "O.IB.." "..NT.L" "IM..G." "..RI.K" "SI..E." ".T..ED" "U.TO..",
+                            plain_text="BONERS" "MENDED" "SIRING" "RUMPLE" "AGENTS" "DENNIS" "KERMIS" "PIECER",
                             tail=12)
 
     results = solver.solve(debug=False)

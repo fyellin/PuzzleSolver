@@ -114,7 +114,7 @@ class Magpie263 (ConstraintSolver):
         def match(letter, expression):
             return abs(letter - expression ** 2) == 1
 
-        def is_prime(x): return more_itertools.is_prime(int(x))  # noqa: F821
+        def is_prime(x): return more_itertools.is_prime(int(x))
         def is_not_prime(x): return not is_prime(x)
         def is_triangular(x): return solver.helpers.is_triangular(int(x))
         def is_not_triangular(x): return not is_triangular(x)

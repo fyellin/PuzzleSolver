@@ -101,7 +101,7 @@ def tagged_generator(*list_of_lists):
         result = [TaggedString(item, tag)
                   for tag, list_ in enumerate(list_of_lists)
                   for item in list_]
-        return result  # noqa
+        return result
     return generator
 
 

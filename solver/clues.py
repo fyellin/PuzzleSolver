@@ -1,5 +1,5 @@
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from .clue import Clue
 from .clue_types import Location
@@ -38,10 +38,15 @@ class Clues:
     @classmethod
     def create_from_text2(
             cls, across: str, down: str, across_lengths: str, down_lengths: str,
-            *, create_unmatched_clues: bool = False
+            *,
+            create_unmatched_clues: bool = False,
+            rewrite_expression: Callable[[str], str] | None = None
     ) -> Sequence[Clue]:
         all_clue_info = cls.clue_info_from_clue_sizes(across_lengths, down_lengths)
         result: list[Clue] = []
+        if not rewrite_expression:
+            def rewrite_expression(x: str) -> str:
+                return x
         for lines, is_across in ((across, True), (down, False)):
             for line in lines.splitlines():
                 line = line.strip()
@@ -56,7 +61,8 @@ class Clues:
                 except KeyError:
                     print(f'Cannot find a clue {number}{across}')
                     continue
-                clue = Clue(name, is_across, location, length, expression=match.group(2).strip())
+                expression = rewrite_expression(match.group(2).strip())
+                clue = Clue(name, is_across, location, length, expression=expression)
                 result.append(clue)
         for (number, is_across), (name, location, length) in all_clue_info.items():
             if create_unmatched_clues:
@@ -74,7 +80,7 @@ class Clues:
         for is_across, info in (True, across), (False, down):
             for x, row_info in enumerate(info.split('/'), start=1):
                 y = 1
-                for length in [int(x) for x in list(row_info)]:
+                for length in [int(x, 26) for x in list(row_info)]:
                     if length != 1:
                         location = (x, y) if is_across else (y, x)
                         clues.append((is_across, location, length))

@@ -1,4 +1,3 @@
-# ruff: noqa: E302
 import pytest
 
 from solver import Orderer

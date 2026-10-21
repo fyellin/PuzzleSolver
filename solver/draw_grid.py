@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import typing
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Sequence, Set
 from itertools import product
 from typing import TypedDict, Unpack
 
@@ -42,12 +42,12 @@ def draw_grid(*, max_row: int, max_column: int,
               clued_locations: set[Location] | None = None,
               location_to_entry: dict[Location, str] | None = None,
               location_to_clue_numbers: dict[Location, Sequence[str]] | None = None,
-              top_bars: set[Location] = frozenset(),
-              left_bars: set[Location] = frozenset(),
+              top_bars: Set[Location] = frozenset(),
+              left_bars: Set[Location] = frozenset(),
               shading: dict[Location, str] | None = None,
               coloring: dict[Location, str] | None = None,
               rotation: dict[Location, str | int] | None = None,
-              circles: set[Location] = frozenset(),
+              circles: Set[Location] = frozenset(),
               subtext: str | None = None,
               font_multiplier: float = 1.0,
               blacken_unused: bool = True,

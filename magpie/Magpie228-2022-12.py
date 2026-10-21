@@ -107,7 +107,7 @@ class Magpie288(ConstraintSolver):
                 continue
             info: KnownLetterDict = {'B': b, 'D': d, 'E': e, 'G': g, 'L': l,
                                      'M': m, 'N': n, 'O': o, 'R': r, 'U': u}
-            if all(int(evaluator(info)) < maximum for evaluator, maximum, _ in clue_min):  #noqa
+            if all(int(evaluator(info)) < maximum for evaluator, maximum, _ in clue_min):
                 if all(int(evaluator(info)) >= minimum for evaluator, minimum, _ in clue_max):
                     return info
         raise RuntimeError('No solution')

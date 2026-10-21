@@ -1,4 +1,3 @@
-# ruff: noqa: RUF001
 import hashlib
 from collections.abc import Sequence, Set
 from dataclasses import dataclass
@@ -137,7 +136,7 @@ class EquationParser:
         return parser
 
     @classmethod
-    def generate_standalone(cls, filename: Path | str, compress=False, verbose=True):
+    def generate_standalone(cls, filename: Path, compress=False, verbose=True):
         import lark
         from lark.tools.standalone import gen_standalone
         with Path(filename).open("w") as out:
@@ -156,12 +155,12 @@ class EquationParser:
 
 @dataclass
 class Parse:
-    PARSE_BINOPS: ClassVar[dict[str, str]] = {
+    PARSE_BINOPS: ClassVar[frozendict[str, str]] = frozendict({
         '+': 'add', '-': 'sub', '*': 'mul', '/': 'div', '**': 'pow'
-    }
-    PARSE_UNOPS: ClassVar[dict[str, str]] = {
+    })
+    PARSE_UNOPS: ClassVar[frozendict[str, str]] = frozendict({
         '+': 'pos', '-': 'neg', '!': 'fact', '√': 'sqrt', '\'': 'prime'
-    }
+    })
 
     class Precedence(IntEnum):
         NONE = 0
@@ -173,11 +172,11 @@ class Parse:
         POWER = 6
         POSTFIX = 7        # ! and '
 
-    BINARY_PRECEDENCE: ClassVar[dict[str, Precedence]] = {
+    BINARY_PRECEDENCE: ClassVar[frozendict[str, Precedence]] = frozendict({
         '+': Precedence.ADD_SUB, '-': Precedence.ADD_SUB,
         '*': Precedence.MUL_DIV, '/': Precedence.MUL_DIV,
         '**': Precedence.POWER,
-    }
+    })
     RIGHT_ASSOC = frozenset({'**'})
 
     expression: tuple
@@ -219,9 +218,9 @@ class Parse:
             """
             match expr:
                 # Atoms
-                case str() as x:
+                case str(x):
                     return x
-                case int() as x:
+                case int(x):
                     return str(x)
 
                 # Function calls
@@ -269,7 +268,7 @@ class Parse:
 
         def internal(expression):
             match expression:
-                case str() as x:
+                case str(x):
                     result.add(x)
                 case int():
                     pass

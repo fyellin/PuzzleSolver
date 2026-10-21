@@ -171,7 +171,7 @@ class Solver213(ConstraintSolver):
             elif where == 'right':
                 if column + 2 * row != 17:
                     axes.plot([center_x, center_x + .5], [point_row, flat_row], **args)
-            elif where in ('top', 'bottom'): # noqa
+            elif where in ('top', 'bottom'):
                 if is_point_up or row != 1:
                     axes.plot([center_x - .5, center_x + .5], [flat_row, flat_row], **args)
 

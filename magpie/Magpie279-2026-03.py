@@ -64,7 +64,7 @@ class Magpie278(ConstraintSolver):
     def __init__(self, *, print_result) -> None:
         clues = Clues.clues_from_clue_sizes(
             ACROSS_LENGTHS, DOWN_LENGTHS,
-            across_names="ABCDEFGHJKLM", down_names="abcdefghijkm") # noqa
+            across_names="ABCDEFGHJKLM", down_names="abcdefghijkm")
         self.print_result = print_result
         self.equations = self.get_constraints()
         self.letters = {clue.name for clue in clues}

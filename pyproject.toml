@@ -1,14 +1,17 @@
 [project]
 name = "magpie-solver"
 version = "0.1.0"
-requires-python = ">=3.14"
+requires-python = ">=3.15"
 dependencies = [
     "lark==1.3.1",
-    "matplotlib==3.10.8",
-    "more-itertools==10.8.0",
+    "matplotlib==3.11.2",
+    "more-itertools==11.2.1",
     "sortedcontainers==2.4.0",
-    "numpy==2.4.0",
-
+    "numpy==2.5.4",
+    "regex==2026.9.29",
+    "rich==15.0.0",
+    "scipy==1.18.1",
+    "networkx==3.7",
 ]
 
 [project.optional-dependencies]
@@ -36,7 +39,7 @@ filterwarnings = ["ignore:FigureCanvasAgg is non-interactive"]
 # --------------------------------------------------------------------------- #
 [tool.ruff]
 line-length = 95
-target-version = "py314"
+target-version = "py315"
 preview = true
 exclude = [
     ".git",
@@ -68,6 +71,7 @@ select = [
     "RUF",
 ]
 ignore = [
+    "RET504",
     "RET505",
     "RET506",
     "RET507",

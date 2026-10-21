@@ -19,7 +19,6 @@ from solver.dancing_links import DLConstraint
 ACROSS_LENGTHS = "44/2132/143/341/2312/44"
 DOWN_LENGTHS = "141/33/42/24/42/24/33/141"
 
-# ruff: noqa: RUF001
 CLUES = """
 1 AB
 2 D

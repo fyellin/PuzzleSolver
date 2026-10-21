@@ -22,7 +22,7 @@ class _OrdererLtLe[T: Hashable]:
         self._real_count = count + int(is_lt)
 
     @cache
-    def left(self, i: T) -> set[str]:
+    def left(self, i: T) -> frozenset[str]:
         if self._mapping:
             i = self._mapping[i]
         else:
@@ -33,10 +33,10 @@ class _OrdererLtLe[T: Hashable]:
         while t > 0:
             result.add(f'{self._prefix}:{t}')
             t &= t - 1
-        return result
+        return frozenset(result)
 
     @cache
-    def right(self, i: T) -> set[str]:
+    def right(self, i: T) -> frozenset[str]:
         if self._mapping:
             i = self._mapping[i]
         else:
@@ -47,7 +47,7 @@ class _OrdererLtLe[T: Hashable]:
         while t < self._real_count:
             result.add(f'{self._prefix}:{t}')
             t += (t & -t)
-        return result
+        return frozenset(result)
 
     def all_codes(self) -> set[str]:
         return {f'{self._prefix}:{t}' for t in range(1, self._real_count)}

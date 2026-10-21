@@ -158,7 +158,7 @@ class BaseSolver(ABC):
             (left_bars if clue.is_across else top_bars).difference_update(
                 clue.locations[1:])
 
-        args = dict( # noqa
+        args = dict(
             max_row=max_row, max_column=max_column,
             clued_locations=clued_locations,
             clue_values=clue_values,

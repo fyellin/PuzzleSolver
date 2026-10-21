@@ -1,12 +1,16 @@
 Metadata-Version: 2.4
 Name: magpie-solver
 Version: 0.1.0
-Requires-Python: >=3.14
+Requires-Python: >=3.15
 Requires-Dist: lark==1.3.1
-Requires-Dist: matplotlib==3.10.8
-Requires-Dist: more-itertools==10.8.0
+Requires-Dist: matplotlib==3.11.2
+Requires-Dist: more-itertools==11.2.1
 Requires-Dist: sortedcontainers==2.4.0
-Requires-Dist: numpy==2.4.0
+Requires-Dist: numpy==2.5.4
+Requires-Dist: regex==2026.9.29
+Requires-Dist: rich==15.0.0
+Requires-Dist: scipy==1.18.1
+Requires-Dist: networkx==3.7
 Provides-Extra: dev
 Requires-Dist: pytest==9.0.2; extra == "dev"
 Requires-Dist: ruff; extra == "dev"

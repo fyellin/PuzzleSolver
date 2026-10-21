@@ -232,7 +232,7 @@ class FillInCrosswordGridAbstract(ABC):
                 break
             for column1 in range(1, width + 1):
                 column2 = width + 1 - column1
-                if (row1, column1) < (row2, column2):  # noqa: SIM102
+                if (row1, column1) < (row2, column2):
                     if column1 != column2 or row2 >= row1 + size:
                         result.append(((row1, column1), (row2, column2)))
         return result
